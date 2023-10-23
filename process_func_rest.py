@@ -56,6 +56,9 @@ def run_dcm2niix(input_dir, output_dir_temp):
     cmd = [
         '/Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
         '-f', '"%p_%s"',
+        '-p', 'y',
+        '-z', 'n',
+        '-ba', 'n',
         '-o', output_dir_temp,
         input_dir
     ]
