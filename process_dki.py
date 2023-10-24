@@ -111,6 +111,7 @@ if __name__ == "__main__":
                     new_file_name = f"{subject_id}_{session_id}_acq-topup_dir-PA_epi{os.path.splitext(file)[-1]}"
                 else:
                     output_bids_dir = os.path.join(args.bids_root, subject_id, session_id, 'dwi')
+                    output_bids_dir_dwi = os.path.join(args.bids_root, subject_id, session_id, 'dwi')
                     new_file_name = f"{subject_id}_{session_id}_dir-AP_dwi{os.path.splitext(file)[-1]}"
                 
                 # Move and rename files
@@ -125,7 +126,8 @@ if __name__ == "__main__":
                     if "TOP_UP_PA" in dki_dir:
                         # need to verify that this BIDs URI is resolvable to map the top up to the dwi file correctly. 
                         # see for more information: https://bids-specification.readthedocs.io/en/stable/02-common-principles.html#bids-uri
-                        intended_for = f"bids::{subject_id}/{session_id}/dwi/{subject_id}_{session_id}_dir-AP_dwi.nii"
+                        # code below was validated with CuBids https://github.com/PennLINC/CuBIDS 
+                        intended_for = f"{session_id}/dwi/{subject_id}_{session_id}_dir-AP_dwi.nii"
                         update_json_file(os.path.join(output_bids_dir, new_file_name), corresponding_dicom, 'topup', intended_for)
                     else:
                         update_json_file(os.path.join(output_bids_dir, new_file_name), corresponding_dicom, 'dwi')
