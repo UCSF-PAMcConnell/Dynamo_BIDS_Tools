@@ -7,6 +7,8 @@ import json
 import pydicom
 import glob
 
+# <dicom_dir> <bids_root>
+
 def extract_b0_field_identifier(dicom_file_path):
     """
     Extracts the B0FieldIdentifier from DICOM tags.
@@ -79,6 +81,7 @@ def run_dcm2niix(input_dir, output_dir_temp):
     ]
     subprocess.run(cmd)
 
+# main code execution
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process DKI DICOM files.')
     parser.add_argument('dicom_root_dir', type=str, help='Root DICOM directory.')
