@@ -6,7 +6,7 @@
 
 # Sort Dicoms
 
-python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/sort_dicom_files.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata sub-LRN001 ses-1
+python ~/Documents/MATLAB/software/iNR/BIDS_tools/sort_dicom_files.py ~/Documents/MRI/LEARN/BIDS_test/sourcedata sub-LRN001 ses-1
 
 # Process dicom to nifti BIDs
 
