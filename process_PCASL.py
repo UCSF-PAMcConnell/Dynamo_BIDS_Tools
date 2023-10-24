@@ -95,6 +95,7 @@ def update_json_file(json_filepath):
         # Need to verify if this needs to be adjusted based on SENSE parallel imaging parameters
         data['EffectiveEchoSpacing'] = 0.0000104
         data['B0FieldSource'] = "*fm2d2r"
+        data['B0FieldSource2']=	"*epse2d1_104"
         file.seek(0)
         json.dump(data, file, indent=4)
         file.truncate()

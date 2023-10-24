@@ -19,7 +19,6 @@ def sort_dicom_files(input_directory, output_directory):
                 dicom_file = pydicom.dcmread(filepath)
                 
                 # Extract sequence information (you might need to adjust this based on your specific DICOM files)
-                # sequence_name = dicom_file.SequenceName  # Adjust attribute if necessary
                 sequence_name = dicom_file.SeriesDescription  # Adjust attribute if necessary
 
                 # Create a directory for the sequence if it doesn't exist
@@ -36,13 +35,18 @@ def sort_dicom_files(input_directory, output_directory):
                 print(f"Could not process file {filename}: {e}")
 
 # Check if the right number of command-line arguments are provided
-if len(sys.argv) != 3:
-    print("Usage: python sort_dicom_files.py <input_directory> <output_directory>")
+if len(sys.argv) != 4:
+    print("Usage: python sort_dicom_files.py <sourcedata_root_dir> <subject_id> <session_id>")
     sys.exit(1)
 
 # Get the paths from the command-line arguments
-input_directory = sys.argv[1]
-output_directory = sys.argv[2]
+sourcedata_root_dir = sys.argv[1]
+subject_id = sys.argv[2]
+session_id = sys.argv[3]
 
-# Call the function with the provided arguments
+# Construct the input and output directories
+input_directory = os.path.join(sourcedata_root_dir, subject_id, session_id, 'dicom')
+output_directory = os.path.join(sourcedata_root_dir, subject_id, session_id, 'dicom_sorted')
+
+# Call the function with the constructed arguments
 sort_dicom_files(input_directory, output_directory)
