@@ -39,7 +39,7 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
     print(f"Current working directory: {os.getcwd()}")  # Debugging line to print current directory
     
     # Using the full path of cubids-validate
-    cubids_path = "/Users/PAM201/anaconda3/envs/fmri/bin/cubids-validate"
+    cubids_path = "~/anaconda3/envs/fmri/bin/cubids-validate"
     cubids_command = f"python {cubids_path} {bids_root_dir} cubids"
     
     print(f"Executing: {cubids_command}")
