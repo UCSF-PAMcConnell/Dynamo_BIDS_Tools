@@ -2,23 +2,6 @@ import os
 import argparse
 import subprocess
 import re
-import glob
-import json
-import shutil
-import tempfile
-
-def update_json_file(json_filepath):
-    """
-    Updates specific fields in a JSON file.
-    
-    Parameters:
-    json_filepath (str): Path to the JSON file to be updated.
-    """
-    with open(json_filepath, 'r+') as file:
-        data = json.load(file)
-        file.seek(0)
-        json.dump(data, file, indent=4)
-        file.truncate()
 
 def extract_ids(dicom_dir):
     """
@@ -38,50 +21,44 @@ def extract_ids(dicom_dir):
     else:
         raise ValueError("Could not extract subject and session IDs from the directory path.")
 
-def run_dcm2niix(input_dir, output_dir_temp):
+def run_dcm2niix(input_dir, output_dir, subject_id, session_id):
     """
-    Runs the dcm2niix conversion and saves the output in a temporary directory.
+    Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format and names the output files according to BIDS conventions.
     
     Parameters:
     input_dir (str): Input directory containing DICOM files.
-    output_dir_temp (str): Temporary directory where the conversion results will be saved.
+    output_dir (str): Directory where the conversion results will be saved.
+    subject_id (str): Subject ID extracted from the DICOM directory path.
+    session_id (str): Session ID extracted from the DICOM directory path.
     """
+    output_dir_anat = os.path.join(output_dir, 'anat')
+    os.makedirs(output_dir_anat, exist_ok=True)
+    
     cmd = [
         '/Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
-        '-f', '"sub-%i_%p"',
-        '-p', 'y',
-        '-z', 'n',
-        '-ba', 'n',
-        '-o', output_dir_temp,
+            '-f', f'sub-{subject_id}_ses-{session_id}_FLAIR',
+            '-p', 'y',
+            '-z', 'n',
+            '-ba', 'n',
+        '-o', output_dir_anat,
         input_dir
     ]
     subprocess.run(cmd)
 
-# Main code execution starts here when the script is run
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process DICOM files and convert to NIfTI.')
-    parser.add_argument('dicom_dir', type=str, help='Directory containing the DICOM files.')
+    parser = argparse.ArgumentParser(description='Process DICOM files and convert them to NIfTI format following BIDS conventions.')
+    parser.add_argument('dicom_root_dir', type=str, help='Root directory containing the DICOM directories.')
     parser.add_argument('bids_root', type=str, help='Root directory of the BIDS dataset.')
     
     args = parser.parse_args()
     
-    subject_id, session_id = extract_ids(args.dicom_dir)
+    # Specify the exact directory where the DICOM files are located within the root directory
+    dicom_dir = os.path.join(args.dicom_root_dir, 't2_tse_dark-fluid_tra_3mm')
+
+    #dicom_dir = args.dicom_root_dir  # Using the provided DICOM root directory directly
     
-    # Create a temporary directory to store the dcm2niix output
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        run_dcm2niix(args.dicom_dir, tmpdirname)
-        
-        # Define the BIDS 'anat' directory where the files should ultimately be saved
-        anat_dir_bids = os.path.join(args.bids_root, f'sub-{subject_id}', f'ses-{session_id}', 'anat')
-        os.makedirs(anat_dir_bids, exist_ok=True)
-        
-        # Copy files from temporary directory to the BIDS 'anat' directory with renaming
-        for ext in ['nii', 'json']:
-            old_files = glob.glob(os.path.join(tmpdirname, f'*.{ext}'))
-            for old_file in old_files:
-                file_basename = os.path.basename(old_file)
-                new_file = os.path.join(anat_dir_bids, f'sub-{subject_id}_ses-{session_id}_FLAIR.{ext}')
-                shutil.copy2(old_file, new_file)
-                
-                if ext == 'json':
-                    update_json_file(new_file)
+    subject_id, session_id = extract_ids(dicom_dir)
+    
+    output_dir = os.path.join(args.bids_root, f'sub-{subject_id}', f'ses-{session_id}')
+    
+    run_dcm2niix(dicom_dir, output_dir, subject_id, session_id)
