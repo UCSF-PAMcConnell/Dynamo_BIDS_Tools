@@ -35,7 +35,7 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id):
     os.makedirs(output_dir_anat, exist_ok=True)
     
     cmd = [
-        '/Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
+        '~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
             '-f', f'sub-{subject_id}_ses-{session_id}_FLAIR',
             '-p', 'y',
             '-z', 'n',
