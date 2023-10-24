@@ -121,7 +121,7 @@ def run_dcm2niix(input_dir, output_dirs):
         os.makedirs(output_dir_perf, exist_ok=True)
 
         cmd = [
-            '/Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
+            '~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
             '-f', '"sub-%i_%p"',
             '-p', 'y',
             '-z', 'n',
