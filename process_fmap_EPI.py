@@ -7,16 +7,9 @@ import json
 import shutil
 import tempfile
 
-# input arguments: <dicom_dir> <bids_root>
-# Requires definition of "IntendedFor" task volumes
-#{
-#   "IntendedFor": [
-#        "bids::sub-01/ses-pre/func/sub-01_ses-pre_task-motor_run-1_bold.nii.gz",
-#        "bids::sub-01/ses-pre/func/sub-01_ses-pre_task-motor_run-2_bold.nii.gz"
-#    ]
-#}
+# input arguments: <dicom_root_dir> <bids_root>
 
-def update_json_file(json_filepath):
+def update_json_file(json_filepath, intended_for=None):
     """
     Updates specific fields in a JSON file.
     
@@ -25,11 +18,13 @@ def update_json_file(json_filepath):
     """
     with open(json_filepath, 'r+') as file:
         data = json.load(file)
+        data['B0FieldIdentifier'] = "*epse2d1_104"
+        data['IntendedFor'] = intended_for
         file.seek(0)
         json.dump(data, file, indent=4)
         file.truncate()
 
-def extract_ids(dicom_dir):
+def extract_ids(dicom_root_dir):
     """
     Extracts subject and session IDs from the DICOM directory path.
     
@@ -39,8 +34,8 @@ def extract_ids(dicom_dir):
     Returns:
     tuple: Subject ID and session ID as strings.
     """
-    match_subject = re.search(r'sub-(\w+)', dicom_dir)
-    match_session = re.search(r'ses-(\w+)', dicom_dir)
+    match_subject = re.search(r'sub-(\w+)', dicom_root_dir)
+    match_session = re.search(r'ses-(\w+)', dicom_root_dir)
     
     if match_subject and match_session:
         return match_subject.group(1), match_session.group(1)
@@ -69,13 +64,20 @@ def run_dcm2niix(input_dir, output_dir_temp):
 # Main code execution starts here when the script is run
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process DICOM files and convert to NIfTI.')
-    parser.add_argument('dicom_dirs', type=str, nargs='+', help='Directories containing the DICOM files.')
+    #parser.add_argument('dicom_dirs', type=str, nargs='+', help='Directories containing the DICOM files.')
+    parser.add_argument('dicom_root_dir', type=str, help='Root directory containing the DICOM directories.')
     parser.add_argument('bids_root', type=str, help='Root directory of the BIDS dataset.')
     
     args = parser.parse_args()
     
+    # Specify the exact directories where the DICOM files are located within the root directory
+    dicom_dirs = [
+            os.path.join(args.dicom_root_dir, 'SpinEchoFieldMap_AP'),
+            os.path.join(args.dicom_root_dir, 'SpinEchoFieldMap_PA')
+        ]
+
     # Loop through each specified DICOM directory
-    for dicom_dir in args.dicom_dirs:
+    for dicom_dir in dicom_dirs:
         direction = 'AP' if 'AP' in dicom_dir else 'PA'
         subject_id, session_id = extract_ids(dicom_dir)
         
@@ -110,4 +112,13 @@ if __name__ == "__main__":
                         shutil.copy2(old_file, new_file_path)
                         
                         if old_file.endswith('.json'):
-                            update_json_file(new_file_path)
+                            intended_for = [f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-01_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-02_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-03_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-04_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-01_sbref.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-02_sbref.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-03_sbref.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-04_sbref.nii",
+                            f"ses-{session_id}/perf/sub-{subject_id}_ses-{session_id}_asl.nii"]
+                            update_json_file(new_file_path, intended_for)

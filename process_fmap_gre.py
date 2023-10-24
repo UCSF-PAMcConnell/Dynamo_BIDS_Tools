@@ -8,13 +8,6 @@ import shutil
 import tempfile
 
 # input arguments: <dicom_root_dir> <bids_root>
-# Requires definition of "IntendedFor" task volumes
-#{
-#   "IntendedFor": [
-#        "bids::sub-01/ses-pre/func/sub-01_ses-pre_task-motor_run-1_bold.nii.gz",
-#        "bids::sub-01/ses-pre/func/sub-01_ses-pre_task-motor_run-2_bold.nii.gz"
-#    ]
-#}
 
 def update_json_file(json_filepath, intended_for=None):
     """
@@ -118,5 +111,6 @@ if __name__ == "__main__":
                         f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-01_sbref.nii",
                         f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-02_sbref.nii",
                         f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-03_sbref.nii",
-                        f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-04_sbref.nii"]
+                        f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-04_sbref.nii",
+                        f"ses-{session_id}/perf/sub-{subject_id}_ses-{session_id}_asl.nii"]
                         update_json_file(new_file_path, intended_for)
