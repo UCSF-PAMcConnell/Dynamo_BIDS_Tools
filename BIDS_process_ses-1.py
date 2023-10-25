@@ -40,7 +40,7 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
     
     # Using the full path of cubids-validate and cubids-add-nifti-info
     cubids_add_nii_hdr_path = "~/anaconda3/envs/fmri/bin/cubids-add-nifti-info"
-    cubids_add_nii_hdr_command = f"python {cubids_add_nii_hdr_path} {bids_root_dir} cubids"
+    cubids_add_nii_hdr_command = f"python {cubids_add_nii_hdr_path} {bids_root_dir}"
     cubids_validate_path = "~/anaconda3/envs/fmri/bin/cubids-validate"
     cubids_validate_command = f"python {cubids_validate_path} {bids_root_dir} cubids"
 
