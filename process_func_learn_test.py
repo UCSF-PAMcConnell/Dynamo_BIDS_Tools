@@ -60,7 +60,7 @@ if __name__ == "__main__":
     run_mapping = {
         '': '01',
         '_seqexec_PRE': '00',
-        '_seqexec_POST': '08',
+        '_seqexec_POST': '07',
         '_1': '01',
         '_2': '02',
         '_3': '03',

@@ -27,13 +27,15 @@ def format_data_for_bids(trial_events, block_data):
     """
     try:
         onset_times_ms = trial_events['trialStart'][0, 0].flatten()
-        durations_ms = block_data['trialDuration'][0, 0].flatten()
-        trial_types_ind = block_data['sequenceInd'][0, 0].flatten()
+        onset_times_sec = onset_times_ms / 1000
+        durations_sec = block_data['trialDuration'][0, 0].flatten()
+        trial_types_ind = block_data['isSequenceTrial'][0, 0].flatten()
         trial_types = ['sequence' if ind == 1 else 'random' for ind in trial_types_ind]
-        
+        #print(trial_types)
+      
         data = pd.DataFrame({
-            'onset': onset_times_ms,
-            'duration': durations_ms,
+            'onset': onset_times_sec,
+            'duration': durations_sec,
             'trial_type': trial_types
         })
         return data
