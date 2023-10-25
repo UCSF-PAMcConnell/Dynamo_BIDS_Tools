@@ -7,7 +7,7 @@ import json
 import pydicom
 import glob
 
-# <dicom_dir> <bids_root>
+# <dicom_root_dir> <bids_root>
 
 def extract_b0_field_identifier(dicom_file_path):
     """
@@ -65,13 +65,10 @@ def update_json_file(json_filepath, dicom_file_path, file_type, intended_for=Non
 def run_dcm2niix(input_dir, output_dir_temp):
     """
     Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
-    
-    Parameters:
-    input_dir (str): Input directory containing DICOM files.
-    output_dir_temp (str): Temporary directory where the conversion results will be saved.
     """
+    dcm2niix_path = os.path.expanduser('~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix')
     cmd = [
-        '~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
+        dcm2niix_path,
         '-f', '"%p_%s"',
         '-p', 'y',
         '-z', 'n',

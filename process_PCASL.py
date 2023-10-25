@@ -114,22 +114,22 @@ def extract_ids(dicom_dir):
 
 def run_dcm2niix(input_dir, output_dirs):
     """
-    Runs the dcm2niix conversion tool for DICOM to NIfTI conversion.
+    Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
     """
+    dcm2niix_path = os.path.expanduser('~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix')
     for output_dir in output_dirs:
         output_dir_perf = os.path.join(output_dir, 'perf')
         os.makedirs(output_dir_perf, exist_ok=True)
-
         cmd = [
-            '~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
+            dcm2niix_path,
             '-f', '"sub-%i_%p"',
             '-p', 'y',
             '-z', 'n',
             '-ba', 'n',
             '-o', output_dir_perf,
             input_dir
-        ]
-        subprocess.run(cmd)
+    ]
+    subprocess.run(cmd)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process DICOM files for ASL context and convert to NIfTI.')

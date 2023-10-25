@@ -31,20 +31,21 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id):
     subject_id (str): Subject ID extracted from the DICOM directory path.
     session_id (str): Session ID extracted from the DICOM directory path.
     """
+    dcm2niix_path = os.path.expanduser('~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix')
     output_dir_anat = os.path.join(output_dir, 'anat')
     os.makedirs(output_dir_anat, exist_ok=True)
-    
     cmd = [
-        '~/Documents/MATLAB/software/iNR/BIDS_tools/dcm2niix',
-            '-f', f'sub-{subject_id}_ses-{session_id}_T1w',
-            '-p', 'y',
-            '-z', 'n',
-            '-ba', 'n',
+        dcm2niix_path,
+        '-f', f'sub-{subject_id}_ses-{session_id}_T1w',
+        '-p', 'y',
+        '-z', 'n',
+        '-ba', 'n',
         '-o', output_dir_anat,
         input_dir
     ]
     subprocess.run(cmd)
 
+# Main code execution starts here
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process DICOM files and convert them to NIfTI format following BIDS conventions.')
     parser.add_argument('dicom_root_dir', type=str, help='Root directory containing the DICOM directories.')

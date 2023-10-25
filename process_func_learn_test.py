@@ -5,6 +5,8 @@ import shutil
 import tempfile
 import json
 
+# <dicom_root_dir> <bids_root>
+
 def update_json_file(json_filepath):
     """
     Updates specific fields in a JSON file by adding the 'TaskName' field with the value 'learn',
