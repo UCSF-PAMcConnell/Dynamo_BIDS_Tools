@@ -50,3 +50,6 @@ output_directory = os.path.join(sourcedata_root_dir, subject_id, session_id, 'di
 
 # Call the function with the constructed arguments
 sort_dicom_files(input_directory, output_directory)
+
+# Removing the 'dicom' directory session sourcedata folder
+shutil.rmtree(input_directory)
