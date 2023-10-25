@@ -162,7 +162,15 @@ if __name__ == "__main__":
     create_aslcontext_file(num_volumes, output_dirs, subject_id, session_id)
     run_dcm2niix(dicom_dir, output_dirs)
     process_files(output_dirs, subject_id, session_id)
+    
+    # Source directory where the files are initially created
+    source_dir = os.path.join(args.dicom_root_dir, 'perf')
 
-    # Copying the 'perf' directory to the DICOM directory
-    shutil.copytree(os.path.join(args.bids_root, f'sub-{subject_id}', f'ses-{session_id}', 'perf'),
-                    os.path.join(args.dicom_root_dir, 'perf'), dirs_exist_ok=True)
+    # Target directory in the BIDS dataset where you want to move the files
+    target_dir = os.path.join(args.bids_root, f'sub-{subject_id}', f'ses-{session_id}', 'perf')
+
+    # Copying the contents from source to target
+    shutil.copytree(source_dir, target_dir, dirs_exist_ok=True)
+
+    # Removing the 'perf' directory from the dicom_sorted folder
+    shutil.rmtree(source_dir)
