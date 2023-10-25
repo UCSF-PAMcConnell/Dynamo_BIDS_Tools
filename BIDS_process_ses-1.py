@@ -38,14 +38,20 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
     os.chdir(bids_root_dir)
     print(f"Current working directory: {os.getcwd()}")  # Debugging line to print current directory
     
-    # Using the full path of cubids-validate
-    cubids_path = "~/anaconda3/envs/fmri/bin/cubids-validate"
-    cubids_command = f"python {cubids_path} {bids_root_dir} cubids"
-    
-    print(f"Executing: {cubids_command}")
-    # Uncomment the following line to actually execute the command
-    subprocess.run(cubids_command, shell=True)
+    # Using the full path of cubids-validate and cubids-add-nifti-info
+    cubids_add_nii_hdr_path = "~/anaconda3/envs/fmri/bin/cubids-add-nifti-info"
+    cubids_add_nii_hdr_command = f"python {cubids_add_nii_hdr_path} {bids_root_dir} cubids"
+    cubids_validate_path = "~/anaconda3/envs/fmri/bin/cubids-validate"
+    cubids_validate_command = f"python {cubids_validate_path} {bids_root_dir} cubids"
 
+    
+    print(f"Executing: {cubids_add_nii_hdr_command}")
+    # Uncomment the following line to actually execute the command
+    subprocess.run(cubids_add_nii_hdr_command, shell=True)
+
+    print(f"Executing: {cubids_validate_command}")
+    # Uncomment the following line to actually execute the command
+    subprocess.run(cubids_validate_command, shell=True)
 
 
 

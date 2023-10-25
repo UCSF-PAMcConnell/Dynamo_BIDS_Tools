@@ -4,6 +4,7 @@ import argparse
 import os
 import glob
 import logging
+import re
 
 # Configuring logging to display informational messages and errors
 logging.basicConfig(level=logging.INFO)
@@ -65,40 +66,34 @@ if __name__ == "__main__":
         ("localizer_run2", "run-07")
     ] + [("learningSession", f"run-{i:02d}") for i in range(1, 7)]
 
+    # Defining specific run_ids for localizer runs
+    localizer_run_ids = ["run-00", "run-07"]
+    
     # Get all MATLAB files
     matlab_files = glob.glob(os.path.join(args.matlab_dir, "LRN*_*.mat"))
 
-    for run_type, run_id in run_order:
-        if "learningSession" in run_type:
-            # For "learningSession" runs, set the run_id directly
-            learningSession_counter = int(run_id.split("-")[1])
-        else:
-            learningSession_counter = None  # Reset the counter for non-learningSession runs
-
-        # Find the file that matches the current run_type
-        matching_files = [f for f in matlab_files if run_type in f]
+    for matlab_file_path in sorted(matlab_files):  # Processing files in alphabetical order
+        filename = os.path.basename(matlab_file_path).rstrip('.mat')
         
-        if matching_files:
-            matlab_file_path = matching_files[0]  # Process the first matching file
-            matlab_files.remove(matlab_file_path)  # Ensure each file is processed only once
-            
-            filename = os.path.basename(matlab_file_path).rstrip('.mat')
-            filename_parts = filename.split('_')
-            subject_id = filename_parts[0]
-
-            if learningSession_counter is not None:
-                run_id = f"run-{learningSession_counter:02d}"
-                learningSession_counter += 1
-            
-            trial_events, block_data = load_matlab_data(matlab_file_path)
-            formatted_data = format_data_for_bids(trial_events, block_data)
-            
-            output_path = os.path.join(args.bids_root_dir, f"sub-{subject_id}", 'ses-2', 'func',
-                                       f"sub-{subject_id}_ses-2_task-learn_{run_id}_events.tsv")
-            
-            save_as_tsv(formatted_data, output_path)
-            logging.info(f"Saved .tsv file to: {output_path}")
-
-
-
-
+        # Differentiating between localizer and learningSession runs
+        if "localizer" in filename:
+            run_id = localizer_run_ids.pop(0) if localizer_run_ids else None
+        else:
+            match = re.search(r'run(\d+)', filename)
+            run_id = f"run-{int(match.group(1)):02d}" if match else None
+        
+        if run_id is None:
+            logging.warning(f"Could not extract run information from filename: {filename}")
+            continue
+        
+        trial_events, block_data = load_matlab_data(matlab_file_path)
+        formatted_data = format_data_for_bids(trial_events, block_data)
+        
+        filename_parts = filename.split('_')
+        subject_id = filename_parts[0]
+        
+        output_path = os.path.join(args.bids_root_dir, f"sub-{subject_id}", 'ses-2', 'func',
+                                   f"sub-{subject_id}_ses-2_task-learn_{run_id}_events.tsv")
+        
+        save_as_tsv(formatted_data, output_path)
+        logging.info(f"Processed {matlab_file_path} and saved .tsv file to: {output_path}")
