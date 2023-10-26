@@ -69,8 +69,8 @@ if __name__ == "__main__":
     
     # Specify the exact directories where the DICOM files are located within the root directory
     dicom_dirs = [
-            os.path.join(args.dicom_root_dir, 'SpinEchoFieldMap_AP'),
-            os.path.join(args.dicom_root_dir, 'SpinEchoFieldMap_PA')
+            os.path.join(args.dicom_root_dir, 'sms3_distortionmap_AP'),
+            os.path.join(args.dicom_root_dir, 'sms3_distortionmap_PA')
         ]
 
     # Loop through each specified DICOM directory
@@ -109,13 +109,14 @@ if __name__ == "__main__":
                         shutil.copy2(old_file, new_file_path)
                         
                         if old_file.endswith('.json'):
-                            intended_for = [f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-01_bold.nii",
-                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-02_bold.nii",
-                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-03_bold.nii",
-                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-04_bold.nii",
-                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-01_sbref.nii",
-                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-02_sbref.nii",
-                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-03_sbref.nii",
-                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-rest_run-04_sbref.nii",
-                            f"ses-{session_id}/perf/sub-{subject_id}_ses-{session_id}_asl.nii"]
+                            intended_for = [
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-00_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-01_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-02_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-03_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-04_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-05_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-06_bold.nii",
+                            f"ses-{session_id}/func/sub-{subject_id}_ses-{session_id}_task-learn_run-07_bold.nii",
+                            ]
                             update_json_file(new_file_path, intended_for)
