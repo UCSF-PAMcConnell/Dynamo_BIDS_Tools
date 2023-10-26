@@ -13,6 +13,8 @@ import shutil
         #options.groupingOrder = GROUPING_ORDER_REPEATS;
         #options.labelControlPairs = PAIRS_LABEL_THEN_CONTROL;
 # I'm not 100% on the ASL metadata defined below, needs verification - PAMcConnell 20231020
+# https://github.com/npnl/ASL-Processing-Tips - updating accordingly based on this analysis - PAMcConnell20231026
+# see also https://crnl.readthedocs.io/asl/index.html
 # usage example: python ~/Documents/MATLAB/software/iNR/BIDS_tools/process_PCASL.py 
 # ~/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/dicom_sorted/tgse_pcasl_ve11c_from_USC/ <dicom_dir>
 # ~/Documents/MRI/LEARN/BIDS_test/dataset <bids_root>
@@ -72,11 +74,14 @@ def create_aslcontext_file(num_volumes, output_dirs, subject_id, session_id):
         output_dir_perf = os.path.join(output_dir, 'perf')
         os.makedirs(output_dir_perf, exist_ok=True)
 
-        asl_context_filepath = os.path.join(output_dir_perf, f'sub-{subject_id}_ses-{session_id}_aslcontext.tsv')
-        with open(asl_context_filepath, 'w') as file:
-            file.write('volume_type\n')
-            for i in range(num_volumes):
-                file.write('label\n' if i % 2 == 0 else 'control\n')
+    asl_context_filepath = os.path.join(output_dir_perf, f'sub-{subject_id}_ses-{session_id}_aslcontext.tsv')
+    with open(asl_context_filepath, 'w') as file:
+        file.write('volume_type\n')
+        for i in range(num_volumes):
+            if i == 0:
+                file.write('m0scan\n')
+            else:
+                file.write('control\n' if (i-1) % 2 == 0 else 'label\n')
 
 def update_json_file(json_filepath):
     """
@@ -84,10 +89,11 @@ def update_json_file(json_filepath):
     """
     with open(json_filepath, 'r+') as file:
         data = json.load(file)
-        data['LabelingDuration'] = 0.7
+        data['LabelingDuration'] = 0.7 # Bolus Duration
+        # 82 RF blocks * 0.0185s RF Block Duration = 1.517 second "LabelTime"
         data['PostLabelingDelay'] = 1.000
         data['BackgroundSuppression'] = False
-        data['M0Type'] = "Absent"
+        data['M0Type'] = "Included"
         data['TotalAcquiredPairs'] = 6
         data['VascularCrushing'] = False
         # EffectiveEchoSpacing set to equal DwellTime 
