@@ -9,8 +9,8 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
         "process_T2_FLAIR.py",
         "process_func_rest.py",
         "process_dki.py",
-        "process_fmap_gre.py",
-        "process_fmap_EPI.py"
+        "process_fmap_gre_ses_1.py",
+        "process_fmap_EPI_ses_1.py"
     ]
     
     base_command = "python ~/Documents/MATLAB/software/iNR/BIDS_tools/{} {}{}/{}/dicom_sorted/ ~/Documents/MRI/LEARN/BIDS_test/dataset"
