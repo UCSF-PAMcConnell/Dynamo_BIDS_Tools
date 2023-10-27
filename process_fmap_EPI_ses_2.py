@@ -18,7 +18,7 @@ def update_json_file(json_filepath, intended_for=None):
     """
     with open(json_filepath, 'r+') as file:
         data = json.load(file)
-        data['B0FieldIdentifier'] = "*epse2d1_104"
+        data['B0FieldIdentifier'] = "*epfid2d1_96"
         data['IntendedFor'] = intended_for
         file.seek(0)
         json.dump(data, file, indent=4)
