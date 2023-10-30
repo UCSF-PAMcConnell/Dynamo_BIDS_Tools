@@ -49,7 +49,7 @@ def run_dcm2niix(input_dir, output_dir_temp):
         '-f', '"%p_%s"',
         'l', 'y',
         '-p', 'n',
-        '-x', 'y',
+        '-x', 'n',
         '-z', 'n',
         '-ba', 'n',
         '-o', output_dir_temp,

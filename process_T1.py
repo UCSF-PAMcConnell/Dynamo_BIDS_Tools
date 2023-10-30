@@ -39,7 +39,7 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id):
         '-f', f'sub-{subject_id}_ses-{session_id}_T1w',
         'l', 'y',
         '-p', 'n',
-        '-x', 'y',
+        '-x', 'n',
         '-z', 'n',
         '-ba', 'n',
         '-o', output_dir_anat,
@@ -65,3 +65,11 @@ if __name__ == "__main__":
     output_dir = os.path.join(args.bids_root, f'sub-{subject_id}', f'ses-{session_id}')
     
     run_dcm2niix(dicom_dir, output_dir, subject_id, session_id)
+
+    # Using the full path of cubids-validate and cubids-add-nifti-info
+    pydeface_path = "~/anaconda3/envs/fmri/bin/pydeface"
+    pydeface_command = f"python {pydeface_path} {output_dir}/'sub-{subject_id}_ses-{session_id}_T1w'.nii --outfile {output_dir}/'sub-{subject_id}_ses-{session_id}_T1w'.nii --force"
+    
+    print(f"Executing: {pydeface_command}")
+    # Uncomment the following line to actually execute the command
+    subprocess.run(pydeface_command, shell=True)
