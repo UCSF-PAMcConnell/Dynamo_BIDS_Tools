@@ -2,6 +2,7 @@ import os
 import argparse
 import subprocess
 import re
+import shutil
 
 def extract_ids(dicom_dir):
     """
@@ -39,13 +40,28 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id):
         '-f', f'sub-{subject_id}_ses-{session_id}_T1w',
         'l', 'y',
         '-p', 'n',
-        '-x', 'n',
+        '-x', 'y',
         '-z', 'n',
         '-ba', 'n',
         '-o', output_dir_anat,
         input_dir
     ]
     subprocess.run(cmd)
+def rename_cropped_file(output_dir, subject_id, session_id):
+    """
+    Renames the cropped file to overwrite the original T1w file.
+    
+    Parameters:
+    output_dir (str): Directory where the conversion results are saved.
+    subject_id (str): Subject ID extracted from the DICOM directory path.
+    session_id (str): Session ID extracted from the DICOM directory path.
+    """
+    cropped_file_path = os.path.join(output_dir, 'anat', f'sub-{subject_id}_ses-{session_id}_T1w_Crop_1.nii')
+    original_file_path = os.path.join(output_dir, 'anat', f'sub-{subject_id}_ses-{session_id}_T1w.nii')
+    
+    if os.path.exists(cropped_file_path):
+        shutil.move(cropped_file_path, original_file_path)
+        print(f"Cropped file has been renamed to overwrite the original T1w file: {original_file_path}")
 
 # Main code execution starts here
 if __name__ == "__main__":
@@ -65,6 +81,7 @@ if __name__ == "__main__":
     output_dir = os.path.join(args.bids_root, f'sub-{subject_id}', f'ses-{session_id}')
     
     run_dcm2niix(dicom_dir, output_dir, subject_id, session_id)
+    rename_cropped_file(output_dir, subject_id, session_id)
 
     # Using the full path of cubids-validate and cubids-add-nifti-info
     pydeface_path = "~/anaconda3/envs/fmri/bin/pydeface"
