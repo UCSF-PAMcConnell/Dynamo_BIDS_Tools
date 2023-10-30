@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     # Using the full path of cubids-validate and cubids-add-nifti-info
     pydeface_path = "~/anaconda3/envs/fmri/bin/pydeface"
-    pydeface_command = f"python {pydeface_path} {output_dir}/'sub-{subject_id}_ses-{session_id}_T1w'.nii --outfile {output_dir}/'sub-{subject_id}_ses-{session_id}_T1w'.nii --force"
+    pydeface_command = f"python {pydeface_path} {output_dir}/anat/'sub-{subject_id}_ses-{session_id}_T1w'.nii --outfile {output_dir}/anat/'sub-{subject_id}_ses-{session_id}_T1w'.nii --force"
     
     print(f"Executing: {pydeface_command}")
     # Uncomment the following line to actually execute the command
