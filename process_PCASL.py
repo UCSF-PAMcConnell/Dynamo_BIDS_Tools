@@ -129,7 +129,9 @@ def run_dcm2niix(input_dir, output_dirs):
         cmd = [
             dcm2niix_path,
             '-f', '"sub-%i_%p"',
-            '-p', 'y',
+            'l', 'y',
+            '-p', 'n',
+            '-x', 'y',
             '-z', 'n',
             '-ba', 'n',
             '-o', output_dir_perf,

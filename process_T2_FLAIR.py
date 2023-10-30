@@ -37,7 +37,9 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id):
     cmd = [
         dcm2niix_path,
         '-f', f'sub-{subject_id}_ses-{session_id}_FLAIR',
-        '-p', 'y',
+        'l', 'y',
+        '-p', 'n',
+        '-x', 'y',
         '-z', 'n',
         '-ba', 'n',
         '-o', output_dir_anat,
