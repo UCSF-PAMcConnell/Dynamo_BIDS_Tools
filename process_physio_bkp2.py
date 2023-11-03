@@ -81,7 +81,7 @@ def save_segments_to_tsv_and_json(segments, bids_root_dir, subject_id, session_i
     with gzip.open(filepath, 'wt') as f_out:
         df_segment.to_csv(f_out, sep='\t', index=False)
     print(f"Saved segment for run {run_index} to {output_dir} with filename {filename}")
-    return new_labels
+
 def plot_full_data_with_segments(data, runs, sampling_rate, original_labels, output_fig_path):
     """Plot the full data with segments highlighted."""
     filtered_labels = [label for label in original_labels if 'Digital input' not in label]
@@ -159,7 +159,7 @@ def main(physio_root_dir, bids_root_dir, filtered_labels):
             all_runs.append(current_run_segment)
 
             # Save the segment to TSV and then save the corresponding JSON metadata
-            new_labels = save_segments_to_tsv_and_json([current_run_segment], bids_root_dir, subject_id, session_id, filtered_labels, run_idx, sampling_rate)
+            save_segments_to_tsv_and_json([current_run_segment], bids_root_dir, subject_id, session_id, filtered_labels, run_idx, sampling_rate)
 
             # Save the corresponding JSON metadata for the physio
             physio_json_metadata = {
@@ -205,19 +205,18 @@ def main(physio_root_dir, bids_root_dir, filtered_labels):
                 }
                 if 'eda' in filtered_labels
                 else None,
-            }
-            # Conditionally add the 'ppg' metadata if 'ppg' is in the new_labels list
-            if 'ppg' in new_labels:
-                physio_json_metadata['ppg'] = {
-                "Description": "continuous ppg measurement",
-                "Placement": "left index toe",
-                "Units": "Volts",
-                "Gain": 10,
-                "LPF": "3.0 Hz",
-                "HPF1": "0.5 Hz",
-                "HPF2": "0.05 Hz",
+                "ppg": {
+                    "Description": "continuous ppg measurement",
+                    "Placement": "left index toe",
+                    "Units": "Volts",
+                    "Gain": 10,
+                    "LPF": "3.0 Hz",
+                    "HPF1": "0.5 Hz",
+                    "HPF2": "0.05 Hz",
                 }
-            
+                if 'ppg' in filtered_labels
+                else None,
+            }
             physio_json_file_name = f"sub-{subject_id}_ses-{session_id}_task-rest_run-{str(run_idx).zfill(2)}_physio.json"
             physio_json_file_path = os.path.join(bids_root_dir, f"sub-{subject_id}", f"ses-{session_id}", 'func', physio_json_file_name)
             with open(physio_json_file_path, 'w') as f_json:
