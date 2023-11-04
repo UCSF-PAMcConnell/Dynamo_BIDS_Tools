@@ -276,11 +276,6 @@ def main(physio_root_dir, bids_root_dir):
         # Rename channels based on dynamic labels from data
         bids_labels_dictionary, _ = rename_channels(labels)
         
-        # Extract the trigger channel data
-            #trigger_channel_index = labels.index(bids_labels_dictionary['trigger'])
-        
-        #testing
-        
         # Log the labels
         logging.info(f"Labels: {labels}")
         
@@ -297,8 +292,7 @@ def main(physio_root_dir, bids_root_dir):
         trigger_channel_index = labels.tolist().index(trigger_original_label)
         logging.info(f"Trigger channel index: {trigger_channel_index}")
         
-        #testing # trigger_channel_data = data[:, trigger_channel_index]
-        trigger_channel_data = data[trigger_channel_index]
+        trigger_channel_data = data[:, trigger_channel_index]
         logging.info(f"Shape of trigger channel data: {trigger_channel_data.shape}")
 
         processed_jsons = set()  # Initialize set to keep track of processed JSON files
@@ -327,8 +321,10 @@ def main(physio_root_dir, bids_root_dir):
                 continue  # Skip to the next iteration
 
             # Find the runs in the data
-            current_runs = find_runs(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], trigger_threshold=5)
+            current_runs = find_runs(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], trigger_threshold=5)[0]
             logging.info(f"Found {len(current_runs)} runs")
+            # Log the shape of the data array
+            logging.info(f"Shape of data array: {data.shape}")
 
             for current_run_info in current_runs:
                 # Log the start and end indices of the current run
