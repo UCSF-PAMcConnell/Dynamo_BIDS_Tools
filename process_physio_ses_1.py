@@ -125,8 +125,8 @@ def rename_channels(labels):
             logging.warning(f"Label '{label}' does not match any BIDS convention and will be omitted.")
 
     # Debug log to print the renamed labels in the dictionary and the list
-    logging.debug(f"BIDS labels dictionary mapping: {bids_labels_dictionary}")
-    logging.debug(f"BIDS labels after renaming: {bids_labels_list}")
+    logging.info(f"BIDS labels dictionary mapping: {bids_labels_dictionary}")
+    logging.info(f"BIDS labels after renaming: {bids_labels_list}")
     
     return bids_labels_dictionary, bids_labels_list
 
