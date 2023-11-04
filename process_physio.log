@@ -1,17 +1,38 @@
-2023-11-04 10:28:53,355 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
-2023-11-04 10:28:53,355 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 10:28:54,260 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+2023-11-04 10:40:19,822 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-04 10:40:19,822 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 10:40:20,641 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
  'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
  'Digital input' 'Digital input' 'Digital input' 'Digital input'
  'Digital input' 'Digital input']
-2023-11-04 10:28:54,261 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+2023-11-04 10:40:20,642 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
  'Volts' 'Volts' 'Volts' 'Volts']
-2023-11-04 10:28:54,261 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 10:28:54,261 - INFO - Renaming channels according to BIDS conventions
-2023-11-04 10:28:54,261 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
-2023-11-04 10:28:54,261 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-04 10:28:54,262 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 10:28:54,263 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 10:28:54,263 - INFO - Metadata content: {'Modality': 'MR', 'MagneticFieldStrength': 3, 'ImagingFrequency': 123.234987, 'Manufacturer': 'Siemens', 'ManufacturersModelName': 'Prisma_fit', 'InstitutionName': 'Medical University of South Carolina', 'InstitutionalDepartmentName': 'Department', 'InstitutionAddress': 'Bee Street 30,Charleston ,South Carolina,US,29425', 'DeviceSerialNumber': '167021', 'StationName': 'MRC35104', 'SeriesInstanceUID': '1.3.12.2.1107.5.2.43.167021.2023071217284775240608144.0.0.0', 'StudyInstanceUID': '1.3.12.2.1107.5.2.43.167021.30000023071013540666100000045', 'ReferringPhysicianName': 'Heise_116626', 'StudyID': '1', 'PatientName': 'LRN001_V1', 'PatientID': 'LRN001_V1', 'PatientBirthDate': '1989-07-12', 'PatientSex': 'M', 'PatientWeight': 81.6466, 'BodyPartExamined': 'BRAIN', 'PatientPosition': 'HFS', 'ProcedureStepDescription': 'Research^HEISE', 'SoftwareVersions': 'syngo MR E11', 'MRAcquisitionType': '2D', 'SeriesDescription': 'Resting_1', 'ProtocolName': 'Resting_1', 'ScanningSequence': 'EP', 'SequenceVariant': 'SK\\SS', 'ScanOptions': 'PFP\\FS', 'SequenceName': 'epfid2d1_94', 'ImageType': ['ORIGINAL', 'PRIMARY', 'M', 'MB', 'ND', 'MOSAIC'], 'NonlinearGradientCorrection': False, 'SeriesNumber': 15, 'AcquisitionTime': '17:30:16.822500', 'AcquisitionDateTime': '2023-07-12T17:30:16.822500', 'AcquisitionNumber': 1, 'ImageComments': 'Unaliased MB3/PE3', 'SliceThickness': 2.2, 'SpacingBetweenSlices': 2.2, 'SAR': 0.0606973, 'EchoTime': 0.036, 'RepetitionTime': 2, 'FlipAngle': 80, 'PartialFourier': 0.875, 'BaseResolution': 94, 'ShimSetting': [3744, -9939, 2828, 537, 16, 68, 62, 49], 'TxRefAmp': 246.26, 'PhaseResolution': 1, 'VendorReportedEchoSpacing': 0.00061, 'ReceiveCoilName': 'Head_32', 'ReceiveCoilActiveElements': 'HEA;HEP', 'PulseSequenceDetails': '%CustomerSeq%\\cmrr_mbep2d_bold', 'WipMemBlock': '39046b3c-06a1-4788-ac83-c428d30d718e||Sequence: R016 ve11c/master r/e634e98; Dec 19 2017 11:00:25 by eja', 'CoilCombinationMethod': 'Sum of Squares', 'ConsistencyInfo': 'N4_VE11C_LATEST_20160120', 'MatrixCoilMode': 'SENSE', 'MultibandAccelerationFactor': 3, 'PercentPhaseFOV': 100, 'PercentSampling': 100, 'EchoTrainLength': 82, 'PhaseEncodingSteps': 82, 'AcquisitionMatrixPE': 94, 'ReconMatrixPE': 94, 'BandwidthPerPixelPhaseEncode': 17.44, 'EffectiveEchoSpacing': 0.000609994, 'DerivedVendorReportedEchoSpacing': 0.000609994, 'TotalReadoutTime': 0.0567295, 'PixelBandwidth': 1970, 'DwellTime': 2.7e-06, 'PhaseEncodingDirection': 'j-', 'SliceTiming': [0, 1.0325, 0.0875, 1.12, 0.1725, 1.205, 0.2575, 1.2925, 0.345, 1.3775, 0.43, 1.465, 0.5175, 1.55, 0.6025, 1.635, 0.69, 1.7225, 0.775, 1.8075, 0.86, 1.895, 0.9475, 0, 1.0325, 0.0875, 1.12, 0.1725, 1.205, 0.2575, 1.2925, 0.345, 1.3775, 0.43, 1.465, 0.5175, 1.55, 0.6025, 1.635, 0.69, 1.7225, 0.775, 1.8075, 0.86, 1.895, 0.9475, 0, 1.0325, 0.0875, 1.12, 0.1725, 1.205, 0.2575, 1.2925, 0.345, 1.3775, 0.43, 1.465, 0.5175, 1.55, 0.6025, 1.635, 0.69, 1.7225, 0.775, 1.8075, 0.86, 1.895, 0.9475], 'ImageOrientationPatientDICOM': [0.999592, 0.02708, -0.00903607, -0.0282703, 0.983006, -0.181384], 'ImageOrientationText': 'Tra>Cor(-10.5)>Sag(-0.2)', 'InPlanePhaseEncodingDirectionDICOM': 'COL', 'ConversionSoftware': 'dcm2niix', 'ConversionSoftwareVersion': 'v1.0.20230411', 'TaskName': 'rest', 'B0FieldSource': '*fm2d2r', 'B0FieldSource2': '*epse2d1_104', 'Obliquity': 'True', 'VoxelSizeDim1': 2.202127695083618, 'VoxelSizeDim2': 2.202127695083618, 'VoxelSizeDim3': 2.200000047683716, 'Dim1Size': 94, 'Dim2Size': 94, 'Dim3Size': 69, 'NumVolumes': 175, 'ImageOrientation': 'LAS+'}
-2023-11-04 10:28:54,263 - INFO - Identifying runs based on triggers and number of volumes
-2023-11-04 10:28:54,263 - ERROR - An error occurred: 'SamplingFrequency'
+2023-11-04 10:40:20,642 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 10:40:20,642 - INFO - Renaming channels according to BIDS conventions
+2023-11-04 10:40:20,642 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-04 10:40:20,642 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-04 10:40:20,642 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-04 10:40:20,643 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-04 10:40:20,643 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 10:40:20,643 - INFO - Identifying runs based on triggers and number of volumes
+2023-11-04 10:40:20,643 - INFO - Segmenting data into runs
+2023-11-04 10:40:20,643 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 10:40:20,643 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
+2023-11-04 10:40:20,644 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
+2023-11-04 10:40:20,644 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 10:40:20,644 - INFO - Identifying runs based on triggers and number of volumes
+2023-11-04 10:40:20,644 - INFO - Segmenting data into runs
+2023-11-04 10:40:20,644 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 10:40:20,644 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
+2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
+2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 10:40:20,645 - INFO - Identifying runs based on triggers and number of volumes
+2023-11-04 10:40:20,645 - INFO - Segmenting data into runs
+2023-11-04 10:40:20,645 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 10:40:20,645 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
+2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
+2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 10:40:20,645 - INFO - Identifying runs based on triggers and number of volumes
+2023-11-04 10:40:20,645 - INFO - Segmenting data into runs
+2023-11-04 10:40:20,645 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 10:40:20,645 - INFO - Plotting runs and saving to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio//sub-LRN001_ses-1_task-rest_all_runs_physio.png
+2023-11-04 10:40:20,816 - INFO - Process completed successfully.

@@ -185,13 +185,58 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
 
     return run_metadata
 
-def find_runs(triggers, num_volumes):
-    # Identifies the start and end indices of each run based on MR triggers and number of volumes
+# Identifies the start and end indices of each run based on MR triggers and number of volumes.
+def find_runs(data, triggers, num_volumes, sampling_rate, trigger_threshold=5,run_metadata=None):
+    """
+    Parameters:
+    - data: array, the entire physiological data for the session
+    - triggers: array, the trigger channel data
+    - num_volumes: int, the number of volumes for each fMRI run
+    - sampling_rate: int, the sampling rate of the physiological data
+    - trigger_threshold: int/float, the value above which a trigger is considered valid
+    Returns:
+    - runs: list of dicts, where each dict contains the start and end indices of a run
+    """
     logging.info("Identifying runs based on triggers and number of volumes")
-    runs = []
-    # Logic to identify runs...
-    return runs
 
+    # Detect the indices where triggers occur
+    trigger_indices = np.where(triggers > trigger_threshold)[0]
+
+    runs = []
+    current_run = {'start': None, 'end': None}
+    volume_count = 0
+
+    # Define fixed sampling rate for physiological data acquisition
+    sampling_rate = 5000 #Hz
+
+    for i, index in enumerate(trigger_indices):
+        # Check if we're at the start of a new run
+        if current_run['start'] is None:
+            current_run['start'] = index
+            volume_count = 1
+        else:
+            # Check if subsequent triggers are roughly one TR apart (allow some variation)
+            expected_interval = sampling_rate * run_metadata['RepetitionTime']
+            if (index - trigger_indices[i - 1]) < (1.5 * expected_interval):
+                volume_count += 1
+            else:
+                # If the interval is too large, consider it the start of a new run
+                current_run['end'] = trigger_indices[i - 1]
+                if volume_count == num_volumes:
+                    runs.append(current_run)
+                current_run = {'start': index, 'end': None}
+                volume_count = 1
+
+    # Check if the last run reached the expected number of volumes
+    if volume_count == num_volumes:
+        current_run['end'] = trigger_indices[-1]
+        runs.append(current_run)
+
+    # Log the identified runs for debugging purposes
+    for run in runs:
+        logging.info(f"Identified run from index {run['start']} to {run['end']}")
+
+    return runs, triggers, num_volumes, sampling_rate
 
 def segment_data(data, runs, sampling_rate):
     # Segments the physiological data based on the identified runs
@@ -229,18 +274,23 @@ def main(physio_root_dir, bids_root_dir):
         labels, data, units = load_mat_file(mat_file_path)
         
         # Rename channels based on dynamic labels from data
-        bids_labels = rename_channels(labels)
+        bids_labels_dictionary, _ = rename_channels(labels)
         
+        # Extract the trigger channel data
+        trigger_channel_index = labels.index(bids_labels_dictionary['trigger'])
+        trigger_channel_data = data[trigger_channel_index]
 
         processed_jsons = set()  # Initialize set to keep track of processed JSON files
         all_runs_data = []  # To store data for all runs
-        all_runs_info = []  # To store metadata for each run
-        runs = [] # To store data for each run
-
+        runs_info = []  # To store metadata for each run
+        
         # Loop through each run directory in BIDS format
         # Iterate over the runs
         for run_idx in range(1, 5):  # Assuming there are 4 runs as specified
             run_id = f"run-{run_idx:02d}"
+            
+            # Log the current run
+            logging.info(f"Processing run {run_id}")
             
             # Construct the path to the run's .json file
             json_file_name = f"{subject_id}_{session_id}_task-rest_{run_id}_bold.json"
@@ -248,27 +298,41 @@ def main(physio_root_dir, bids_root_dir):
             
             # Extract metadata from the run's .json file
             run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
+            logging.info(f"Extracted metadata: {run_metadata}")
 
             # If run_metadata is None, it means this JSON has already been processed or is invalid
             if run_metadata is None:
+                # Log a warning and skip to the next iteration
+                logging.warning(f"Metadata for {json_file_name} could not be extracted.")
                 continue  # Skip to the next iteration
 
             # Find the runs in the data
-            current_run_info = find_runs(data, run_metadata['NumVolumes'])
-            runs.append(current_run_info)  # Store info for plotting
+            current_runs = find_runs(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], trigger_threshold=5)
+            logging.info(f"Found {len(current_runs)} runs")
+
+            for current_run_info in current_runs:
+                # Log the start and end indices of the current run
+                logging.info(f"Segmenting run {run_id} from index {current_run_info['start']} to {current_run_info['end']}")
+                
+                # Segment the data based on the runs
+                segmented_data = segment_data(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], trigger_threshold=5, sampling_rate=5000)
+                
+                # Log the shape of the segmented data
+                logging.info(f"Segmented data shape for run {run_id}: {segmented_data.shape}")  
+
+                # Accumulate segmented data for plotting
+                all_runs_data.append(segmented_data)  
             
-            # Segment the data based on the runs
-            segmented_data = segment_data(data, current_run_info, run_metadata['RepetitionTime'])
-            
-            all_runs_data.append(segmented_data)  # Accumulate segmented data for plotting
-            
-            # Write the output files for this run
-            output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
-            write_output_files(segmented_data, run_metadata, output_dir)
+                # Append current run metadata to runs_info
+                runs_info.append(current_run_info)
+
+                # Write the output files for this run
+                output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
+                write_output_files(segmented_data, run_metadata, output_dir)
 
         # After processing all runs, plot the physiological data to verify alignment
         plot_file = f"{physio_root_dir}/{subject_id}_{session_id}_task-rest_all_runs_physio.png"
-        plot_runs(all_runs_data, runs, plot_file)
+        plot_runs(all_runs_data, runs_info, plot_file)
         
         logging.info("Process completed successfully.")
 
