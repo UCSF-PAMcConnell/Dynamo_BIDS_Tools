@@ -126,7 +126,7 @@ def rename_channels(labels):
 
     # Debug log to print the renamed labels in the dictionary and the list
     logging.info(f"BIDS labels dictionary mapping: {bids_labels_dictionary}")
-    logging.info(f"BIDS labels after renaming: {bids_labels_list}")
+    logging.info(f"BIDS labels list after renaming: {bids_labels_list}")
     
     return bids_labels_dictionary, bids_labels_list
 
