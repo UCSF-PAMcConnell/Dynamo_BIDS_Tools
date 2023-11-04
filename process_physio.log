@@ -1,41 +1,53 @@
-2023-11-04 16:30:35,487 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
-2023-11-04 16:30:35,487 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 16:30:36,083 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+2023-11-04 18:57:17,372 - INFO - Starting main processing function.
+2023-11-04 18:57:17,372 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-04 18:57:17,372 - INFO - Processing subject: sub-LRN001, session: ses-1
+2023-11-04 18:57:17,372 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 18:57:17,732 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
  'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
  'Digital input' 'Digital input' 'Digital input' 'Digital input'
  'Digital input' 'Digital input']
-2023-11-04 16:30:36,083 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+2023-11-04 18:57:17,732 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
  'Volts' 'Volts' 'Volts' 'Volts']
-2023-11-04 16:30:36,083 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 16:30:36,083 - INFO - Renaming channels according to BIDS conventions
-2023-11-04 16:30:36,083 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
-2023-11-04 16:30:36,083 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-04 16:30:36,083 - INFO - Labels: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
- 'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
- 'Digital input' 'Digital input' 'Digital input' 'Digital input'
- 'Digital input' 'Digital input']
-2023-11-04 16:30:36,084 - INFO - bids_labels_dictionary right before accessing 'trigger' key: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
-2023-11-04 16:30:36,084 - INFO - Trigger channel index: 3
-2023-11-04 16:30:36,084 - INFO - Shape of trigger channel data: (21203169,)
-2023-11-04 16:30:36,084 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 16:30:36,084 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 16:30:36,084 - INFO - Successfully extracted metadata: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,084 - INFO - run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,084 - WARNING - Metadata for sub-LRN001_ses-1_task-rest_run-01_bold.json is missing or invalid. Skipping run.
-2023-11-04 16:30:36,084 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-04 16:30:36,084 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-04 16:30:36,084 - INFO - Successfully extracted metadata: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,084 - INFO - run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,084 - WARNING - Metadata for sub-LRN001_ses-1_task-rest_run-02_bold.json is missing or invalid. Skipping run.
-2023-11-04 16:30:36,084 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-04 16:30:36,085 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-04 16:30:36,085 - INFO - Successfully extracted metadata: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,085 - INFO - run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,085 - WARNING - Metadata for sub-LRN001_ses-1_task-rest_run-03_bold.json is missing or invalid. Skipping run.
-2023-11-04 16:30:36,085 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-04 16:30:36,085 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-04 16:30:36,085 - INFO - Successfully extracted metadata: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,085 - INFO - run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 16:30:36,085 - WARNING - Metadata for sub-LRN001_ses-1_task-rest_run-04_bold.json is missing or invalid. Skipping run.
-2023-11-04 16:30:36,085 - INFO - Plotting runs and saving to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio//sub-LRN001_ses-1_task-rest_all_runs_physio.png
-2023-11-04 16:30:36,218 - INFO - Process completed successfully.
+2023-11-04 18:57:17,732 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 18:57:17,732 - INFO - Physiological data loaded successfully.
+2023-11-04 18:57:17,732 - INFO - Renaming channels according to BIDS conventions
+2023-11-04 18:57:17,732 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-04 18:57:17,732 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-04 18:57:17,732 - INFO - Channels renamed according to BIDS format and units dictionary created.
+2023-11-04 18:57:17,732 - INFO - Trigger channel index identified: 3
+2023-11-04 18:57:17,732 - INFO - Trigger channel data extracted. Shape: (21203169,)
+2023-11-04 18:57:17,732 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-04 18:57:17,733 - INFO - Successfully extracted run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 18:57:17,733 - INFO - Repetition time: 2
+2023-11-04 18:57:17,733 - INFO - Number of volumes per run: 175
+2023-11-04 18:57:17,733 - INFO - Samples per volume: 10000
+2023-11-04 18:57:17,804 - INFO - Extracted 718 trigger points.
+2023-11-04 18:57:17,810 - INFO - Runs identified 4 - run-01
+2023-11-04 18:57:24,923 - INFO - Output files for run run-01 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 18:57:24,924 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
+2023-11-04 18:57:24,926 - INFO - Successfully extracted run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 18:57:24,926 - INFO - Repetition time: 2
+2023-11-04 18:57:24,926 - INFO - Number of volumes per run: 175
+2023-11-04 18:57:24,926 - INFO - Samples per volume: 10000
+2023-11-04 18:57:24,978 - INFO - Extracted 718 trigger points.
+2023-11-04 18:57:24,983 - INFO - Runs identified 4 - run-02
+2023-11-04 18:57:32,023 - INFO - Output files for run run-02 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 18:57:32,023 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
+2023-11-04 18:57:32,025 - INFO - Successfully extracted run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 18:57:32,025 - INFO - Repetition time: 2
+2023-11-04 18:57:32,025 - INFO - Number of volumes per run: 175
+2023-11-04 18:57:32,025 - INFO - Samples per volume: 10000
+2023-11-04 18:57:32,081 - INFO - Extracted 718 trigger points.
+2023-11-04 18:57:32,086 - INFO - Runs identified 4 - run-03
+2023-11-04 18:57:39,194 - INFO - Output files for run run-03 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 18:57:39,195 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
+2023-11-04 18:57:39,196 - INFO - Successfully extracted run_metadata (type: <class 'dict'>): {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 18:57:39,196 - INFO - Repetition time: 2
+2023-11-04 18:57:39,196 - INFO - Number of volumes per run: 175
+2023-11-04 18:57:39,196 - INFO - Samples per volume: 10000
+2023-11-04 18:57:39,253 - INFO - Extracted 718 trigger points.
+2023-11-04 18:57:39,257 - INFO - Runs identified 4 - run-04
+2023-11-04 18:57:46,377 - INFO - Output files for run run-04 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-04 18:57:46,378 - INFO - Plotting runs and saving to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_all_runs_physio.png
+2023-11-04 18:57:46,494 - INFO - Physiological data plotted and saved successfully.
+2023-11-04 18:57:46,494 - INFO - Main processing completed without errors.
