@@ -37,6 +37,9 @@ def extract_subject_session(physio_root_dir):
         raise ValueError(f"Unable to extract subject_id and session_id from path: {physio_root_dir}")
     
     subject_id, session_id = match.groups()
+
+    # Set up log to print the extracted IDs
+    logging.info(f"Subject ID: {subject_id}, Session ID: {session_id}")
     return subject_id, session_id
 
 # Loads the physio .mat file and extracts labels, data, and units
@@ -102,28 +105,30 @@ def rename_channels(labels):
         'PPG': 'ppg',  # Only if exists
     }
 
-    # Initialize an empty dictionary to store the renamed labels
-    bids_labels = {}
+    # Initialize an empty dictionary and list to store the renamed labels
+    bids_labels_dictionary = {}
+    bids_labels_list = []
 
-    # Iterate through the original labels to rename them
+    # Iterate through the original labels to rename them in dictionary
     for label in labels:
         # Skip any labels for digital inputs
         if 'Digital input' in label:
             continue
         
-        # Check and rename the label if it matches one of the keys in label_mapping
+        # Check and rename the label if it matches one of the keys in original_label_mapping
         for original, bids in original_label_mapping.items():
             if original in label:
-                bids_labels[label] = bids
+                bids_labels_dictionary[label] = bids
+                bids_labels_list.append(bids)
                 break
         else:
             logging.warning(f"Label '{label}' does not match any BIDS convention and will be omitted.")
 
-    # Debug log to print the renamed labels
-    logging.debug(f"BIDS labels after renaming: {bids_labels}")
+    # Debug log to print the renamed labels in the dictionary and the list
+    logging.debug(f"BIDS labels dictionary mapping: {bids_labels_dictionary}")
+    logging.debug(f"BIDS labels after renaming: {bids_labels_list}")
     
-    return bids_labels
-
+    return bids_labels_dictionary, bids_labels_list
 
 def find_runs(triggers, num_volumes):
     # Identifies the start and end indices of each run based on MR triggers and number of volumes
@@ -170,9 +175,6 @@ def main(physio_root_dir, bids_root_dir):
         # Extract subject_id and session_id from the physio_root_dir path
         subject_id, session_id = extract_subject_session(physio_root_dir)
        
-        # Set up log to print the extracted IDs
-        logging.info(f"Subject ID: {subject_id}, Session ID: {session_id}")
-        
         # Construct the path to the .mat file using the naming convention
         mat_file_name = f"{subject_id}_{session_id}_task-rest_physio.mat"
         mat_file_path = os.path.join(physio_root_dir, mat_file_name)
