@@ -1,38 +1,27 @@
-2023-11-04 10:40:19,822 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
-2023-11-04 10:40:19,822 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 10:40:20,641 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+2023-11-04 12:11:52,962 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-04 12:11:52,962 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 12:11:53,313 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
  'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
  'Digital input' 'Digital input' 'Digital input' 'Digital input'
  'Digital input' 'Digital input']
-2023-11-04 10:40:20,642 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+2023-11-04 12:11:53,313 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
  'Volts' 'Volts' 'Volts' 'Volts']
-2023-11-04 10:40:20,642 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 10:40:20,642 - INFO - Renaming channels according to BIDS conventions
-2023-11-04 10:40:20,642 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
-2023-11-04 10:40:20,642 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-04 10:40:20,642 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 10:40:20,643 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 10:40:20,643 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 10:40:20,643 - INFO - Identifying runs based on triggers and number of volumes
-2023-11-04 10:40:20,643 - INFO - Segmenting data into runs
-2023-11-04 10:40:20,643 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 10:40:20,643 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-04 10:40:20,644 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-04 10:40:20,644 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 10:40:20,644 - INFO - Identifying runs based on triggers and number of volumes
-2023-11-04 10:40:20,644 - INFO - Segmenting data into runs
-2023-11-04 10:40:20,644 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 10:40:20,644 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 10:40:20,645 - INFO - Identifying runs based on triggers and number of volumes
-2023-11-04 10:40:20,645 - INFO - Segmenting data into runs
-2023-11-04 10:40:20,645 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 10:40:20,645 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-04 10:40:20,645 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-04 10:40:20,645 - INFO - Identifying runs based on triggers and number of volumes
-2023-11-04 10:40:20,645 - INFO - Segmenting data into runs
-2023-11-04 10:40:20,645 - INFO - Writing output files to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 10:40:20,645 - INFO - Plotting runs and saving to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio//sub-LRN001_ses-1_task-rest_all_runs_physio.png
-2023-11-04 10:40:20,816 - INFO - Process completed successfully.
+2023-11-04 12:11:53,313 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 12:11:53,313 - INFO - Renaming channels according to BIDS conventions
+2023-11-04 12:11:53,313 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-04 12:11:53,313 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-04 12:11:53,313 - INFO - Labels: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+ 'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
+ 'Digital input' 'Digital input' 'Digital input' 'Digital input'
+ 'Digital input' 'Digital input']
+2023-11-04 12:11:53,313 - INFO - bids_labels_dictionary right before accessing 'trigger' key: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-04 12:11:53,313 - INFO - Trigger channel index: 3
+2023-11-04 12:11:53,313 - INFO - Shape of trigger channel data: (12,)
+2023-11-04 12:11:53,313 - INFO - Processing run run-01
+2023-11-04 12:11:53,313 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-04 12:11:53,314 - INFO - Successfully extracted metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-04 12:11:53,314 - INFO - Successfully extracted metadata from {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 12:11:53,314 - INFO - Extracted metadata: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 12:11:53,314 - INFO - Identifying runs based on triggers and number of volumes
+2023-11-04 12:11:53,314 - INFO - Found 4 runs
+2023-11-04 12:11:53,314 - ERROR - An error occurred: list indices must be integers or slices, not str

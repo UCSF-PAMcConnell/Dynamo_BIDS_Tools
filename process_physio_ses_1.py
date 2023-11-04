@@ -277,8 +277,29 @@ def main(physio_root_dir, bids_root_dir):
         bids_labels_dictionary, _ = rename_channels(labels)
         
         # Extract the trigger channel data
-        trigger_channel_index = labels.index(bids_labels_dictionary['trigger'])
+            #trigger_channel_index = labels.index(bids_labels_dictionary['trigger'])
+        
+        #testing
+        
+        # Log the labels
+        logging.info(f"Labels: {labels}")
+        
+        # Log the bids_labels_dictionary to confirm the 'trigger' key exists
+        logging.info(f"bids_labels_dictionary right before accessing 'trigger' key: {bids_labels_dictionary}")
+
+        # Ensure that the original labels are used to find the index of the trigger channel
+        # Find the original label for 'trigger' from the bids_labels_dictionary
+        for original_label, bids_label in bids_labels_dictionary.items():
+            if bids_label == 'trigger':
+                trigger_original_label = original_label
+                break
+
+        trigger_channel_index = labels.tolist().index(trigger_original_label)
+        logging.info(f"Trigger channel index: {trigger_channel_index}")
+        
+        #testing # trigger_channel_data = data[:, trigger_channel_index]
         trigger_channel_data = data[trigger_channel_index]
+        logging.info(f"Shape of trigger channel data: {trigger_channel_data.shape}")
 
         processed_jsons = set()  # Initialize set to keep track of processed JSON files
         all_runs_data = []  # To store data for all runs
@@ -298,7 +319,6 @@ def main(physio_root_dir, bids_root_dir):
             
             # Extract metadata from the run's .json file
             run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
-            logging.info(f"Extracted metadata: {run_metadata}")
 
             # If run_metadata is None, it means this JSON has already been processed or is invalid
             if run_metadata is None:
