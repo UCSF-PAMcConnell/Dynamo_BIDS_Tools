@@ -12,7 +12,7 @@ import gzip
 # Configure logging
 logging.basicConfig(
     filename='process_physio.log',
-    filemode='w',
+    filemode='w', # a to append, w to overwrite
     format='%(asctime)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
@@ -75,6 +75,9 @@ def load_mat_file(mat_file_path):
         data = mat_contents['data']
         units = mat_contents['units'].flatten()  # Flatten in case it's a 2D array
         
+        # Log the labels and units for error checking
+        logging.info(f"Labels extracted from MAT file: {labels}")
+        logging.info(f"Units extracted from MAT file: {units}")
         logging.info(f"Successfully loaded MAT file from {mat_file_path}")
         
     except Exception as e:
