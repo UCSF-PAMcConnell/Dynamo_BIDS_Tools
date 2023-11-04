@@ -130,6 +130,61 @@ def rename_channels(labels):
     
     return bids_labels_dictionary, bids_labels_list
 
+# Extracts required metadata from the .json file associated with each fMRI run.
+def extract_metadata_from_json(json_file_path, processed_jsons):
+    """
+    Parameters:
+    - json_file_path: str, path to the .json file
+    - processed_jsons: set, a set of paths to already processed JSON files
+    Returns:
+    - run_metadata: dict, specific metadata required for processing
+    """
+    logging.info(f"Extracting metadata from {json_file_path}")
+
+    # Skip processing if this file has already been processed
+    if json_file_path in processed_jsons:
+        logging.info(f"JSON file {json_file_path} has already been processed.")
+        return None
+
+    # Check if the file exists
+    if not os.path.isfile(json_file_path):
+        logging.error(f"JSON file does not exist at {json_file_path}")
+        raise FileNotFoundError(f"No JSON file found at the specified path: {json_file_path}")
+
+    try:
+        # Attempt to open and read the JSON file
+        with open(json_file_path, 'r') as file:
+            metadata = json.load(file)
+        
+        # Extract only the required fields
+        run_metadata = {
+            'TaskName': metadata.get('TaskName'),
+            'RepetitionTime': metadata.get('RepetitionTime'),
+            'NumVolumes': metadata.get('NumVolumes')
+        }
+
+        # Check if all required fields were found
+        if not all(run_metadata.values()):
+            missing_fields = [key for key, value in run_metadata.items() if value is None]
+            logging.error(f"Missing required metadata fields in {json_file_path}: {missing_fields}")
+            raise ValueError(f"JSON file {json_file_path} is missing required fields: {missing_fields}")
+
+        # Add this file to the set of processed JSON files
+        processed_jsons.add(json_file_path)
+
+        # Log the successful extraction of metadata
+        logging.info(f"Successfully extracted metadata from {json_file_path}")
+        
+        # Log the extracted metadata
+        logging.info(f"Successfully extracted metadata from {run_metadata}")
+    
+    except json.JSONDecodeError as e:
+        # Log an error if the JSON file is not properly formatted
+        logging.error(f"Error decoding JSON from file {json_file_path}: {e}")
+        raise
+
+    return run_metadata
+
 def find_runs(triggers, num_volumes):
     # Identifies the start and end indices of each run based on MR triggers and number of volumes
     logging.info("Identifying runs based on triggers and number of volumes")
@@ -158,15 +213,6 @@ def plot_runs(data, runs, output_file):
     # Logic to plot data...
     plt.savefig(output_file)
 
-
-def extract_metadata_from_json(json_file_path):
-    # Extracts necessary metadata from the .json file associated with each run
-    logging.info(f"Extracting metadata from {json_file_path}")
-    with open(json_file_path, 'r') as file:
-        metadata = json.load(file)
-    return metadata
-
-
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
     # Main logic here
@@ -186,7 +232,9 @@ def main(physio_root_dir, bids_root_dir):
         bids_labels = rename_channels(labels)
         
 
+        processed_jsons = set()  # Initialize set to keep track of processed JSON files
         all_runs_data = []  # To store data for all runs
+        all_runs_info = []  # To store metadata for each run
         runs = [] # To store data for each run
 
         # Loop through each run directory in BIDS format
@@ -199,15 +247,20 @@ def main(physio_root_dir, bids_root_dir):
             json_file_path = os.path.join(bids_root_dir, subject_id, session_id, 'func', json_file_name)
             
             # Extract metadata from the run's .json file
-            run_metadata = extract_metadata_from_json(json_file_path)
-            
+            run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
+
+            # If run_metadata is None, it means this JSON has already been processed or is invalid
+            if run_metadata is None:
+                continue  # Skip to the next iteration
+
             # Find the runs in the data
-            runs = find_runs(data, run_metadata['NumVolumes'])
+            current_run_info = find_runs(data, run_metadata['NumVolumes'])
+            runs.append(current_run_info)  # Store info for plotting
             
             # Segment the data based on the runs
-            segmented_data = segment_data(data, runs, run_metadata['SamplingFrequency'])
+            segmented_data = segment_data(data, current_run_info, run_metadata['RepetitionTime'])
             
-            # all_runs_data.append(segmented_data)  # Accumulate segmented data for plotting (?)
+            all_runs_data.append(segmented_data)  # Accumulate segmented data for plotting
             
             # Write the output files for this run
             output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
@@ -215,8 +268,7 @@ def main(physio_root_dir, bids_root_dir):
 
         # After processing all runs, plot the physiological data to verify alignment
         plot_file = f"{physio_root_dir}/{subject_id}_{session_id}_task-rest_all_runs_physio.png"
-        plot_runs(data, runs, plot_file)
-        # plot_runs(all_runs_data, plot_file)  # Adjusted to pass all_runs_data (?)
+        plot_runs(all_runs_data, runs, plot_file)
         
         logging.info("Process completed successfully.")
 
