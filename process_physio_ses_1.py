@@ -24,7 +24,6 @@ def extract_subject_session(physio_root_dir):
     """
     Parameters:
     - physio_root_dir: str, the directory path that includes subject and session information.
-    
     Returns:
     - subject_id: str, the extracted subject ID
     - session_id: str, the extracted session ID
@@ -40,14 +39,11 @@ def extract_subject_session(physio_root_dir):
     subject_id, session_id = match.groups()
     return subject_id, session_id
 
-# Load physiological data from .mat file
+# Loads the physio .mat file and extracts labels, data, and units
 def load_mat_file(mat_file_path):
     """
-    Loads the .mat file and extracts labels, data, and units.
-    
     Parameters:
     - mat_file_path: str, path to the .mat file
-    
     Returns:
     - labels: array, names of the physiological data channels
     - data: array, physiological data
@@ -87,6 +83,47 @@ def load_mat_file(mat_file_path):
     
     return labels, data, units
 
+# Renames channels according to BIDS convention
+def rename_channels(labels):
+    """
+    Parameters:
+    - labels: array, original names of the physiological data channels
+    Returns:
+    - bids_labels: dict, mapping from original labels to BIDS-compliant labels
+    """
+    logging.info("Renaming channels according to BIDS conventions")
+    
+    # Define the mapping from original labels to BIDS labels
+    original_label_mapping = {
+        'ECG': 'cardiac',
+        'RSP': 'respiratory',
+        'EDA': 'eda',
+        'Trigger': 'trigger',
+        'PPG': 'ppg',  # Only if exists
+    }
+
+    # Initialize an empty dictionary to store the renamed labels
+    bids_labels = {}
+
+    # Iterate through the original labels to rename them
+    for label in labels:
+        # Skip any labels for digital inputs
+        if 'Digital input' in label:
+            continue
+        
+        # Check and rename the label if it matches one of the keys in label_mapping
+        for original, bids in original_label_mapping.items():
+            if original in label:
+                bids_labels[label] = bids
+                break
+        else:
+            logging.warning(f"Label '{label}' does not match any BIDS convention and will be omitted.")
+
+    # Debug log to print the renamed labels
+    logging.debug(f"BIDS labels after renaming: {bids_labels}")
+    
+    return bids_labels
+
 
 def find_runs(triggers, num_volumes):
     # Identifies the start and end indices of each run based on MR triggers and number of volumes
@@ -102,14 +139,6 @@ def segment_data(data, runs, sampling_rate):
     segmented_data = []
     # Logic to segment data...
     return segmented_data
-
-
-def rename_channels(labels):
-    # Renames channels according to BIDS convention
-    logging.info("Renaming channels according to BIDS conventions")
-    bids_labels = {}
-    # Logic to rename labels...
-    return bids_labels
 
 
 def write_output_files(segmented_data, metadata, output_dir):

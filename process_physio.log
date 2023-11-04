@@ -1,6 +1,13 @@
-2023-11-04 09:52:55,182 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 09:52:56,051 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 09:52:56,051 - INFO - Renaming channels according to BIDS conventions
-2023-11-04 09:52:56,052 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 09:52:56,053 - INFO - Identifying runs based on triggers and number of volumes
-2023-11-04 09:52:56,053 - ERROR - An error occurred: 'SamplingFrequency'
+2023-11-04 10:05:31,163 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-04 10:05:31,163 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 10:05:32,056 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+ 'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
+ 'Digital input' 'Digital input' 'Digital input' 'Digital input'
+ 'Digital input' 'Digital input']
+2023-11-04 10:05:32,056 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+ 'Volts' 'Volts' 'Volts' 'Volts']
+2023-11-04 10:05:32,056 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 10:05:32,057 - INFO - Renaming channels according to BIDS conventions
+2023-11-04 10:05:32,057 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-04 10:05:32,058 - INFO - Identifying runs based on triggers and number of volumes
+2023-11-04 10:05:32,058 - ERROR - An error occurred: 'SamplingFrequency'
