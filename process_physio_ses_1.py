@@ -200,49 +200,40 @@ def find_runs(data, triggers, run_metadata, num_volumes, repetition_time, sampli
     Returns:
     - runs: list of dicts, where each dict contains the start and end indices of a run
     """
-    logging.info("Identifying runs based on triggers and number of volumes")
+    logging.info("Identifying runs based on sequences of triggers")
 
-    # Guard clause to ensure run_metadata is a dictionary with required keys
-    if not isinstance(run_metadata, dict) or 'RepetitionTime' not in run_metadata or 'NumVolumes' not in run_metadata:
-        logging.error("run_metadata must be a dictionary with required keys.")
-        # Handle the error accordingly, perhaps with a return statement or raising an exception
-        return []  # Just return an empty list indicating no runs were found
- 
-    # Detect the indices where triggers occur
+    # Detect indices where triggers occur
     trigger_indices = np.where(triggers > trigger_threshold)[0]
 
     runs = []
-    current_run = {'start': None, 'end': None}
+    start_index = 0
     volume_count = 0
+    consecutive_trigger_count = 0
 
-    for i, index in enumerate(trigger_indices):
-        # Check if we're at the start of a new run
-        if current_run['start'] is None:
-            current_run['start'] = index
-            volume_count = 1
-        else:
-            # Check if subsequent triggers are roughly one TR apart (allow some variation)
-            expected_interval = sampling_rate * run_metadata['RepetitionTime']
-            if (index - trigger_indices[i - 1]) < (1.5 * expected_interval):
+    for i in range(1, len(trigger_indices)):
+        # Calculate the time between this trigger and the previous
+        time_diff = (trigger_indices[i] - trigger_indices[i - 1]) / sampling_rate
+
+        # Check if this trigger is approximately one TR away from the previous
+        if abs(time_diff - repetition_time) < (repetition_time * 0.2):  # Allowing 20% variation
+            consecutive_trigger_count += 1
+            if consecutive_trigger_count >= 50:  # We have enough consecutive triggers to consider this a run
                 volume_count += 1
-            else:
-                # If the interval is too large, consider it the start of a new run
-                current_run['end'] = trigger_indices[i - 1]
-                if volume_count == num_volumes:
-                    runs.append(current_run)
-                current_run = {'start': index, 'end': None}
-                volume_count = 1
+                if volume_count == 1:  # Starting a new run
+                    start_index = trigger_indices[i - 50]  # Start from the first trigger in the sequence
+                if volume_count == num_volumes:  # Completed a run
+                    runs.append({'start': start_index, 'end': trigger_indices[i]})
+                    volume_count = 0  # Reset for the next run
+                    consecutive_trigger_count = 0  # Reset the consecutive trigger count
+        else:
+            volume_count = 0  # Reset if triggers are not in sequence
+            consecutive_trigger_count = 0  # Also reset the consecutive trigger count
 
-    # Check if the last run reached the expected number of volumes
-    if volume_count == num_volumes:
-        current_run['end'] = trigger_indices[-1]
-        runs.append(current_run)
-
-    # Log the identified runs for debugging purposes
+    # Log identified runs for debugging purposes
     for run in runs:
         logging.info(f"Identified run from index {run['start']} to {run['end']}")
 
-    return runs, triggers, num_volumes, sampling_rate, repetition_time
+    return runs
 
 def segment_data(data, runs, sampling_rate):
     # Segments the physiological data based on the identified runs
@@ -337,11 +328,6 @@ def main(physio_root_dir, bids_root_dir):
             # Call find_runs with the extracted metadata
             current_runs_info = find_runs(data, trigger_channel_data, run_metadata, num_volumes, repetition_time, sampling_rate=5000, trigger_threshold=5)
             logging.info(f"Found {len(current_runs_info)} runs")
-            
-            if not current_runs_info:
-                logging.error("No runs found due to invalid run_metadata.")
-                # Handle the error as necessary
-                continue  # Skip to the next iteration if in a loop
             
             # Log the shape of the data array
             logging.info(f"Shape of data array: {data.shape}")
