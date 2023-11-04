@@ -176,17 +176,20 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
         logging.info(f"Successfully extracted metadata from {json_file_path}")
         
         # Log the extracted metadata
-        logging.info(f"Successfully extracted metadata from {run_metadata}")
-    
+        logging.info(f"Successfully extracted metadata: {run_metadata}")
+
+        # Check run_metadata type
+        logging.info(f"run_metadata (type: {type(run_metadata)}): {run_metadata}")
+
     except json.JSONDecodeError as e:
         # Log an error if the JSON file is not properly formatted
         logging.error(f"Error decoding JSON from file {json_file_path}: {e}")
         raise
-
-    return run_metadata
+    
+    return run_metadata, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], run_metadata['TaskName']
 
 # Identifies the start and end indices of each run based on MR triggers and number of volumes.
-def find_runs(data, triggers, num_volumes, sampling_rate, trigger_threshold=5,run_metadata=None):
+def find_runs(data, triggers, run_metadata, num_volumes, repetition_time, sampling_rate=5000, trigger_threshold=5):
     """
     Parameters:
     - data: array, the entire physiological data for the session
@@ -199,15 +202,18 @@ def find_runs(data, triggers, num_volumes, sampling_rate, trigger_threshold=5,ru
     """
     logging.info("Identifying runs based on triggers and number of volumes")
 
+    # Guard clause to ensure run_metadata is a dictionary with required keys
+    if not isinstance(run_metadata, dict) or 'RepetitionTime' not in run_metadata or 'NumVolumes' not in run_metadata:
+        logging.error("run_metadata must be a dictionary with required keys.")
+        # Handle the error accordingly, perhaps with a return statement or raising an exception
+        return []  # Just return an empty list indicating no runs were found
+ 
     # Detect the indices where triggers occur
     trigger_indices = np.where(triggers > trigger_threshold)[0]
 
     runs = []
     current_run = {'start': None, 'end': None}
     volume_count = 0
-
-    # Define fixed sampling rate for physiological data acquisition
-    sampling_rate = 5000 #Hz
 
     for i, index in enumerate(trigger_indices):
         # Check if we're at the start of a new run
@@ -236,7 +242,7 @@ def find_runs(data, triggers, num_volumes, sampling_rate, trigger_threshold=5,ru
     for run in runs:
         logging.info(f"Identified run from index {run['start']} to {run['end']}")
 
-    return runs, triggers, num_volumes, sampling_rate
+    return runs, triggers, num_volumes, sampling_rate, repetition_time
 
 def segment_data(data, runs, sampling_rate):
     # Segments the physiological data based on the identified runs
@@ -260,6 +266,11 @@ def plot_runs(data, runs, output_file):
 
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
+    
+    # Define fixed sampling rate for physiological data acquisition
+    sampling_rate = 5000 #Hz
+    logging.info(f"Sampling rate: {sampling_rate}")
+
     # Main logic here
     try:
 
@@ -304,15 +315,39 @@ def main(physio_root_dir, bids_root_dir):
         for run_idx in range(1, 5):  # Assuming there are 4 runs as specified
             run_id = f"run-{run_idx:02d}"
             
-            # Log the current run
-            logging.info(f"Processing run {run_id}")
-            
             # Construct the path to the run's .json file
             json_file_name = f"{subject_id}_{session_id}_task-rest_{run_id}_bold.json"
             json_file_path = os.path.join(bids_root_dir, subject_id, session_id, 'func', json_file_name)
             
-            # Extract metadata from the run's .json file
-            run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
+            # Extract metadata from the JSON file
+            run_metadata, num_volumes, repetition_time, task_name = extract_metadata_from_json(json_file_path, processed_jsons)
+
+            # Before calling find_runs, check if run_metadata is None
+            if run_metadata is None:
+                logging.error("run_metadata is None, skipping run.")
+                continue  # Skip to the next iteration of the loop
+
+            # Now add the checking code
+            if not isinstance(run_metadata, dict) or 'RepetitionTime' not in run_metadata or 'NumVolumes' not in run_metadata:
+                logging.error("run_metadata is not a dictionary or does not contain the required keys.")
+                continue
+
+            # Find the runs in the data
+            # current_runs_info = find_runs(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], run_metadata['TaskName'], sampling_rate=sampling_rate, trigger_threshold=5)
+            # Call find_runs with the extracted metadata
+            current_runs_info = find_runs(data, trigger_channel_data, run_metadata, num_volumes, repetition_time, sampling_rate=5000, trigger_threshold=5)
+            logging.info(f"Found {len(current_runs_info)} runs")
+            
+            if not current_runs_info:
+                logging.error("No runs found due to invalid run_metadata.")
+                # Handle the error as necessary
+                continue  # Skip to the next iteration if in a loop
+            
+            # Log the shape of the data array
+            logging.info(f"Shape of data array: {data.shape}")
+
+            # Log the current run
+            logging.info(f"Processing run {run_id}")
 
             # If run_metadata is None, it means this JSON has already been processed or is invalid
             if run_metadata is None:
@@ -320,31 +355,33 @@ def main(physio_root_dir, bids_root_dir):
                 logging.warning(f"Metadata for {json_file_name} could not be extracted.")
                 continue  # Skip to the next iteration
 
-            # Find the runs in the data
-            current_runs = find_runs(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], trigger_threshold=5)[0]
-            logging.info(f"Found {len(current_runs)} runs")
-            # Log the shape of the data array
-            logging.info(f"Shape of data array: {data.shape}")
+            # Check if current_runs_info is a list and has at least one element
+            if isinstance(current_runs_info, list) and len(current_runs_info) > 0:
+                # Access the first run's information if needed, or loop over all runs
+                first_run_info = current_runs_info[0]
 
-            for current_run_info in current_runs:
-                # Log the start and end indices of the current run
-                logging.info(f"Segmenting run {run_id} from index {current_run_info['start']} to {current_run_info['end']}")
+                for current_run_info in current_runs_info:
+                    # Log the start and end indices of the current run
+                    logging.info(f"Segmenting run {run_id} from index {current_run_info['start']} to {current_run_info['end']}")
+                    
+                    # Segment the data based on the runs
+                    segmented_data = segment_data(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], trigger_threshold=5, sampling_rate=5000)
+                    
+                    # Log the shape of the segmented data
+                    logging.info(f"Segmented data shape for run {run_id}: {segmented_data.shape}")  
+
+                    # Accumulate segmented data for plotting
+                    all_runs_data.append(segmented_data)  
                 
-                # Segment the data based on the runs
-                segmented_data = segment_data(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], trigger_threshold=5, sampling_rate=5000)
-                
-                # Log the shape of the segmented data
-                logging.info(f"Segmented data shape for run {run_id}: {segmented_data.shape}")  
+                    # Append current run metadata to runs_info
+                    runs_info.append(current_run_info)
 
-                # Accumulate segmented data for plotting
-                all_runs_data.append(segmented_data)  
-            
-                # Append current run metadata to runs_info
-                runs_info.append(current_run_info)
-
-                # Write the output files for this run
-                output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
-                write_output_files(segmented_data, run_metadata, output_dir)
+                    # Write the output files for this run
+                    output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
+                    write_output_files(segmented_data, run_metadata, output_dir)
+                else:
+                    # Handle the case where no runs are found or an unexpected return type is received
+                    logging.error("No runs found or unexpected return type from find_runs function.")
 
         # After processing all runs, plot the physiological data to verify alignment
         plot_file = f"{physio_root_dir}/{subject_id}_{session_id}_task-rest_all_runs_physio.png"
