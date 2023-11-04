@@ -1,127 +1,58 @@
-import os
-import json
-import numpy as np
-import pandas as pd
-from scipy.io import loadmat
-import argparse
-import re
-import matplotlib.pyplot as plt
-import warnings
-import logging
-
-# Configure logging
-logging.basicConfig(
-    filename='process_physio.log',  # Log to this file
-    filemode='a',  # Append to the log file, 'w' would overwrite
-    format='%(asctime)s - %(levelname)s - %(message)s',  # Include timestamp
-    level=logging.DEBUG  # Set logging level to DEBUG
-)
-
-# Define a function to load metadata from a JSON file
-def load_json_metadata(json_path):
-    # Log the attempt to load JSON metadata.
-    logging.info(f'Loading JSON metadata from {json_path}')
-    
-    try:
-        # Open the JSON file and load its contents.
-        with open(json_path, 'r') as file:
-            metadata = json.load(file)
-            # Log successful loading of metadata.
-            logging.info(f'Successfully loaded metadata from {json_path}')
-    except FileNotFoundError:
-        # Log an error if the file is not found and raise the exception to the caller.
-        logging.error(f'File not found: {json_path}', exc_info=True)
-        raise
-    except json.JSONDecodeError:
-        # Log an error if the JSON file is not properly formatted and raise the exception to the caller.
-        logging.error(f'Invalid JSON format in file: {json_path}', exc_info=True)
-        raise
-    except Exception as e:
-        # Log any other exceptions that occur and raise the exception to the caller.
-        logging.error(f'An unexpected error occurred while loading {json_path}: {e}', exc_info=True)
-        raise
-    
-    # Return the metadata from the JSON file.
-    return metadata
-
-# Define a function to extract trigger points from MRI trigger channel data
-def extract_trigger_points(mri_trigger_data, threshold=5):
-    # Log the entry into the function and its parameters
-    logging.info(f'Extracting trigger points with threshold: {threshold}')
-    
-    # Convert the MRI trigger data to binary based on the threshold
-    # 1 if the data point is above the threshold, 0 otherwise
-    triggers = (mri_trigger_data > threshold).astype(int)
-    
-    # Calculate the difference between successive trigger points to find rising edges
-    diff_triggers = np.diff(triggers, prepend=0)
-    
-    # Find the indices of the start of trigger points (where the difference is 1)
-    trigger_starts = np.where(diff_triggers == 1)[0]
-    
-    # Log the result before returning
-    logging.info(f'Found {len(trigger_starts)} trigger points')
-    
-    # Check for empty trigger_starts, which would indicate no triggers were found
-    if len(trigger_starts) == 0:
-        logging.warning('No trigger points found. Check the threshold and input data.')
-
-    return trigger_starts
-
-# Define a function to segment the data into runs based on consecutive sequences of triggers
 def segment_data_into_runs(data, trigger_starts, tr, sampling_rate, num_volumes):
-    # Log the beginning of the segmentation process.
-    logging.info('Segmenting data into runs...')
+    """
+    Segments the physiological data into runs based on the MRI trigger points.
 
-    # Calculate the number of samples that one volume spans.
-    samples_per_volume = int(sampling_rate * tr)
-    logging.debug(f'Samples per volume: {samples_per_volume}')
+    Parameters:
+    data (np.array): The physiological data array.
+    trigger_starts (list): Indices of the start of each MRI trigger point.
+    tr (float): The repetition time of the MRI scanner.
+    sampling_rate (int): The sampling rate of the physiological data.
+    num_volumes (int): The number of volumes (time points) in each fMRI run.
+
+    Returns:
+    list: A list of dictionaries, each containing a segmented run and its start index.
+    """
 
     # Initialize a list to hold the segmented runs.
     runs = []
-
-    # Start at the first trigger point.
-    i = 0
-
-    # Continue processing as long as there are trigger starts left.
-    while i < len(trigger_starts):
-        # Get the current trigger start index.
-        start = trigger_starts[i]
-        logging.debug(f'Processing trigger start at index {i}: {start}')
-
-        # If there aren't enough triggers left to form a complete run, exit the loop.
-        if i + num_volumes > len(trigger_starts):
-            logging.warning('Not enough triggers left to form a full run.')
-            break
-
-        # Calculate the trigger index for the end of the run.
-        end_trigger = trigger_starts[i + num_volumes - 1]
-
-        # Calculate the expected end index of the data based on the number of volumes.
-        expected_end_idx = start + (num_volumes * samples_per_volume)
-        logging.debug(f'Expected end index for run: {expected_end_idx}')
-
-        # Check if the actual end trigger is within one volume's worth of samples of the expected end.
-        if abs(end_trigger - expected_end_idx) < samples_per_volume:
-            # Extract the run data from the overall dataset using the start and expected end indexes.
-            run_data = data[start:expected_end_idx, :]
-
-            # Append the run data to the list of runs.
-            runs.append({'data': run_data, 'start_index': start})
-            logging.info(f'Run found and appended. Start: {start}, End: {expected_end_idx}')
-
-            # Move the index to the start of the next potential run.
-            i += num_volumes
+    
+    # Initialize variables to track the current run
+    current_run = []
+    run_start_index = None
+    
+    # Loop through all the trigger start points to segment the runs
+    for i, trigger_index in enumerate(trigger_starts):
+        if run_start_index is None:
+            # Start a new run if we're not currently tracking one
+            run_start_index = trigger_index
+            current_run = [trigger_index]
+        elif trigger_index - current_run[-1] <= samples_per_volume:
+            # Continue the current run if the next trigger is within the expected range
+            current_run.append(trigger_index)
         else:
-            # If the triggers do not align with a run, move to the next trigger.
-            logging.debug(f'Triggers do not align at index {i}. Skipping to next trigger.')
-            i += 1
-
-    # Log the completion of the segmentation process and the number of runs found.
-    logging.info('Segmentation complete. Total runs found: {}'.format(len(runs)))
-
-    # Return the list of segmented runs.
+            # End the current run if the gap is too large and start a new one
+            runs.append({
+                'data': data[run_start_index:current_run[-1] + samples_per_volume, :],
+                'start_index': run_start_index
+            })
+            run_start_index = trigger_index
+            current_run = [trigger_index]
+        
+        # Check if we've reached the expected number of volumes for the run
+        if len(current_run) == num_volumes:
+            # End the current run and reset for the next run
+            runs.append({
+                'data': data[run_start_index:trigger_index + samples_per_volume, :],
+                'start_index': run_start_index
+            })
+            run_start_index = None
+    
+    # Log the total number of runs identified
+    logging.info(f'Segmentation complete. Total runs found: {len(runs)}')
+    
+    # Return the list of segmented runs
     return runs
+
 
 # Define a function to save the segments into TSV files, excluding unwanted labels
 def save_segments_to_tsv(segments, bids_root_dir, subject_id, session_id, original_labels):
@@ -166,11 +97,6 @@ def save_segments_to_tsv(segments, bids_root_dir, subject_id, session_id, origin
     logging.info("All segments have been saved to TSV files.")
 
 # Define a function to plot the full data with segments highlighted
-import numpy as np
-import matplotlib.pyplot as plt
-import warnings
-import logging
-
 def plot_full_data_with_segments(data, runs, sampling_rate, original_labels, output_fig_path):
     # Log the start of the plotting process
     logging.info('Starting the plotting of full data with segments.')
@@ -233,78 +159,27 @@ def plot_full_data_with_segments(data, runs, sampling_rate, original_labels, out
 def main(physio_root_dir, bids_root_dir):
     logging.info("Starting the conversion process.")
 
-    # Extract subject and session IDs from the directory path
-    pattern = r'sub-(?P<subject_id>\w+)/ses-(?P<session_id>\w+)/physio'
-    match = re.search(pattern, physio_root_dir)
-    if not match:
-        error_msg = "Unable to extract subject_id and session_id from the physio_root_dir."
+    # Initialize the list of runs here to ensure it's always defined
+    runs = []
+
+    # Extract triggers and segment data into runs
+    trigger_label = 'MRI Trigger - Custom, HLT100C - A 4'
+    if trigger_label not in labels:
+        error_msg = f"Trigger label '{trigger_label}' not found in the labels."
         logging.error(error_msg)
         raise ValueError(error_msg)
-    subject_id, session_id = match.groups()
-    logging.info(f"Extracted subject ID: {subject_id}, session ID: {session_id}.")
 
-    # Locate the function directory
-    func_dir = os.path.join(bids_root_dir, f"sub-{subject_id}", f"ses-{session_id}", 'func')
-    logging.info(f"Searching for JSON files in {func_dir}.")
-    json_files = sorted([f for f in os.listdir(func_dir) if f.endswith('_bold.json')])
+    trigger_channel_index = labels.index(trigger_label)
+    trigger_starts = extract_trigger_points(data[:, trigger_channel_index])
+    logging.info(f"Extracted {len(trigger_starts)} trigger points.")
 
-    # Process each JSON file
-    for json_file in json_files:
-        json_file_path = os.path.join(func_dir, json_file)
-        logging.info(f"Processing metadata file: {json_file_path}.")
-        try:
-            with open(json_file_path, 'r') as file:
-                run_metadata = json.load(file)
-        except Exception as e:
-            logging.error(f"Error reading {json_file_path}: {e}")
-            raise
+    # Assume that you know the maximum number of runs you expect
+    expected_runs_count = 4  # For example, if you expect 4 runs
 
-        # Extract TR and number of volumes from metadata
-        tr = run_metadata.get('RepetitionTime')
-        num_volumes = run_metadata.get('NumVolumes')
-        if tr is None or num_volumes is None:
-            error_msg = f"Metadata in {json_file} does not contain 'RepetitionTime' or 'NumVolumes'."
-            logging.error(error_msg)
-            raise KeyError(error_msg)
-
-        # Load the MATLAB file
-        mat_file_name = f"sub-{subject_id}_ses-{session_id}_task-rest_physio.mat"
-        mat_file_path = os.path.join(physio_root_dir, mat_file_name)
-        logging.info(f"Loading MATLAB file: {mat_file_path}.")
-        try:
-            mat_data = loadmat(mat_file_path)
-        except FileNotFoundError:
-            logging.error(f"The .mat file was not found at {mat_file_path}.")
-            raise FileNotFoundError(f"The .mat file was not found at {mat_file_path}")
-
-        # Validate contents of the MATLAB file
-        if 'data' not in mat_data or 'labels' not in mat_data:
-            error_msg = f"The .mat file {mat_file_name} does not contain 'data' and/or 'labels' keys."
-            logging.error(error_msg)
-            raise KeyError(error_msg)
-
-        # Process the data and labels
-        data, labels_struct = mat_data['data'], mat_data['labels']
-        labels = [str(label.flat[0]) for label in labels_struct]
-        logging.info("Data and labels loaded successfully.")
-
-        # Set a fixed sampling rate (or extract from JSON/meta if variable)
-        sampling_rate = 5000
-        logging.info("Using a fixed sampling rate of 5000 Hz.")
-
-        # Extract triggers and segment data into runs
-        trigger_label = 'MRI Trigger - Custom, HLT100C - A 4'
-        if trigger_label not in labels:
-            error_msg = f"Trigger label '{trigger_label}' not found in the labels."
-            logging.error(error_msg)
-            raise ValueError(error_msg)
-
-        trigger_channel_index = labels.index(trigger_label)
-        trigger_starts = extract_trigger_points(data[:, trigger_channel_index])
-        runs = segment_data_into_runs(data, trigger_starts, tr, sampling_rate, num_volumes)
-        logging.info(f"Found {len(runs)} runs.")
-
-        # Plot and save the segmented data
+    
+    # After processing, ensure that runs is defined and has the data
+    # Now plot and save the segmented data
+    if runs:  # Only attempt to plot if there are runs available
         output_fig_path = mat_file_path.replace('.mat', '.png')
         plot_full_data_with_segments(data, runs, sampling_rate, labels, output_fig_path)
         logging.info(f"Saved plot to {output_fig_path}.")
@@ -312,13 +187,9 @@ def main(physio_root_dir, bids_root_dir):
         # Save the runs as TSV files
         save_segments_to_tsv(runs, bids_root_dir, subject_id, session_id, labels)
         logging.info("All segments saved to TSV files.")
+    else:
+        logging.info("No runs to process.")
 
     logging.info("Conversion process completed.")
-        
-# Command-line interface setup
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Convert physiological data to BIDS format.")
-    parser.add_argument("physio_root_dir", help="Directory containing the physiological .mat files.")
-    parser.add_argument("bids_root_dir", help="Path to the root of the BIDS dataset where the .json files are located.")
-    args = parser.parse_args()
-    main(args.physio_root_dir, args.bids_root_dir)
+
+
