@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import argparse
 import scipy.io as sio
@@ -17,6 +18,27 @@ logging.basicConfig(
 )
 
 # Helper functions
+
+# Extract the subject and session IDs from the physio_root_dir path
+def extract_subject_session(physio_root_dir):
+    """
+    Parameters:
+    - physio_root_dir: str, the directory path that includes subject and session information.
+    
+    Returns:
+    - subject_id: str, the extracted subject ID
+    - session_id: str, the extracted session ID
+    """
+    # Normalize the path to remove any trailing slashes for consistency
+    physio_root_dir = os.path.normpath(physio_root_dir)
+
+    # The pattern looks for 'sub-' followed by any characters until a slash, and similar for 'ses-'
+    match = re.search(r'(sub-[^/]+)/(ses-[^/]+)', physio_root_dir)
+    if not match:
+        raise ValueError(f"Unable to extract subject_id and session_id from path: {physio_root_dir}")
+    
+    subject_id, session_id = match.groups()
+    return subject_id, session_id
 
 # Load physiological data from .mat file
 def load_mat_file(mat_file_path):
@@ -114,10 +136,10 @@ def main(physio_root_dir, bids_root_dir):
     try:
 
         # Extract subject_id and session_id from the physio_root_dir path
-        # Assuming the path follows the pattern: .../sub-<subject_id>_ses-<session_id>_...
-
-        subject_id = os.path.basename(physio_root_dir).split('_')[0]
-        session_id = os.path.basename(physio_root_dir).split('_')[1]
+        subject_id, session_id = extract_subject_session(physio_root_dir)
+       
+        # Set up log to print the extracted IDs
+        logging.info(f"Subject ID: {subject_id}, Session ID: {session_id}")
         
         # Construct the path to the .mat file using the naming convention
         mat_file_name = f"{subject_id}_{session_id}_task-rest_physio.mat"
