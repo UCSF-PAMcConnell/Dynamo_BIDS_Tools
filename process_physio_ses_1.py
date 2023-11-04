@@ -189,51 +189,47 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
     return run_metadata, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], run_metadata['TaskName']
 
 # Identifies the start and end indices of each run based on MR triggers and number of volumes.
-def find_runs(data, triggers, run_metadata, num_volumes, repetition_time, sampling_rate=5000, trigger_threshold=5):
-    """
-    Parameters:
-    - data: array, the entire physiological data for the session
-    - triggers: array, the trigger channel data
-    - num_volumes: int, the number of volumes for each fMRI run
-    - sampling_rate: int, the sampling rate of the physiological data
-    - trigger_threshold: int/float, the value above which a trigger is considered valid
-    Returns:
-    - runs: list of dicts, where each dict contains the start and end indices of a run
-    """
+def find_runs(data, triggers, run_metadata, sampling_rate=5000, trigger_threshold=5):
     logging.info("Identifying runs based on sequences of triggers")
-
-    # Detect indices where triggers occur
+    
     trigger_indices = np.where(triggers > trigger_threshold)[0]
-
     runs = []
-    start_index = 0
     volume_count = 0
-    consecutive_trigger_count = 0
+    current_run_start_index = None
 
-    for i in range(1, len(trigger_indices)):
-        # Calculate the time between this trigger and the previous
-        time_diff = (trigger_indices[i] - trigger_indices[i - 1]) / sampling_rate
+    # Variables for debug logging
+    expected_interval = sampling_rate * run_metadata['RepetitionTime']
+    trigger_intervals = []
 
-        # Check if this trigger is approximately one TR away from the previous
-        if abs(time_diff - repetition_time) < (repetition_time * 0.2):  # Allowing 20% variation
-            consecutive_trigger_count += 1
-            if consecutive_trigger_count >= 50:  # We have enough consecutive triggers to consider this a run
-                volume_count += 1
-                if volume_count == 1:  # Starting a new run
-                    start_index = trigger_indices[i - 50]  # Start from the first trigger in the sequence
-                if volume_count == num_volumes:  # Completed a run
-                    runs.append({'start': start_index, 'end': trigger_indices[i]})
-                    volume_count = 0  # Reset for the next run
-                    consecutive_trigger_count = 0  # Reset the consecutive trigger count
+    for i in range(len(trigger_indices)):
+        # If we are at the start of the data or have just completed a run, look for a new run
+        if volume_count == 0:
+            current_run_start_index = trigger_indices[i]
+            volume_count = 1  # Start counting volumes with the first trigger
         else:
-            volume_count = 0  # Reset if triggers are not in sequence
-            consecutive_trigger_count = 0  # Also reset the consecutive trigger count
+            # Calculate the interval between the current and the previous trigger
+            actual_interval = trigger_indices[i] - trigger_indices[i - 1]
+            trigger_intervals.append(actual_interval)
 
-    # Log identified runs for debugging purposes
-    for run in runs:
-        logging.info(f"Identified run from index {run['start']} to {run['end']}")
+            # Check if the current trigger is within an acceptable range of the expected interval
+            if expected_interval * 0.8 <= actual_interval <= expected_interval * 1.2:
+                volume_count += 1
+                # If we have found the correct number of volumes, we have identified a run
+                if volume_count == run_metadata['NumVolumes']:
+                    runs.append({'start': current_run_start_index, 'end': trigger_indices[i-1]})
+                    volume_count = 0  # Reset volume count for the next run
+            else:
+                # If the trigger is not in the expected range, reset and look for a new run
+                volume_count = 1
+                current_run_start_index = trigger_indices[i]
 
+        # Log for debugging
+        logging.info(f"Trigger index: {i}, Volume count: {volume_count}")
+
+    logging.info(f"Trigger intervals: {trigger_intervals}")
+    logging.info(f"Identified runs: {runs}")
     return runs
+
 
 def segment_data(data, runs, sampling_rate):
     # Segments the physiological data based on the identified runs
@@ -258,10 +254,6 @@ def plot_runs(data, runs, output_file):
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
     
-    # Define fixed sampling rate for physiological data acquisition
-    sampling_rate = 5000 #Hz
-    logging.info(f"Sampling rate: {sampling_rate}")
-
     # Main logic here
     try:
 
@@ -326,7 +318,7 @@ def main(physio_root_dir, bids_root_dir):
             # Find the runs in the data
             # current_runs_info = find_runs(data, trigger_channel_data, run_metadata['NumVolumes'], run_metadata['RepetitionTime'], run_metadata['TaskName'], sampling_rate=sampling_rate, trigger_threshold=5)
             # Call find_runs with the extracted metadata
-            current_runs_info = find_runs(data, trigger_channel_data, run_metadata, num_volumes, repetition_time, sampling_rate=5000, trigger_threshold=5)
+            current_runs_info = find_runs(data, trigger_channel_data, run_metadata, sampling_rate=5000, trigger_threshold=5)
             logging.info(f"Found {len(current_runs_info)} runs")
             
             # Log the shape of the data array
