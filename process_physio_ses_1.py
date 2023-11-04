@@ -18,21 +18,48 @@ logging.basicConfig(
 
 # Helper functions
 
-def parse_arguments():
-    # Parses command line arguments for the physio and BIDS root directories
-    parser = argparse.ArgumentParser(description='Process physiological data into BIDS format.')
-    parser.add_argument('physio_root_dir', type=str, help='Root directory of the physiological data.')
-    parser.add_argument('bids_root_dir', type=str, help='Root directory of the BIDS data.')
-    return parser.parse_args()
-
-
+# Load physiological data from .mat file
 def load_mat_file(mat_file_path):
-    # Loads the .mat file and extracts labels, data, and units
-    logging.info(f"Loading MAT file from {mat_file_path}")
-    mat_contents = sio.loadmat(mat_file_path)
-    labels = mat_contents['labels']
-    data = mat_contents['data']
-    units = mat_contents['units']
+    """
+    Loads the .mat file and extracts labels, data, and units.
+    
+    Parameters:
+    - mat_file_path: str, path to the .mat file
+    
+    Returns:
+    - labels: array, names of the physiological data channels
+    - data: array, physiological data
+    - units: array, units for each channel of physiological data
+    """
+    
+    # Check if the file exists
+    if not os.path.isfile(mat_file_path):
+        logging.error(f"MAT file does not exist at {mat_file_path}")
+        raise FileNotFoundError(f"No MAT file found at the specified path: {mat_file_path}")
+    
+    try:
+        # Attempt to load the .mat file
+        logging.info(f"Loading MAT file from {mat_file_path}")
+        mat_contents = sio.loadmat(mat_file_path)
+        
+        # Verify that required keys are in the loaded .mat file
+        required_keys = ['labels', 'data', 'units']
+        if not all(key in mat_contents for key in required_keys):
+            logging.error(f"MAT file at {mat_file_path} is missing one of the required keys: {required_keys}")
+            raise KeyError(f"MAT file at {mat_file_path} is missing required keys")
+        
+        # Extract labels, data, and units
+        labels = mat_contents['labels'].flatten()  # Flatten in case it's a 2D array
+        data = mat_contents['data']
+        units = mat_contents['units'].flatten()  # Flatten in case it's a 2D array
+        
+        logging.info(f"Successfully loaded MAT file from {mat_file_path}")
+        
+    except Exception as e:
+        # Log the exception and re-raise to handle it upstream
+        logging.error(f"Failed to load MAT file from {mat_file_path}: {e}")
+        raise
+    
     return labels, data, units
 
 
@@ -102,6 +129,10 @@ def main(physio_root_dir, bids_root_dir):
         # Rename channels based on dynamic labels from data
         bids_labels = rename_channels(labels)
         
+
+        all_runs_data = []  # To store data for all runs
+        runs = [] # To store data for each run
+
         # Loop through each run directory in BIDS format
         # Iterate over the runs
         for run_idx in range(1, 5):  # Assuming there are 4 runs as specified
@@ -120,12 +151,16 @@ def main(physio_root_dir, bids_root_dir):
             # Segment the data based on the runs
             segmented_data = segment_data(data, runs, run_metadata['SamplingFrequency'])
             
+            # all_runs_data.append(segmented_data)  # Accumulate segmented data for plotting (?)
+            
             # Write the output files for this run
-            output_dir = os.path.join(physio_root_dir, subject_id, session_id, 'func')
+            output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
             write_output_files(segmented_data, run_metadata, output_dir)
+
         # After processing all runs, plot the physiological data to verify alignment
         plot_file = f"{physio_root_dir}/{subject_id}_{session_id}_task-rest_all_runs_physio.png"
         plot_runs(data, runs, plot_file)
+        # plot_runs(all_runs_data, plot_file)  # Adjusted to pass all_runs_data (?)
         
         logging.info("Process completed successfully.")
 
