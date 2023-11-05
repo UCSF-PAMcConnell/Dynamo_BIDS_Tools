@@ -1,77 +1,83 @@
-2023-11-05 16:51:11,497 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
-2023-11-05 16:51:11,497 - INFO - Processing subject: sub-LRN001, session: ses-1
-2023-11-05 16:51:11,497 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-05 16:51:11,851 - INFO - Data loaded successfully with shape: (21203169, 12)
-2023-11-05 16:51:11,851 - INFO - Type of 'data': <class 'numpy.ndarray'>
-2023-11-05 16:51:11,851 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+2023-11-05 16:55:39,497 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-05 16:55:39,497 - INFO - Processing subject: sub-LRN001, session: ses-1
+2023-11-05 16:55:39,497 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-05 16:55:39,926 - INFO - Data loaded successfully with shape: (21203169, 12)
+2023-11-05 16:55:39,926 - INFO - Type of 'data': <class 'numpy.ndarray'>
+2023-11-05 16:55:39,926 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
  'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
  'Digital input' 'Digital input' 'Digital input' 'Digital input'
  'Digital input' 'Digital input']
-2023-11-05 16:51:11,851 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+2023-11-05 16:55:39,926 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
  'Volts' 'Volts' 'Volts' 'Volts']
-2023-11-05 16:51:11,852 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-05 16:51:11,852 - INFO - Data loaded successfully with shape: (21203169, 12)
-2023-11-05 16:51:11,852 - INFO - Renaming channels according to BIDS conventions
-2023-11-05 16:51:11,852 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
-2023-11-05 16:51:11,852 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-05 16:51:11,915 - INFO - JSON files found: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json']
-2023-11-05 16:51:11,915 - INFO - Extracting metadata from JSON files...
-2023-11-05 16:51:11,915 - INFO - Sorted JSON file paths: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json']
-2023-11-05 16:51:11,915 - INFO - Extracting metadata from JSON files...
-2023-11-05 16:51:11,915 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-05 16:51:11,915 - INFO - Successfully extracted metadata for run-01: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 16:51:11,915 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-05 16:51:11,915 - INFO - Successfully extracted metadata for run-02: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 16:51:11,915 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-05 16:51:11,916 - INFO - Successfully extracted metadata for run-03: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 16:51:11,916 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-05 16:51:11,916 - INFO - Successfully extracted metadata for run-04: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 16:51:11,994 - INFO - Trigger starts: 718
-2023-11-05 16:51:11,994 - INFO - Processing run run-01 with 175 volumes and TR=2s
-2023-11-05 16:51:11,994 - INFO - Run run-01 at index 0 does not match expected interval.
-2023-11-05 16:51:11,994 - INFO - Run run-01 at index 1 does not match expected interval.
-2023-11-05 16:51:11,994 - INFO - Run run-01 at index 2 does not match expected interval.
-2023-11-05 16:51:11,994 - INFO - Run run-01 at index 3 does not match expected interval.
-2023-11-05 16:51:11,994 - INFO - Run run-01 at index 4 does not match expected interval.
-2023-11-05 16:51:11,994 - INFO - Run run-01 at index 5 does not match expected interval.
-2023-11-05 16:51:11,994 - INFO - Valid run found for run-01: start at 8695841, end at 10445841
-2023-11-05 16:51:11,994 - INFO - Processing run run-02 with 175 volumes and TR=2s
-2023-11-05 16:51:11,994 - INFO - Valid run found for run-02: start at 10509314, end at 12259314
-2023-11-05 16:51:11,994 - INFO - Processing run run-03 with 175 volumes and TR=2s
-2023-11-05 16:51:11,994 - INFO - Valid run found for run-03: start at 12480866, end at 14230866
-2023-11-05 16:51:11,994 - INFO - Processing run run-04 with 175 volumes and TR=2s
-2023-11-05 16:51:11,994 - INFO - Valid run found for run-04: start at 14294290, end at 16044290
-2023-11-05 16:51:11,994 - INFO - No valid segments found for run run-04 after index 706.
-2023-11-05 16:51:11,994 - INFO - Total number of runs found: 4
-2023-11-05 16:51:11,994 - INFO - Runs info: [{'run_id': 'run-01', 'start_index': 8695841, 'end_index': 10445841, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 10509314, 'end_index': 12259314, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-03', 'start_index': 12480866, 'end_index': 14230866, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-04', 'start_index': 14294290, 'end_index': 16044290, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
-2023-11-05 16:51:11,994 - INFO - Processing run info: {'run_id': 'run-01', 'start_index': 8695841, 'end_index': 10445841, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 16:51:11,994 - INFO - Run ID: run-01
-2023-11-05 16:51:11,994 - INFO - Processing run run-01
-2023-11-05 16:51:11,994 - INFO - start_index: 8695841
-2023-11-05 16:51:11,994 - INFO - end_index: 10445841
-2023-11-05 16:51:11,994 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 16:51:19,184 - INFO - Output files for run run-01 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 16:51:19,184 - INFO - Processing run info: {'run_id': 'run-02', 'start_index': 10509314, 'end_index': 12259314, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 16:51:19,184 - INFO - Run ID: run-02
-2023-11-05 16:51:19,184 - INFO - Processing run run-02
-2023-11-05 16:51:19,184 - INFO - start_index: 10509314
-2023-11-05 16:51:19,184 - INFO - end_index: 12259314
-2023-11-05 16:51:19,184 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 16:51:26,244 - INFO - Output files for run run-02 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 16:51:26,244 - INFO - Processing run info: {'run_id': 'run-03', 'start_index': 12480866, 'end_index': 14230866, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 16:51:26,244 - INFO - Run ID: run-03
-2023-11-05 16:51:26,245 - INFO - Processing run run-03
-2023-11-05 16:51:26,245 - INFO - start_index: 12480866
-2023-11-05 16:51:26,245 - INFO - end_index: 14230866
-2023-11-05 16:51:26,245 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 16:51:33,394 - INFO - Output files for run run-03 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 16:51:33,395 - INFO - Processing run info: {'run_id': 'run-04', 'start_index': 14294290, 'end_index': 16044290, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 16:51:33,395 - INFO - Run ID: run-04
-2023-11-05 16:51:33,395 - INFO - Processing run run-04
-2023-11-05 16:51:33,395 - INFO - start_index: 14294290
-2023-11-05 16:51:33,395 - INFO - end_index: 16044290
-2023-11-05 16:51:33,395 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 16:51:40,357 - INFO - Output files for run run-04 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 16:51:40,357 - INFO - Segmented data list length: 4
-2023-11-05 16:51:40,357 - INFO - SEgmented data list shape: (1750000, 4)
-2023-11-05 16:51:40,418 - INFO - Preparing to plot runs.
+2023-11-05 16:55:39,926 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-05 16:55:39,926 - INFO - Data loaded successfully with shape: (21203169, 12)
+2023-11-05 16:55:39,927 - INFO - Renaming channels according to BIDS conventions
+2023-11-05 16:55:39,927 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-05 16:55:39,927 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-05 16:55:39,987 - INFO - Units dictionary: {}
+2023-11-05 16:55:39,987 - INFO - BIDS labels list: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-05 16:55:39,987 - INFO - JSON files found: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json']
+2023-11-05 16:55:39,987 - INFO - Extracting metadata from JSON files...
+2023-11-05 16:55:39,988 - INFO - Sorted JSON file paths: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json']
+2023-11-05 16:55:39,988 - INFO - Extracting metadata from JSON files...
+2023-11-05 16:55:39,988 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-05 16:55:39,989 - INFO - Successfully extracted metadata for run-01: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:55:39,989 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
+2023-11-05 16:55:39,989 - INFO - Successfully extracted metadata for run-02: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:55:39,989 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
+2023-11-05 16:55:39,989 - INFO - Successfully extracted metadata for run-03: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:55:39,989 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
+2023-11-05 16:55:39,989 - INFO - Successfully extracted metadata for run-04: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:55:40,070 - INFO - Trigger starts: 718
+2023-11-05 16:55:40,070 - INFO - Processing run run-01 with 175 volumes and TR=2s
+2023-11-05 16:55:40,070 - INFO - Run run-01 at index 0 does not match expected interval.
+2023-11-05 16:55:40,070 - INFO - Run run-01 at index 1 does not match expected interval.
+2023-11-05 16:55:40,070 - INFO - Run run-01 at index 2 does not match expected interval.
+2023-11-05 16:55:40,070 - INFO - Run run-01 at index 3 does not match expected interval.
+2023-11-05 16:55:40,070 - INFO - Run run-01 at index 4 does not match expected interval.
+2023-11-05 16:55:40,070 - INFO - Run run-01 at index 5 does not match expected interval.
+2023-11-05 16:55:40,070 - INFO - Valid run found for run-01: start at 8695841, end at 10445841
+2023-11-05 16:55:40,070 - INFO - Processing run run-02 with 175 volumes and TR=2s
+2023-11-05 16:55:40,070 - INFO - Valid run found for run-02: start at 10509314, end at 12259314
+2023-11-05 16:55:40,070 - INFO - Processing run run-03 with 175 volumes and TR=2s
+2023-11-05 16:55:40,070 - INFO - Valid run found for run-03: start at 12480866, end at 14230866
+2023-11-05 16:55:40,070 - INFO - Processing run run-04 with 175 volumes and TR=2s
+2023-11-05 16:55:40,070 - INFO - Valid run found for run-04: start at 14294290, end at 16044290
+2023-11-05 16:55:40,070 - INFO - No valid segments found for run run-04 after index 706.
+2023-11-05 16:55:40,070 - INFO - Total number of runs found: 4
+2023-11-05 16:55:40,070 - INFO - Runs info: [{'run_id': 'run-01', 'start_index': 8695841, 'end_index': 10445841, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 10509314, 'end_index': 12259314, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-03', 'start_index': 12480866, 'end_index': 14230866, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-04', 'start_index': 14294290, 'end_index': 16044290, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
+2023-11-05 16:55:40,071 - INFO - Processing run info: {'run_id': 'run-01', 'start_index': 8695841, 'end_index': 10445841, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:55:40,071 - INFO - Run ID: run-01
+2023-11-05 16:55:40,071 - INFO - Processing run run-01
+2023-11-05 16:55:40,071 - INFO - start_index: 8695841
+2023-11-05 16:55:40,071 - INFO - end_index: 10445841
+2023-11-05 16:55:40,071 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:55:40,071 - INFO - Metadata dictionary for run run-01: {'SamplingFrequency': {'Value': 5000, 'Units': 'Hz'}, 'StartTimeSec': {'Value': 1739.1682, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'seconds'}, 'StartTimeMin': {'Value': 28.986136666666667, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'minutes'}, 'Columns': ['cardiac', 'respiratory', 'eda', 'trigger'], 'Manufacturer': 'Biopac', 'Acquisition Software': 'Acqknowledge', 'cardiac': {'Description': 'Continuous ECG measurement', 'Placement': 'Lead 1', 'Gain': 500, '35HzLPN': 'off / 150HzLP', 'HPF': '0.05 Hz', 'Units': 'Unknown'}, 'respiratory': {'Description': 'Continuous measurements by respiration belt', 'Gain': 10, 'LPF': '10 Hz', 'HPF1': 'DC', 'HPF2': '0.05 Hz', 'Units': 'Unknown'}, 'eda': {'Description': 'Continuous EDA measurement', 'Placement': 'Right plantar instep', 'Gain': 5, 'LPF': '1.0 Hz', 'HPF1': 'DC', 'HPF2': 'DC', 'Units': 'Unknown'}, 'trigger': {'Description': 'fMRI Volume Marker', 'Units': 'Unknown'}}
+2023-11-05 16:55:47,237 - INFO - Output files for run run-01 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:55:47,237 - INFO - Processing run info: {'run_id': 'run-02', 'start_index': 10509314, 'end_index': 12259314, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:55:47,237 - INFO - Run ID: run-02
+2023-11-05 16:55:47,237 - INFO - Processing run run-02
+2023-11-05 16:55:47,237 - INFO - start_index: 10509314
+2023-11-05 16:55:47,237 - INFO - end_index: 12259314
+2023-11-05 16:55:47,237 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:55:47,237 - INFO - Metadata dictionary for run run-02: {'SamplingFrequency': {'Value': 5000, 'Units': 'Hz'}, 'StartTimeSec': {'Value': 2101.8628, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'seconds'}, 'StartTimeMin': {'Value': 35.03104666666666, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'minutes'}, 'Columns': ['cardiac', 'respiratory', 'eda', 'trigger'], 'Manufacturer': 'Biopac', 'Acquisition Software': 'Acqknowledge', 'cardiac': {'Description': 'Continuous ECG measurement', 'Placement': 'Lead 1', 'Gain': 500, '35HzLPN': 'off / 150HzLP', 'HPF': '0.05 Hz', 'Units': 'Unknown'}, 'respiratory': {'Description': 'Continuous measurements by respiration belt', 'Gain': 10, 'LPF': '10 Hz', 'HPF1': 'DC', 'HPF2': '0.05 Hz', 'Units': 'Unknown'}, 'eda': {'Description': 'Continuous EDA measurement', 'Placement': 'Right plantar instep', 'Gain': 5, 'LPF': '1.0 Hz', 'HPF1': 'DC', 'HPF2': 'DC', 'Units': 'Unknown'}, 'trigger': {'Description': 'fMRI Volume Marker', 'Units': 'Unknown'}}
+2023-11-05 16:55:54,310 - INFO - Output files for run run-02 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:55:54,310 - INFO - Processing run info: {'run_id': 'run-03', 'start_index': 12480866, 'end_index': 14230866, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:55:54,310 - INFO - Run ID: run-03
+2023-11-05 16:55:54,310 - INFO - Processing run run-03
+2023-11-05 16:55:54,310 - INFO - start_index: 12480866
+2023-11-05 16:55:54,310 - INFO - end_index: 14230866
+2023-11-05 16:55:54,310 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:55:54,310 - INFO - Metadata dictionary for run run-03: {'SamplingFrequency': {'Value': 5000, 'Units': 'Hz'}, 'StartTimeSec': {'Value': 2496.1732, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'seconds'}, 'StartTimeMin': {'Value': 41.60288666666667, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'minutes'}, 'Columns': ['cardiac', 'respiratory', 'eda', 'trigger'], 'Manufacturer': 'Biopac', 'Acquisition Software': 'Acqknowledge', 'cardiac': {'Description': 'Continuous ECG measurement', 'Placement': 'Lead 1', 'Gain': 500, '35HzLPN': 'off / 150HzLP', 'HPF': '0.05 Hz', 'Units': 'Unknown'}, 'respiratory': {'Description': 'Continuous measurements by respiration belt', 'Gain': 10, 'LPF': '10 Hz', 'HPF1': 'DC', 'HPF2': '0.05 Hz', 'Units': 'Unknown'}, 'eda': {'Description': 'Continuous EDA measurement', 'Placement': 'Right plantar instep', 'Gain': 5, 'LPF': '1.0 Hz', 'HPF1': 'DC', 'HPF2': 'DC', 'Units': 'Unknown'}, 'trigger': {'Description': 'fMRI Volume Marker', 'Units': 'Unknown'}}
+2023-11-05 16:56:01,359 - INFO - Output files for run run-03 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:56:01,359 - INFO - Processing run info: {'run_id': 'run-04', 'start_index': 14294290, 'end_index': 16044290, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:56:01,359 - INFO - Run ID: run-04
+2023-11-05 16:56:01,359 - INFO - Processing run run-04
+2023-11-05 16:56:01,359 - INFO - start_index: 14294290
+2023-11-05 16:56:01,359 - INFO - end_index: 16044290
+2023-11-05 16:56:01,359 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:56:01,359 - INFO - Metadata dictionary for run run-04: {'SamplingFrequency': {'Value': 5000, 'Units': 'Hz'}, 'StartTimeSec': {'Value': 2858.858, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'seconds'}, 'StartTimeMin': {'Value': 47.64763333333334, 'Description': 'Start time of the current run relative to recording onset', 'Units': 'minutes'}, 'Columns': ['cardiac', 'respiratory', 'eda', 'trigger'], 'Manufacturer': 'Biopac', 'Acquisition Software': 'Acqknowledge', 'cardiac': {'Description': 'Continuous ECG measurement', 'Placement': 'Lead 1', 'Gain': 500, '35HzLPN': 'off / 150HzLP', 'HPF': '0.05 Hz', 'Units': 'Unknown'}, 'respiratory': {'Description': 'Continuous measurements by respiration belt', 'Gain': 10, 'LPF': '10 Hz', 'HPF1': 'DC', 'HPF2': '0.05 Hz', 'Units': 'Unknown'}, 'eda': {'Description': 'Continuous EDA measurement', 'Placement': 'Right plantar instep', 'Gain': 5, 'LPF': '1.0 Hz', 'HPF1': 'DC', 'HPF2': 'DC', 'Units': 'Unknown'}, 'trigger': {'Description': 'fMRI Volume Marker', 'Units': 'Unknown'}}
+2023-11-05 16:56:08,332 - INFO - Output files for run run-04 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:56:08,332 - INFO - Segmented data list length: 4
+2023-11-05 16:56:08,332 - INFO - SEgmented data list shape: (1750000, 4)
+2023-11-05 16:56:08,396 - INFO - Preparing to plot runs.

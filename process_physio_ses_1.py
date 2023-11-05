@@ -621,11 +621,18 @@ def main(physio_root_dir, bids_root_dir):
             raise ValueError("Data is empty after loading.")
         logging.info("Data loaded successfully with shape: %s", data.shape)
 
-        # Rename channels based on BIDS format
+        # Rename channels according to BIDS conventions
         bids_labels_dictionary, bids_labels_list = rename_channels(labels)
 
-        # Create a mapping from the original labels to units, excluding 'Digital input'
-        original_labels_to_units = {label: unit for label, unit in zip(labels, units) if label not in bids_labels_dictionary.keys()}
+        # Create a dictionary mapping from original labels to units
+        original_labels_to_units = dict(zip(labels, units))
+
+        # Now create the units_dict by using the bids_labels_dictionary to look up the original labels
+        units_dict = {
+            bids_labels_dictionary[original_label]: unit
+            for original_label, unit in original_labels_to_units.items()
+            if original_label in bids_labels_dictionary
+        }
 
         # Create a mapping of original labels to their indices in the data array
         original_label_indices = {label: idx for idx, label in enumerate(labels)}
@@ -636,6 +643,8 @@ def main(physio_root_dir, bids_root_dir):
         # Now, create the units_dict by using the bids_labels_dictionary to look up the original labels
         units_dict = {bids_labels_dictionary[original_label]: unit 
                     for original_label, unit in original_labels_to_units.items() if original_label in bids_labels_dictionary}
+        logging.info("Units dictionary: %s", units_dict)
+        logging.info("BIDS labels list: %s", bids_labels_list)
 
         # Process JSON files to extract metadata for each run
         json_file_paths = glob.glob(os.path.join(bids_root_dir, subject_id, session_id, 'func', '*_bold.json'))
@@ -724,7 +733,8 @@ def main(physio_root_dir, bids_root_dir):
             
             # Create the metadata dictionary for the current run
             metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
-            
+            logging.info("Metadata dictionary for run %s: %s", run_id, metadata_dict)
+
             # Call the write_output_files function with the correct parameters
             output_files.append(write_output_files(
                 segmented_data_bids_only[start_index:end_index],
