@@ -2,26 +2,7 @@
 def main(physio_root_dir, bids_root_dir):
     logging.info("Starting main processing function.")
 
-    try:
-        # Extract subject and session IDs from the path
-        subject_id, session_id = extract_subject_session(physio_root_dir)
-        logging.info(f"Processing subject: {subject_id}, session: {session_id}")
-
-        # Construct the .mat file path
-        mat_file_name = f"{subject_id}_{session_id}_task-rest_physio.mat"
-        mat_file_path = os.path.join(physio_root_dir, mat_file_name)
-
-        # Load physiological data from the .mat file
-        labels, data, units = load_mat_file(mat_file_path)
-        if data is None or not data.size:
-            logging.error("Data is empty after loading.")
-        else:
-            logging.info(f"Data loaded successfully with shape: {data.shape}")
-        logging.info("Physiological data loaded successfully.")
-
-        # Rename channels based on BIDS format and create units dictionary
-        bids_labels_dictionary, bids_labels_list = rename_channels(labels)
-        logging.info(f"BIDS Labels: {bids_labels_list}")        
+    )        
 
         # Confirm 'cardiac' is in the BIDS labels list
         if 'cardiac' not in bids_labels_list:
