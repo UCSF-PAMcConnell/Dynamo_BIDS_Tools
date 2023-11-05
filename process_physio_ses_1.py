@@ -11,7 +11,7 @@ import warnings
 
 # Configure logging
 logging.basicConfig(
-    filename='process_physio.log',
+    filename='process_physio_ses_1.log',
     filemode='w', # a to append, w to overwrite
     format='%(asctime)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -380,79 +380,68 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, labels, outp
         logging.error(f"Failed to write output files for run {run_id}", exc_info=True)
         raise
 
-# Plots the physiological data for all runs and saves the figure
-
+# Plot the physiological data for all runs and save the figure to a specified path.
 def plot_runs(data, runs, bids_labels_list, sampling_rate, original_labels, plot_file_path):
-    # Assuming 'data' is the full dataset here
-    time = np.arange(data.shape[0]) / sampling_rate
-    num_subplots = len(bids_labels_list)
-    
-    fig, axes = plt.subplots(num_subplots, 1, figsize=(15, 10), sharex=True)
-    if num_subplots == 1:
-        axes = [axes]  # Make sure axes is always a list, even for one subplot
-    
-    label_indices = {label: i for i, label in enumerate(original_labels) if label in bids_labels_list}
-    
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
+    """
+    Parameters:
+    - data: list of numpy arrays, where each array is the data for a run.
+    - runs: list of dicts, each containing metadata for a run.
+    - bids_labels_list: list of str, the labels of the data in BIDS format.
+    - sampling_rate: float, the sampling rate of the data.
+    - original_labels: list of str, the original labels of the data before BIDS conversion.
+    - plot_file_path: str, the file path where the plot will be saved.
+    """
+
+    logging.info("Starting to plot runs.")
+    try:
+        # Check if data and runs lists are not empty and have the same length
+        if not data or not runs:
+            raise ValueError("Data and runs lists must be non-empty.")
+        if len(data) != len(runs):
+            raise ValueError("Data and runs lists must have the same length.")
+        
+        # Create a mapping from BIDS labels to indices in the original data array
+        label_indices = {bids_label: original_labels.index(original_label)
+                         for original_label, bids_label in rename_channels(original_labels)[0].items()
+                         if bids_label in bids_labels_list}
+
+        # Initialize the figure and axes
+        num_subplots = len(bids_labels_list)
+        fig, axes = plt.subplots(num_subplots, 1, figsize=(15, 10), sharex=True)
+        if num_subplots == 1:
+            axes = [axes]  # Ensure axes is always a list, even for one subplot
+
+        # Plot each label
         for label in bids_labels_list:
+            if label not in label_indices:
+                logging.error(f"Label '{label}' not found in BIDS labels.")
+                continue  # Skip labels not found
+
             label_index = label_indices[label]
-            axes[label_index].plot(time, data[:, label_index], label=f"Full Data {label}", color='lightgrey')
+            ax = axes if num_subplots == 1 else axes[label_index]
+
+            # Plot the full data for the current label
+            time = np.arange(data.shape[0]) / sampling_rate
+            ax.plot(time, data[:, label_index], label=f"Full Data {label}", color='lightgrey')
+
+            # Plot each run for the current label
             for run_idx, run in enumerate(runs):
                 start_time_of_run = run['start_index'] / sampling_rate
                 run_length = run['data'].shape[0]
                 run_time = start_time_of_run + np.arange(run_length) / sampling_rate
-                
-                axes[label_index].plot(run_time, run['data'][:, label_index], label=f"Run {run_idx+1} {label}")
-            axes[label_index].legend(loc='upper right')
-    
-    plt.xlabel('Time (s)')
-    plt.tight_layout()
-    plt.savefig(plot_file_path, dpi=300)  # Save the figure
-    plt.show()  # Optionally display the figure (comment out if not needed)
-    
-    return plot_file_path
+                ax.plot(run_time, run['data'][:, label_index], label=f"Run {run_idx+1} {label}")
 
-    #plt.close()  # Close the figure to free memory
-# def plot_runs(data, runs, output_file):
-#     """
-#     Parameters:
-#     - data: list of numpy arrays, where each array is the data for a run.
-#     - runs: list of dicts, each containing metadata for a run.
-#     - output_file: str, the file path where the plot will be saved.
-#     """
-#     try:
-#         # Check if data and runs lists are not empty and have the same length
-#         if not data or not runs or len(data) != len(runs):
-#             raise ValueError("Data and runs lists must be non-empty and have the same length.")
+            ax.legend(loc='upper right')
 
-#         # Setup the figure and axes
-#         fig, axs = plt.subplots(len(data), 1, figsize=(15, 5 * len(data)))
-        
-#         # If there's only one run, axs may not be an array
-#         if len(data) == 1:
-#             axs = [axs]
-        
-#         # Plot each run
-#         for idx, (run_data, run_info) in enumerate(zip(data, runs)):
-#             axs[idx].plot(run_data)
-#             axs[idx].set_title(f"Run: {run_info.get('run_id', 'Unknown')}, "
-#                                f"Start: {run_info.get('start_sample', 'Unknown')}, "
-#                                f"End: {run_info.get('end_sample', 'Unknown')}")
-#             axs[idx].set_xlabel('Samples')
-#             axs[idx].set_ylabel('Amplitude')
-
-#         # Adjust the layout
-#         plt.tight_layout()
-        
-#         # Save the figure
-#         plt.savefig(output_file)
-#         # plt.close(fig)  # Close the figure to free memory
-        
-#         logging.info(f"Physiological data plotted and saved successfully to {output_file}")
-#     except Exception as e:
-#         logging.error("Failed to plot runs", exc_info=True)
-#         raise
+        # Final touches to the plot
+        plt.xlabel('Time (s)')
+        plt.tight_layout()
+        plt.savefig(plot_file_path, dpi=300)  # Save the figure
+        plt.show()  # Display the plot
+        logging.info(f"Runs plotted and saved successfully to {plot_file_path}")
+    except Exception as e:
+        logging.error("Failed to plot runs", exc_info=True)
+        raise e
 
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
@@ -473,6 +462,14 @@ def main(physio_root_dir, bids_root_dir):
 
         # Rename channels based on BIDS format and create units dictionary
         bids_labels_dictionary, bids_labels_list = rename_channels(labels)
+        # After renaming the channels
+        bids_labels_dictionary, bids_labels_list = rename_channels(labels)
+        logging.info(f"BIDS Labels: {bids_labels_list}")
+
+        # Confirm 'cardiac' is in the BIDS labels list
+        if 'cardiac' not in bids_labels_list:
+            logging.error("Expected 'cardiac' label is missing from BIDS labels.")
+            # Handle the missing label appropriately
         units_dict = {bids_label: unit for label, unit, bids_label in zip(labels, units, bids_labels_list) if label != 'Digital input'}
         logging.info("Channels renamed according to BIDS format and units dictionary created.")
 
@@ -503,12 +500,19 @@ def main(physio_root_dir, bids_root_dir):
             # Extract run metadata from JSON file
             run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
             logging.info(f"Metadata for run {run_id} extracted successfully.")
+            # After extracting run metadata from JSON file
+            logging.info(f"Run metadata for {run_id}: {run_metadata}")
             if run_metadata is None:
                 logging.warning(f"Metadata for run {run_id} could not be found. Skipping.")
                 continue
 
             # Find the runs in the data using the extracted trigger data
             current_runs_info = find_runs(data, run_metadata, trigger_channel_data, sampling_rate=5000)
+            # After finding runs in the data
+            logging.info(f"Found {len(current_runs_info)} runs for {run_id}.")
+            for run_number, run_info in enumerate(current_runs_info, start=1):
+                logging.info(f"Run {run_number} for {run_id}: Start index: {run_info['start_index']}, End index: {run_info['end_index']}")
+                runs_info.append(run_info)
             logging.info(f"Processing Current Run {run_id} of {len(current_runs_info)} Total Runs Identified.")
 
             for run_info in current_runs_info:
@@ -516,9 +520,9 @@ def main(physio_root_dir, bids_root_dir):
                 all_runs_data.append(segmented_data)  # Append segmented data for the run
                 runs_info.append(run_info)
 
-            # Assuming the last element in runs_info pertains to the current run
-            current_run_info = runs_info[-1]
-            metadata_dict = create_metadata_dict(current_run_info, 5000, bids_labels_dictionary, bids_labels_list, units_dict)
+                # Assuming the last element in runs_info pertains to the current run
+                current_run_info = runs_info[-1]
+                metadata_dict = create_metadata_dict(current_run_info, 5000, bids_labels_dictionary, bids_labels_list, units_dict)
 
             # Prepare to write output files
             output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
@@ -526,9 +530,35 @@ def main(physio_root_dir, bids_root_dir):
             #logging.info(f"Output files for run {run_id} written successfully.")
 
         # Plot physiological data for all runs
-        #plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
-        plot_runs(data, runs, bids_labels_list, sampling_rate, original_labels, plot_file_path)
-        logging.info("Physiological data plotted and saved successfully.")
+        original_labels = labels  # Assuming 'labels' are the original labels from the .mat file
+        sampling_rate = 5000  # Define the sampling rate
+        plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
+        
+        logging.info(f"Full dataset shape: {data.shape}")
+        logging.info(f"Number of runs to plot: {len(runs_info)}")
+        logging.info(f"Original labels being passed to plot_runs: {original_labels}")
+        logging.info(f"BIDS labels being passed to plot_runs: {bids_labels_list}")
+
+        for idx, run_info in enumerate(runs_info):
+            logging.info(f"Run {idx+1} start index: {run_info['start_index']}, data shape: {run_info['data'].shape}")
+            
+        # Before plotting, ensure that runs_info contains only unique runs
+        unique_runs_info = []
+        seen_indices = set()
+        for run_info in runs_info:
+            start_index = run_info['start_index']
+            if start_index not in seen_indices:
+                unique_runs_info.append(run_info)
+                seen_indices.add(start_index)
+            else:
+                logging.warning(f"Duplicate run detected at start index {start_index} and will be ignored.")
+
+        runs_info = unique_runs_info
+        logging.info(f"Number of unique runs to plot after deduplication: {len(runs_info)}")
+
+        # Call the plot_runs function
+        plot_runs(data, runs_info, bids_labels_list, sampling_rate, original_labels, plot_file_path)
+        logging.info(f"Physiological data plotted and saved to {plot_file_path}.")
 
         logging.info("Main processing completed without errors.")
 

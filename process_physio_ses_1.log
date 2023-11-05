@@ -1,0 +1,33 @@
+2023-11-04 20:27:25,190 - INFO - Starting main processing function.
+2023-11-04 20:27:25,190 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-04 20:27:25,190 - INFO - Processing subject: sub-LRN001, session: ses-1
+2023-11-04 20:27:25,190 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 20:27:25,552 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+ 'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
+ 'Digital input' 'Digital input' 'Digital input' 'Digital input'
+ 'Digital input' 'Digital input']
+2023-11-04 20:27:25,552 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+ 'Volts' 'Volts' 'Volts' 'Volts']
+2023-11-04 20:27:25,552 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-04 20:27:25,552 - INFO - Physiological data loaded successfully.
+2023-11-04 20:27:25,552 - INFO - Renaming channels according to BIDS conventions
+2023-11-04 20:27:25,552 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-04 20:27:25,552 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-04 20:27:25,552 - INFO - Renaming channels according to BIDS conventions
+2023-11-04 20:27:25,552 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-04 20:27:25,552 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-04 20:27:25,552 - INFO - BIDS Labels: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-04 20:27:25,552 - INFO - Channels renamed according to BIDS format and units dictionary created.
+2023-11-04 20:27:25,552 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-04 20:27:25,552 - INFO - Metadata for run run-01 extracted successfully.
+2023-11-04 20:27:25,552 - INFO - Run metadata for run-01: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-04 20:27:25,552 - INFO - Repetition time: 2
+2023-11-04 20:27:25,552 - INFO - Number of volumes per run: 175
+2023-11-04 20:27:25,630 - INFO - Found 4 runs for run-01.
+2023-11-04 20:27:25,630 - ERROR - An error occurred during the main processing
+Traceback (most recent call last):
+  File "/Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/process_physio_ses_1.py", line 514, in main
+    logging.info(f"Run {run_number} for {run_id}: Start index: {run_info['start_index']}, End index: {run_info['end_index']}")
+                                                                                                      ~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'end_index'
+2023-11-04 20:27:25,631 - ERROR - Processing terminated due to an unexpected error.
