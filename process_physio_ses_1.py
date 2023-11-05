@@ -132,15 +132,15 @@ def rename_channels(labels):
     
     return bids_labels_dictionary, bids_labels_list
 
-# Extracts required metadata from the .json file associated with each fMRI run
+# Extracts metadata for each fMRI run from associated JSON file and updates the processed_jsons set.
 def extract_metadata_from_json(json_file_path, processed_jsons):
     """
     Parameters:
     - json_file_path: str, path to the .json file
-    - processed_jsons: set, a set of paths to already processed JSON files. 
+    - processed_jsons: set, a set of paths to already processed JSON files.
       This set is modified in-place to include the current json_file_path if the file is processed successfully.
     Returns:
-    - run_metadata: dict, specific metadata required for processing
+    - run_metadata: dict, a nested dictionary with keys as run identifiers and values as metadata dictionaries
     Raises:
     - FileNotFoundError: If the JSON file does not exist at the specified path.
     - ValueError: If the JSON file is missing required fields.
@@ -148,10 +148,13 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
     """
     logging.info(f"Extracting metadata from {json_file_path}")
 
+    # Initialize the dictionary that will hold metadata for all runs
+    all_runs_metadata = {}
+
     # Skip processing if this file has already been processed
     if json_file_path in processed_jsons:
         logging.info(f"JSON file {json_file_path} has already been processed.")
-        return None
+        return all_runs_metadata
 
     # Check if the file exists
     if not os.path.isfile(json_file_path):
@@ -162,32 +165,41 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
         # Attempt to open and read the JSON file
         with open(json_file_path, 'r') as file:
             metadata = json.load(file)
-        
-        # Extract only the required fields
+
+        # Assuming the JSON file name contains the run identifier like 'run-01'
+        run_id = re.search(r'run-\d+', json_file_path)
+        if not run_id:
+            raise ValueError(f"Run identifier not found in JSON file name: {json_file_path}")
+        run_id = run_id.group()
+
+        # Extract only the required fields for this run
         run_metadata = {
             'TaskName': metadata.get('TaskName'),
             'RepetitionTime': metadata.get('RepetitionTime'),
             'NumVolumes': metadata.get('NumVolumes')
         }
 
-        # Check if all required fields were found
+        # Check if all required fields for this run were found
         if not all(run_metadata.values()):
             missing_fields = [key for key, value in run_metadata.items() if value is None]
             logging.error(f"Missing required metadata fields in {json_file_path}: {missing_fields}")
             raise ValueError(f"JSON file {json_file_path} is missing required fields: {missing_fields}")
 
+        # Store this run's metadata using the run identifier as the key
+        all_runs_metadata[run_id] = run_metadata
+
         # Add this file to the set of processed JSON files
         processed_jsons.add(json_file_path)
 
         # Uncomment below for debugging purposes to log the extracted metadata
-        #logging.info(f"Successfully extracted run_metadata (type: {type(run_metadata)}): {run_metadata}")
+        # logging.info(f"Successfully extracted metadata for {run_id}: {run_metadata}")
 
     except json.JSONDecodeError as e:
         # Log an error if the JSON file is not properly formatted
         logging.error(f"Error decoding JSON from file {json_file_path}: {e}")
         raise
-    
-    return run_metadata
+
+    return all_runs_metadata
 
 # Extracts the indices where MRI trigger signals start
 def extract_trigger_points(mri_trigger_data, threshold=5):
@@ -231,79 +243,68 @@ def extract_trigger_points(mri_trigger_data, threshold=5):
         logging.error("Failed to extract trigger points", exc_info=True)
         raise
 
-# Identifies runs within the MRI data based on trigger signals and run metadata
-def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
+# Identifies the start and end indices for runs in MRI data based on trigger points and metadata.
+def find_runs(data, all_runs_metadata, mri_trigger_data, sampling_rate=5000):
     """
     Parameters:
-    - data: The MRI data as a numpy array.
-    - run_metadata: A dictionary containing metadata about the run.
-    - mri_trigger_data: The MRI trigger channel data as a numpy array.
-    - sampling_rate: The sampling rate of the MRI data.
+    - data: numpy array, the MRI data.
+    - all_runs_metadata: dict, a dictionary containing metadata for all runs, keyed by run identifier.
+    - mri_trigger_data: numpy array, the MRI trigger channel data.
+    - sampling_rate: int, the sampling rate of the MRI data.
     Returns:
-    - A list of dictionaries, each containing a run's data and start index.
+    - runs_info: list, a list of dictionaries, each containing a run's data and start and end indices.
+    Raises:
+    - KeyError: If a required metadata key is missing.
+    - IndexError: If computed indices are out of data bounds.
+    - ValueError: If data integrity checks fail or not enough trigger points for expected runs.
+    - Exception: For any other unexpected errors.
     """
     try:
-        # Extract run metadata
-        repetition_time = run_metadata['RepetitionTime']
-        logging.info(f"Repetition time: {repetition_time}")
-        num_volumes_per_run = run_metadata['NumVolumes']
-        logging.info(f"Number of volumes per run: {num_volumes_per_run}")
-        samples_per_volume = int(sampling_rate * repetition_time)
-        
-        # Verify data integrity: ensure there are enough samples for the expected runs and volumes
-        expected_samples = num_volumes_per_run * samples_per_volume
-        if len(data) < expected_samples:
-            raise ValueError("The data array does not contain enough samples for the expected number of runs and volumes.")
-
-        # Extract trigger points from the MRI trigger data
+        runs_info = []
         trigger_starts = extract_trigger_points(mri_trigger_data)
-        
+
         # Log trigger_starts for debugging purposes
         logging.info(f"Type of trigger_starts from find_runs(): {type(trigger_starts)}")
         logging.info(f"Length of trigger_starts from find_runs(): {len(trigger_starts)}")
         logging.info(f"Shape of trigger_starts from find_runs(): {trigger_starts.shape}")
 
-        # Handle edge case: check if there are enough trigger points for the expected number of runs
-        if len(trigger_starts) < num_volumes_per_run:
-            raise ValueError("Not enough trigger points for the expected number of runs.")
+        # Log trigger_starts for debugging (verbose)
+        logging.info(f"Trigger points identified from find_runs(): {trigger_starts}")
 
-        runs = []
-        current_run = []
-        for i in range(len(trigger_starts) - 1):
-            if len(current_run) < num_volumes_per_run:
-                current_run.append(trigger_starts[i])
-            
-            if len(current_run) == num_volumes_per_run or trigger_starts[i+1] - trigger_starts[i] > samples_per_volume:
-                start_idx = current_run[0]
-                end_idx = start_idx + num_volumes_per_run * samples_per_volume
+        for run_id, run_metadata in all_runs_metadata.items():
+            repetition_time = run_metadata['RepetitionTime']
+            num_volumes = run_metadata['NumVolumes']
+            samples_per_volume = int(sampling_rate * repetition_time)
 
-                # Boundary checks: ensure end_idx does not go beyond the length of data
-                if end_idx > len(data):
-                    logging.warning(f"End index {end_idx} goes beyond the length of the data. Trimming to the data length.")
-                    end_idx = len(data)
+            logging.info(f"Processing {run_id} with Repetition time: {repetition_time} and Number of volumes: {num_volumes}")
 
-                segment = data[start_idx:end_idx, :]
-                runs.append({'data': segment, 'start_index': start_idx, 'end_index': end_idx})
-                logging.info(f"Run found from index {start_idx} to {end_idx}")
+            # Verify data integrity: ensure there are enough samples for the expected runs and volumes
+            expected_samples = num_volumes * samples_per_volume
+            if len(data) < expected_samples:
+                raise ValueError(f"The data array does not contain enough samples for the expected number of runs and volumes for {run_id}.")
 
-                current_run = []
+            # Handle edge case: check if there are enough trigger points for the expected number of runs
+            if len(trigger_starts) < num_volumes:
+                raise ValueError(f"Not enough trigger points for the expected number of runs for {run_id}.")
 
-        if len(current_run) == num_volumes_per_run:
-            start_idx = current_run[0]
-            end_idx = start_idx + num_volumes_per_run * samples_per_volume
+            # Find the start index for this run based on the trigger points
+            start_idx = trigger_starts[num_volumes - 1]  # Assuming trigger points are ordered
+            end_idx = start_idx + num_volumes * samples_per_volume
 
-            # Boundary checks for the final run
+            # Boundary checks: ensure end_idx does not go beyond the length of data
             if end_idx > len(data):
-                logging.warning(f"Final run's end index {end_idx} goes beyond the length of the data. Trimming to the data length.")
+                logging.warning(f"End index {end_idx} for {run_id} goes beyond the length of the data. Trimming to the data length.")
                 end_idx = len(data)
 
+            # Extract the segment of data corresponding to this run
             segment = data[start_idx:end_idx, :]
-            runs.append({'data': segment, 'start_index': start_idx, 'end_index': end_idx})
-            logging.info(f"Final run found from index {start_idx} to {end_idx}")
-        
-        return runs
+            runs_info.append({'run_id': run_id, 'data': segment, 'start_index': start_idx, 'end_index': end_idx})
+
+            logging.info(f"{run_id} data segment identified from index {start_idx} to {end_idx}")
+
+        return runs_info
     except KeyError as e:
-        logging.error(f"Metadata key error: {e}", exc_info=True)
+        logging.error(f"Metadata key error for run: {e}", exc_info=True)
         raise
     except IndexError as e:
         logging.error(f"Indexing error: {e}", exc_info=True)
@@ -311,10 +312,51 @@ def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
     except ValueError as e:
         logging.error(f"Value error: {e}", exc_info=True)
         raise
-    # Catch any other unexpected exceptions
     except Exception as e:
-        logging.error("Unexpected error occurred", exc_info=True)
+        logging.error("Unexpected error occurred while identifying runs", exc_info=True)
         raise
+
+# Segments the runs based on the information provided by find_runs() and writes them to output files. 
+def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, session_id):
+    """
+    Parameters:
+    - runs_info: list, a list of dictionaries containing the information of each run identified by find_runs.
+    - output_dir: str, the directory where output files will be written.
+    - metadata_dict: dict, additional metadata for all runs.
+    - labels: list of str, the labels of the data channels.
+    - subject_id: str, the identifier for the subject.
+    - session_id: str, the identifier for the session.
+    Returns:
+    - A list of file paths that were written.
+    Raises:
+    - IOError: If there's an issue writing the output files.
+    """
+    output_files = []
+    for run in runs_info:
+        run_id = run['run_id']
+        data = run['data']
+        start_index = run['start_index']
+        end_index = run['end_index']
+        run_metadata = run['run_metadata']
+
+        logging.info(f"Segmenting run {run_id} from index {start_index} to {end_index}")
+
+        # Perform any necessary processing on the data segment.
+        # This could include filtering, normalization, etc.
+        # processed_data = process_data(data)
+
+        # Write the processed data to an output file.
+        try:
+            # Call the existing write_output_files function with the appropriate parameters
+            write_output_files(data, run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id)
+            output_file_path = os.path.join(output_dir, f"{subject_id}_{session_id}_task-rest_{run_id}_physio.tsv.gz")
+            output_files.append(output_file_path)
+            logging.info(f"Output file for run {run_id} written to {output_file_path}")
+        except IOError as e:
+            logging.error(f"Failed to write output file for run {run_id}: {e}", exc_info=True)
+            raise
+
+    return output_files
 
 # Create the metadata dictionary for a run based on the available channel information
 def create_metadata_dict(run_info, sampling_rate, bids_labels_dictionary, bids_labels_list, units_dict):
@@ -395,56 +437,60 @@ def create_metadata_dict(run_info, sampling_rate, bids_labels_dictionary, bids_l
 
     return metadata_dict
 
-# Write the segmented data to TSV and JSON files
+# Writes the segmented data to TSV and JSON files according to the BIDS format.
 def write_output_files(segmented_data, run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id):
-    """
+    """   
     Parameters:
     - segmented_data: numpy array, the data segmented for a run.
     - run_metadata: dict, the metadata for the run.
     - metadata_dict: dict, the additional metadata for the run.
     - labels: list of str, the labels of the data channels.
     - output_dir: str, the directory to which the files should be written.
+    - subject_id: str, the identifier for the subject.
+    - session_id: str, the identifier for the session.
     - run_id: str, the identifier for the run.
     """
     try:
-        # Create the directory if it doesn't exist
+        # Ensure the output directory exists
         os.makedirs(output_dir, exist_ok=True)
 
-        # Construct the filenames
+        # Define filenames based on the BIDS format
         tsv_filename = f"{subject_id}_{session_id}_task-rest_{run_id}_physio.tsv.gz"
         json_filename = f"{subject_id}_{session_id}_task-rest_{run_id}_physio.json"
 
-        # Full paths
+        # Prepare the full file paths
         tsv_file_path = os.path.join(output_dir, tsv_filename)
         json_file_path = os.path.join(output_dir, json_filename)
 
-        # Get the BIDS labels in order, excluding 'Digital input'
-        bids_labels_list = [metadata_dict['Columns'][i] for i, label in enumerate(labels) if label != 'Digital input']
+        # Extract the BIDS-compliant labels, excluding any 'Digital input'
+        bids_labels = [label for label in labels if label != 'Digital input']
 
-        # Get the index of 'Digital input' if it exists in the labels list
-        # Convert numpy array to list and then use .index()
-        labels_list = labels.tolist()  # Convert numpy array to list
-        digital_input_index = labels_list.index('Digital input') if 'Digital input' in labels_list else None
-        if digital_input_index is not None:
-            # Remove 'Digital input' from both the labels and the data
+        # If 'Digital input' exists, remove the corresponding column from the data
+        if 'Digital input' in labels:
+            digital_input_index = labels.index('Digital input')
             segmented_data = np.delete(segmented_data, digital_input_index, axis=1)
-            bids_labels_list = [label for i, label in enumerate(bids_labels_list) if i != digital_input_index]
-        
-        # For example, if the first 4 columns of segmented_data correspond to the labels in bids_labels_list
-        segmented_data_corrected = segmented_data[:, :4]
+            bids_labels = [label for i, label in enumerate(bids_labels) if i != digital_input_index]
 
-        # Then create the DataFrame with the corrected data
-        pd.DataFrame(segmented_data_corrected, columns=bids_labels_list).to_csv(tsv_file_path, sep='\t', index=False, compression='gzip')
+        # Create a DataFrame with the segmented data and correct labels
+        df = pd.DataFrame(segmented_data, columns=bids_labels)
 
-        # Before writing the JSON file, merge run_metadata with channel metadata
+        # Save the DataFrame to a TSV file with GZip compression
+        df.to_csv(tsv_file_path, sep='\t', index=False, compression='gzip')
+
+        # Merge the run-specific metadata with the additional metadata
         combined_metadata = {**run_metadata, **metadata_dict}
+
+        # Write the combined metadata to a JSON file
         with open(json_file_path, 'w') as json_file:
             json.dump(combined_metadata, json_file, indent=4)
+
+        # Log the successful writing of files
         logging.info(f"Output files for run {run_id} written successfully to {output_dir}")
     
     except Exception as e:
+        # Log any exceptions that occur during the file writing process
         logging.error(f"Failed to write output files for run {run_id}", exc_info=True)
-        raise e
+        raise
 
 # Plot the physiological data for all runs and save the figure to a specified path.
 def plot_runs(data, runs, bids_labels_list, sampling_rate, original_labels, plot_file_path):
@@ -502,135 +548,7 @@ def plot_runs(data, runs, bids_labels_list, sampling_rate, original_labels, plot
         logging.error("Failed to plot runs", exc_info=True)
         raise
 
-# Main function to orchestrate the conversion process
-def main(physio_root_dir, bids_root_dir):
-    logging.info("Starting main processing function.")
 
-    try:
-        # Extract subject and session IDs from the path
-        subject_id, session_id = extract_subject_session(physio_root_dir)
-        logging.info(f"Processing subject: {subject_id}, session: {session_id}")
-
-        # Construct the .mat file path
-        mat_file_name = f"{subject_id}_{session_id}_task-rest_physio.mat"
-        mat_file_path = os.path.join(physio_root_dir, mat_file_name)
-
-        # Load physiological data from the .mat file
-        labels, data, units = load_mat_file(mat_file_path)
-        if data is None or not data.size:
-            logging.error("Data is empty after loading.")
-        else:
-            logging.info(f"Data loaded successfully with shape: {data.shape}")
-        logging.info("Physiological data loaded successfully.")
-
-        # Rename channels based on BIDS format and create units dictionary
-        bids_labels_dictionary, bids_labels_list = rename_channels(labels)
-        logging.info(f"BIDS Labels: {bids_labels_list}")        
-
-        # Confirm 'cardiac' is in the BIDS labels list
-        if 'cardiac' not in bids_labels_list:
-            logging.error("Expected 'cardiac' label is missing from BIDS labels.")
-            # Handle the missing label appropriately
-        units_dict = {bids_label: unit for label, unit, bids_label in zip(labels, units, bids_labels_list) if label != 'Digital input'}
-        logging.info("Channels renamed according to BIDS format and units dictionary created.")
-
-        # Set to keep track of processed JSON files to avoid reprocessing
-        processed_jsons = set()
-        # List to store data for all runs
-        all_runs_data = []
-        # List to store metadata for each run
-        runs_info = []
-
-        # Find the index of the trigger channel outside the loop
-        trigger_original_label = next((orig_label for orig_label, bids_label in bids_labels_dictionary.items() if bids_label == 'trigger'), None)
-        if trigger_original_label is None:
-            raise ValueError("Trigger label not found in BIDS labels dictionary.")
-
-        trigger_channel_index = np.where(labels == trigger_original_label)[0]
-        if trigger_channel_index.size == 0:
-            raise ValueError(f"Trigger label '{trigger_original_label}' not found in labels.")
-        trigger_channel_index = trigger_channel_index[0]
-        # Extract trigger channel data for the current run
-        trigger_channel_data = data[:, trigger_channel_index]
-        # logging.info(f"Trigger Channel Data: {trigger_channel_data}")
-
-        # Process each run based on BIDS convention
-        for run_idx in range(1, 5):  # Assuming 4 runs
-            run_id = f"run-{run_idx:02d}"
-            json_file_name = f"{subject_id}_{session_id}_task-rest_{run_id}_bold.json"
-            json_file_path = os.path.join(bids_root_dir, subject_id, session_id, 'func', json_file_name)
-    
-            # Extract run metadata from JSON file
-            run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
-            logging.info(f"Metadata for run {run_id} extracted successfully.")
-            logging.info(f"JSON file path: {json_file_path}")
-
-            # Find the runs in the data using the extracted trigger starts
-            current_runs_info = find_runs(data, run_metadata, trigger_channel_data, sampling_rate=5000)     
-            if run_metadata is None:
-                logging.warning(f"Metadata for run {run_id} could not be found. Skipping.")
-                continue
-            # Check if any runs were identified
-            if not current_runs_info:  # Correct variable to check here is current_runs_info
-                logging.error("No runs were identified.")
-            else:
-                logging.info(f"Runs identified for {run_id} of {len(current_runs_info)} runs")  
-            
-            for run_info in current_runs_info:
-                # Append segmented data for the run
-                all_runs_data.append(run_info['data'])
-                runs_info.append(run_info)
-
-                # Create metadata dictionary for the current run
-                metadata_dict = create_metadata_dict(run_info, 5000, bids_labels_dictionary, bids_labels_list, units_dict)
-                
-            # Handle output file writing for the current run (function to be implemented)
-            output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
-            write_output_files(run_info['data'], run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id)
-            logging.info(f"Output files for run {run_id} written successfully.")
-
-        # Plot physiological data for all runs
-        original_labels = labels  # Assuming 'labels' are the original labels from the .mat file
-        sampling_rate = 5000  # Define the sampling rate
-        plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
-        
-        logging.info(f"Full dataset shape: {data.shape}")
-        logging.info(f"Number of runs to plot: {len(runs_info)}")
-        logging.info(f"Original labels being passed to plot_runs: {original_labels}")
-        logging.info(f"BIDS labels being passed to plot_runs: {bids_labels_list}")
-
-        for idx, run_info in enumerate(runs_info):
-            logging.info(f"Run {idx+1} start index: {run_info['start_index']}, data shape: {run_info['data'].shape}")
-
-        # Before plotting, ensure that runs_info contains only unique runs
-        unique_runs_info = []
-        seen_indices = set()
-        for run_info in runs_info:
-            start_index = run_info['start_index']
-            if start_index not in seen_indices:
-                unique_runs_info.append(run_info)
-                seen_indices.add(start_index)
-            else:
-                logging.warning(f"Duplicate run detected at start index {start_index} and will be ignored.")
-
-        runs_info = unique_runs_info
-        logging.info(f"Number of unique runs to plot after deduplication: {len(runs_info)}")
-
-        # Call the plot_runs function
-        logging.info(f"Runs info before plotting: {runs_info}")
-        if not data or not all([run.size > 0 for run in data]):
-            raise ValueError("Data list is empty or contains empty arrays.")
-        if not runs_info or len(runs_info) == 0:
-            raise ValueError("Runs list is empty.")
-        plot_runs(data, runs_info, bids_labels_list, sampling_rate, original_labels, plot_file_path)
-        logging.info(f"Physiological data plotted and saved to {plot_file_path}.")
-
-        logging.info("Main processing completed without errors.")
-
-    except Exception as e:
-        logging.error("An error occurred during the main processing", exc_info=True)
-        logging.error("Processing terminated due to an unexpected error.")
-        raise
 
 # Main function to run the script from the command line
 if __name__ == '__main__':
