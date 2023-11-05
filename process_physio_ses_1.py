@@ -210,6 +210,7 @@ def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
     - run_metadata: A dictionary containing metadata about the run.
     - mri_trigger_data: The MRI trigger channel data as a numpy array.
     - sampling_rate: The sampling rate of the MRI data.
+    
     Returns:
     - A list of dictionaries, each containing a run's data and start index.
     """
@@ -220,14 +221,12 @@ def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
         num_volumes_per_run = run_metadata['NumVolumes']
         logging.info(f"Number of volumes per run: {num_volumes_per_run}")
         samples_per_volume = int(sampling_rate * repetition_time)
-        #logging.info(f"Samples per volume: {samples_per_volume}")
+        logging.info(f"Samples per volume: {samples_per_volume}")
         
         # Extract trigger points from the MRI trigger data
         trigger_starts = extract_trigger_points(mri_trigger_data)
-        # logging.info(f"Trigger starts: {trigger_starts}")
-        # logging.info(f"Number of trigger starts: {len(trigger_starts)}")
-        # logging.info(mri_trigger_data)
-
+        logging.info(f"Trigger starts indices: {trigger_starts}")
+        
         runs = []
         current_run = []
         # Loop through all but the last trigger start to prevent index out of bounds
@@ -242,7 +241,8 @@ def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
                     start_idx = current_run[0]
                     end_idx = start_idx + num_volumes_per_run * samples_per_volume
                     segment = data[start_idx:end_idx, :]
-                    runs.append({'data': segment, 'start_index': start_idx})
+                    runs.append({'data': segment, 'start_index': start_idx, 'end_index': end_idx})
+                    logging.info(f"Run found from index {start_idx} to {end_idx}")
                 # Reset current run for the next iteration
                 current_run = []
         # Check for any remaining triggers that might form a run
@@ -250,12 +250,13 @@ def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
             start_idx = current_run[0]
             end_idx = start_idx + num_volumes_per_run * samples_per_volume
             segment = data[start_idx:end_idx, :]
-            runs.append({'data': segment, 'start_index': start_idx})
+            runs.append({'data': segment, 'start_index': start_idx, 'end_index': end_idx})
+            logging.info(f"Final run found from index {start_idx} to {end_idx}")
         
         return runs
     except Exception as e:
         logging.error("Failed to find runs", exc_info=True)
-        raise
+        raise e
 
 # Create the metadata dictionary for a run based on the available channel information
 def create_metadata_dict(run_info, sampling_rate, bids_labels_dictionary, bids_labels_list, units_dict):
@@ -341,7 +342,9 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, labels, outp
     """
     Parameters:
     - segmented_data: numpy array, the data segmented for a run.
-    - metadata: dict, the metadata for the run.
+    - run_metadata: dict, the metadata for the run.
+    - metadata_dict: dict, the additional metadata for the run.
+    - labels: list of str, the labels of the data channels.
     - output_dir: str, the directory to which the files should be written.
     - run_id: str, the identifier for the run.
     """
@@ -360,12 +363,12 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, labels, outp
         # Get the BIDS labels in order, excluding 'Digital input'
         bids_labels_list = [metadata_dict['Columns'][i] for i, label in enumerate(labels) if label != 'Digital input']
 
-        # Get the index of 'Digital input' using numpy
-        digital_input_index = np.where(labels == 'Digital input')[0]
-        if digital_input_index.size > 0:
+        # Get the index of 'Digital input' if it exists in the labels list
+        digital_input_index = labels.index('Digital input') if 'Digital input' in labels else None
+        if digital_input_index is not None:
             # Remove 'Digital input' from both the labels and the data
             segmented_data = np.delete(segmented_data, digital_input_index, axis=1)
-            bids_labels_list = [label for i, label in enumerate(metadata_dict['Columns']) if i not in digital_input_index]
+            bids_labels_list = [label for i, label in enumerate(bids_labels_list) if i != digital_input_index]
 
         # Write the TSV file with correct column headers
         pd.DataFrame(segmented_data, columns=bids_labels_list).to_csv(tsv_file_path, sep='\t', index=False, compression='gzip')
@@ -378,7 +381,7 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, labels, outp
         logging.info(f"Output files for run {run_id} written successfully to {output_dir}")
     except Exception as e:
         logging.error(f"Failed to write output files for run {run_id}", exc_info=True)
-        raise
+        raise e
 
 # Plot the physiological data for all runs and save the figure to a specified path.
 def plot_runs(data, runs, bids_labels_list, sampling_rate, original_labels, plot_file_path):
@@ -399,49 +402,37 @@ def plot_runs(data, runs, bids_labels_list, sampling_rate, original_labels, plot
             raise ValueError("Data and runs lists must be non-empty.")
         if len(data) != len(runs):
             raise ValueError("Data and runs lists must have the same length.")
-        
+
         # Create a mapping from BIDS labels to indices in the original data array
-        label_indices = {bids_label: original_labels.index(original_label)
-                         for original_label, bids_label in rename_channels(original_labels)[0].items()
-                         if bids_label in bids_labels_list}
+        label_indices = {bids_label: original_labels.index(bids_label)
+                         for bids_label in bids_labels_list}
 
         # Initialize the figure and axes
         num_subplots = len(bids_labels_list)
-        fig, axes = plt.subplots(num_subplots, 1, figsize=(15, 10), sharex=True)
+        fig, axes = plt.subplots(num_subplots, 1, figsize=(15, num_subplots * 2), sharex=True)
         if num_subplots == 1:
             axes = [axes]  # Ensure axes is always a list, even for one subplot
 
         # Plot each label
-        for label in bids_labels_list:
-            if label not in label_indices:
-                logging.error(f"Label '{label}' not found in BIDS labels.")
-                continue  # Skip labels not found
-
-            label_index = label_indices[label]
-            ax = axes if num_subplots == 1 else axes[label_index]
-
-            # Plot the full data for the current label
-            time = np.arange(data.shape[0]) / sampling_rate
-            ax.plot(time, data[:, label_index], label=f"Full Data {label}", color='lightgrey')
-
-            # Plot each run for the current label
-            for run_idx, run in enumerate(runs):
-                start_time_of_run = run['start_index'] / sampling_rate
-                run_length = run['data'].shape[0]
-                run_time = start_time_of_run + np.arange(run_length) / sampling_rate
-                ax.plot(run_time, run['data'][:, label_index], label=f"Run {run_idx+1} {label}")
+        for idx, label in enumerate(bids_labels_list):
+            ax = axes[idx]  # Use the subplot index
+            for run_idx, run_data in enumerate(data):
+                run = runs[run_idx]
+                run_time = np.arange(run_data.shape[0]) / sampling_rate
+                ax.plot(run_time, run_data[:, label_indices[label]], label=f"Run {run_idx+1} {label}")
 
             ax.legend(loc='upper right')
+            ax.set_ylabel(label)
 
         # Final touches to the plot
-        plt.xlabel('Time (s)')
+        axes[-1].set_xlabel('Time (s)')
         plt.tight_layout()
         plt.savefig(plot_file_path, dpi=300)  # Save the figure
         plt.show()  # Display the plot
         logging.info(f"Runs plotted and saved successfully to {plot_file_path}")
     except Exception as e:
         logging.error("Failed to plot runs", exc_info=True)
-        raise e
+        raise
 
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
@@ -462,9 +453,7 @@ def main(physio_root_dir, bids_root_dir):
 
         # Rename channels based on BIDS format and create units dictionary
         bids_labels_dictionary, bids_labels_list = rename_channels(labels)
-        # After renaming the channels
-        bids_labels_dictionary, bids_labels_list = rename_channels(labels)
-        logging.info(f"BIDS Labels: {bids_labels_list}")
+        logging.info(f"BIDS Labels: {bids_labels_list}")        
 
         # Confirm 'cardiac' is in the BIDS labels list
         if 'cardiac' not in bids_labels_list:
@@ -473,23 +462,18 @@ def main(physio_root_dir, bids_root_dir):
         units_dict = {bids_label: unit for label, unit, bids_label in zip(labels, units, bids_labels_list) if label != 'Digital input'}
         logging.info("Channels renamed according to BIDS format and units dictionary created.")
 
-        # Find the index of the trigger channel
-        trigger_original_label = next((orig_label for orig_label, bids_label in bids_labels_dictionary.items() if bids_label == 'trigger'), None)
-        if trigger_original_label is None:
-            raise ValueError("Trigger label not found in BIDS labels dictionary.")
-        trigger_channel_index = labels.tolist().index(trigger_original_label)
-        #logging.info(f"Trigger channel index identified: {trigger_channel_index}")
-
-        # Extract trigger channel data
-        trigger_channel_data = data[:, trigger_channel_index]
-        #logging.info(f"Trigger channel data extracted. Shape: {trigger_channel_data.shape}")
-
         # Set to keep track of processed JSON files to avoid reprocessing
         processed_jsons = set()
         # List to store data for all runs
         all_runs_data = []
         # List to store metadata for each run
         runs_info = []
+
+        # Find the index of the trigger channel outside the loop
+        trigger_original_label = next((orig_label for orig_label, bids_label in bids_labels_dictionary.items() if bids_label == 'trigger'), None)
+        if trigger_original_label is None:
+            raise ValueError("Trigger label not found in BIDS labels dictionary.")
+        trigger_channel_index = labels.index(trigger_original_label)
 
         # Process each run based on BIDS convention
         for run_idx in range(1, 5):  # Assuming 4 runs
@@ -500,34 +484,31 @@ def main(physio_root_dir, bids_root_dir):
             # Extract run metadata from JSON file
             run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
             logging.info(f"Metadata for run {run_id} extracted successfully.")
-            # After extracting run metadata from JSON file
-            logging.info(f"Run metadata for {run_id}: {run_metadata}")
+
             if run_metadata is None:
                 logging.warning(f"Metadata for run {run_id} could not be found. Skipping.")
                 continue
 
-            # Find the runs in the data using the extracted trigger data
-            current_runs_info = find_runs(data, run_metadata, trigger_channel_data, sampling_rate=5000)
-            # After finding runs in the data
+            # Extract trigger channel data for the current run
+            trigger_channel_data = data[:, trigger_channel_index]
+            trigger_starts = extract_trigger_points(trigger_channel_data)
+
+            # Find the runs in the data using the extracted trigger starts
+            current_runs_info = find_runs(data, run_metadata, trigger_starts, sampling_rate=5000)
             logging.info(f"Found {len(current_runs_info)} runs for {run_id}.")
-            for run_number, run_info in enumerate(current_runs_info, start=1):
-                logging.info(f"Run {run_number} for {run_id}: Start index: {run_info['start_index']}, End index: {run_info['end_index']}")
-                runs_info.append(run_info)
-            logging.info(f"Processing Current Run {run_id} of {len(current_runs_info)} Total Runs Identified.")
 
             for run_info in current_runs_info:
-                segmented_data = run_info['data']
-                all_runs_data.append(segmented_data)  # Append segmented data for the run
+                # Append segmented data for the run
+                all_runs_data.append(run_info['data'])
                 runs_info.append(run_info)
+                logging.info(f"Run info for {run_id}: {run_info}")
 
-                # Assuming the last element in runs_info pertains to the current run
-                current_run_info = runs_info[-1]
-                metadata_dict = create_metadata_dict(current_run_info, 5000, bids_labels_dictionary, bids_labels_list, units_dict)
-
-            # Prepare to write output files
-            output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
-            write_output_files(segmented_data, run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id)
-            #logging.info(f"Output files for run {run_id} written successfully.")
+                # Create metadata dictionary for the current run
+                metadata_dict = create_metadata_dict(run_info, 5000, bids_labels_dictionary, bids_labels_list, units_dict)
+                # Handle output file writing for the current run (function to be implemented)
+                output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
+                write_output_files(run_info['data'], run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id)
+                logging.info(f"Output files for run {run_id} written successfully.")
 
         # Plot physiological data for all runs
         original_labels = labels  # Assuming 'labels' are the original labels from the .mat file
@@ -541,7 +522,7 @@ def main(physio_root_dir, bids_root_dir):
 
         for idx, run_info in enumerate(runs_info):
             logging.info(f"Run {idx+1} start index: {run_info['start_index']}, data shape: {run_info['data'].shape}")
-            
+
         # Before plotting, ensure that runs_info contains only unique runs
         unique_runs_info = []
         seen_indices = set()
@@ -557,6 +538,7 @@ def main(physio_root_dir, bids_root_dir):
         logging.info(f"Number of unique runs to plot after deduplication: {len(runs_info)}")
 
         # Call the plot_runs function
+        logging.info(f"Runs info before plotting: {runs_info}")
         plot_runs(data, runs_info, bids_labels_list, sampling_rate, original_labels, plot_file_path)
         logging.info(f"Physiological data plotted and saved to {plot_file_path}.")
 
