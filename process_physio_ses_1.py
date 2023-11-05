@@ -72,6 +72,8 @@ def load_mat_file(mat_file_path):
         # Extract labels, data, and units
         labels = mat_contents['labels'].flatten()  # Flatten in case it's a 2D array
         data = mat_contents['data']
+        logging.info(f"Data loaded successfully with shape: {data.shape}")
+        logging.info(f"Type of 'data': {type(data)}")
         units = mat_contents['units'].flatten()  # Flatten in case it's a 2D array
         
         # Log the labels and units for error checking
@@ -135,9 +137,14 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
     """
     Parameters:
     - json_file_path: str, path to the .json file
-    - processed_jsons: set, a set of paths to already processed JSON files
+    - processed_jsons: set, a set of paths to already processed JSON files. 
+      This set is modified in-place to include the current json_file_path if the file is processed successfully.
     Returns:
     - run_metadata: dict, specific metadata required for processing
+    Raises:
+    - FileNotFoundError: If the JSON file does not exist at the specified path.
+    - ValueError: If the JSON file is missing required fields.
+    - json.JSONDecodeError: If the JSON file is not properly formatted.
     """
     logging.info(f"Extracting metadata from {json_file_path}")
 
@@ -172,7 +179,7 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
         # Add this file to the set of processed JSON files
         processed_jsons.add(json_file_path)
 
-        # Check run_metadata type
+        # Uncomment below for debugging purposes to log the extracted metadata
         #logging.info(f"Successfully extracted run_metadata (type: {type(run_metadata)}): {run_metadata}")
 
     except json.JSONDecodeError as e:
@@ -188,14 +195,37 @@ def extract_trigger_points(mri_trigger_data, threshold=5):
     Parameters:
     - mri_trigger_data: The MRI trigger channel data as a numpy array.
     - threshold: The value above which the trigger signal is considered to start.
-    
     Returns:
     - A numpy array of indices where triggers start.
     """
     try:
+        # Log threshold
+        logging.info(f"Extracting trigger points with threshold: {threshold}")
+
         triggers = (mri_trigger_data > threshold).astype(int)
         diff_triggers = np.diff(triggers, prepend=0)
         trigger_starts = np.where(diff_triggers == 1)[0]
+
+        # Log trigger_starts for debugging purposes
+        logging.info(f"Type of trigger_starts from extract_trigger_points(): {type(trigger_starts)}")
+        logging.info(f"Length of trigger_starts from extract_trigger_points(): {len(trigger_starts)}")
+        logging.info(f"Shape of trigger_starts from extract_trigger_points(): {trigger_starts.shape}")
+
+        #Log mri_trigger_data for debugging purposes
+        logging.info(f"Type of mri_trigger_data from extract_trigger_points(): {type(mri_trigger_data)}")
+        logging.info(f"Length of mri_trigger_data from extract_trigger_points(): {len(mri_trigger_data)}")
+        logging.info(f"Shape of mri_trigger_data from extract_trigger_points(): {mri_trigger_data.shape}")
+
+        # Log triggers for debugging purposes
+        logging.info(f"Type of triggers from extract_trigger_points(): {type(triggers)}")
+        logging.info(f"Length of triggers from extract_trigger_points(): {len(triggers)}")
+        logging.info(f"Shape of triggers from extract_trigger_points(): {triggers.shape}")
+
+        # Log diff_triggers for debugging purposes
+        logging.info(f"Type of diff_triggers from extract_trigger_points(): {type(diff_triggers)}")
+        logging.info(f"Length of diff_triggers from extract_trigger_points(): {len(diff_triggers)}")
+        logging.info(f"Shape of diff_triggers from extract_trigger_points(): {diff_triggers.shape}")
+        
         return trigger_starts
     except Exception as e:
         logging.error("Failed to extract trigger points", exc_info=True)
@@ -209,7 +239,6 @@ def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
     - run_metadata: A dictionary containing metadata about the run.
     - mri_trigger_data: The MRI trigger channel data as a numpy array.
     - sampling_rate: The sampling rate of the MRI data.
-    
     Returns:
     - A list of dictionaries, each containing a run's data and start index.
     """
@@ -221,38 +250,71 @@ def find_runs(data, run_metadata, mri_trigger_data, sampling_rate=5000):
         logging.info(f"Number of volumes per run: {num_volumes_per_run}")
         samples_per_volume = int(sampling_rate * repetition_time)
         
+        # Verify data integrity: ensure there are enough samples for the expected runs and volumes
+        expected_samples = num_volumes_per_run * samples_per_volume
+        if len(data) < expected_samples:
+            raise ValueError("The data array does not contain enough samples for the expected number of runs and volumes.")
+
         # Extract trigger points from the MRI trigger data
         trigger_starts = extract_trigger_points(mri_trigger_data)
+        
+        # Log trigger_starts for debugging purposes
+        logging.info(f"Type of trigger_starts from find_runs(): {type(trigger_starts)}")
+        logging.info(f"Length of trigger_starts from find_runs(): {len(trigger_starts)}")
+        logging.info(f"Shape of trigger_starts from find_runs(): {trigger_starts.shape}")
+
+        # Handle edge case: check if there are enough trigger points for the expected number of runs
+        if len(trigger_starts) < num_volumes_per_run:
+            raise ValueError("Not enough trigger points for the expected number of runs.")
+
         runs = []
         current_run = []
-        # Loop through all but the last trigger start to prevent index out of bounds
         for i in range(len(trigger_starts) - 1):
-            # Add current trigger to the run if we have not reached the required number of volumes
             if len(current_run) < num_volumes_per_run:
                 current_run.append(trigger_starts[i])
-            # Check if we have reached a new run or the end of the current run
+            
             if len(current_run) == num_volumes_per_run or trigger_starts[i+1] - trigger_starts[i] > samples_per_volume:
-                # If we have a complete run, store it
-                if len(current_run) == num_volumes_per_run:
-                    start_idx = current_run[0]
-                    end_idx = start_idx + num_volumes_per_run * samples_per_volume
-                    segment = data[start_idx:end_idx, :]
-                    runs.append({'data': segment, 'start_index': start_idx, 'end_index': end_idx})
-                    logging.info(f"Run found from index {start_idx} to {end_idx}")
-                # Reset current run for the next iteration
+                start_idx = current_run[0]
+                end_idx = start_idx + num_volumes_per_run * samples_per_volume
+
+                # Boundary checks: ensure end_idx does not go beyond the length of data
+                if end_idx > len(data):
+                    logging.warning(f"End index {end_idx} goes beyond the length of the data. Trimming to the data length.")
+                    end_idx = len(data)
+
+                segment = data[start_idx:end_idx, :]
+                runs.append({'data': segment, 'start_index': start_idx, 'end_index': end_idx})
+                logging.info(f"Run found from index {start_idx} to {end_idx}")
+
                 current_run = []
-        # Check for any remaining triggers that might form a run
+
         if len(current_run) == num_volumes_per_run:
             start_idx = current_run[0]
             end_idx = start_idx + num_volumes_per_run * samples_per_volume
+
+            # Boundary checks for the final run
+            if end_idx > len(data):
+                logging.warning(f"Final run's end index {end_idx} goes beyond the length of the data. Trimming to the data length.")
+                end_idx = len(data)
+
             segment = data[start_idx:end_idx, :]
             runs.append({'data': segment, 'start_index': start_idx, 'end_index': end_idx})
             logging.info(f"Final run found from index {start_idx} to {end_idx}")
         
         return runs
+    except KeyError as e:
+        logging.error(f"Metadata key error: {e}", exc_info=True)
+        raise
+    except IndexError as e:
+        logging.error(f"Indexing error: {e}", exc_info=True)
+        raise
+    except ValueError as e:
+        logging.error(f"Value error: {e}", exc_info=True)
+        raise
+    # Catch any other unexpected exceptions
     except Exception as e:
-        logging.error("Failed to find runs", exc_info=True)
-        raise e
+        logging.error("Unexpected error occurred", exc_info=True)
+        raise
 
 # Create the metadata dictionary for a run based on the available channel information
 def create_metadata_dict(run_info, sampling_rate, bids_labels_dictionary, bids_labels_list, units_dict):

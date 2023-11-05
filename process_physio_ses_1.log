@@ -1,106 +1,106 @@
-2023-11-04 22:24:08,461 - INFO - Starting main processing function.
-2023-11-04 22:24:08,461 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
-2023-11-04 22:24:08,461 - INFO - Processing subject: sub-LRN001, session: ses-1
-2023-11-04 22:24:08,462 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 22:24:08,820 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+2023-11-05 08:23:02,251 - INFO - Starting main processing function.
+2023-11-05 08:23:02,251 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-05 08:23:02,251 - INFO - Processing subject: sub-LRN001, session: ses-1
+2023-11-05 08:23:02,251 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-05 08:23:02,619 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
  'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
  'Digital input' 'Digital input' 'Digital input' 'Digital input'
  'Digital input' 'Digital input']
-2023-11-04 22:24:08,820 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+2023-11-05 08:23:02,619 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
  'Volts' 'Volts' 'Volts' 'Volts']
-2023-11-04 22:24:08,820 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-04 22:24:08,820 - INFO - Data loaded successfully with shape: (21203169, 12)
-2023-11-04 22:24:08,820 - INFO - Physiological data loaded successfully.
-2023-11-04 22:24:08,820 - INFO - Renaming channels according to BIDS conventions
-2023-11-04 22:24:08,820 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
-2023-11-04 22:24:08,820 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-04 22:24:08,820 - INFO - BIDS Labels: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-04 22:24:08,820 - INFO - Channels renamed according to BIDS format and units dictionary created.
-2023-11-04 22:24:08,820 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 22:24:08,820 - INFO - Metadata for run run-01 extracted successfully.
-2023-11-04 22:24:08,820 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-04 22:24:08,820 - INFO - Repetition time: 2
-2023-11-04 22:24:08,820 - INFO - Number of volumes per run: 175
-2023-11-04 22:24:08,907 - INFO - Run found from index 8695841 to 10445841
-2023-11-04 22:24:08,907 - INFO - Run found from index 10509314 to 12259314
-2023-11-04 22:24:08,907 - INFO - Run found from index 12480866 to 14230866
-2023-11-04 22:24:08,907 - INFO - Run found from index 14294290 to 16044290
-2023-11-04 22:24:08,907 - INFO - Runs identified for run-01 of 4 runs
-2023-11-04 22:24:16,154 - INFO - Output files for run run-01 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 22:24:16,156 - INFO - Output files for run run-01 written successfully.
-2023-11-04 22:24:16,156 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-04 22:24:16,157 - INFO - Metadata for run run-02 extracted successfully.
-2023-11-04 22:24:16,157 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-04 22:24:16,157 - INFO - Repetition time: 2
-2023-11-04 22:24:16,157 - INFO - Number of volumes per run: 175
-2023-11-04 22:24:16,212 - INFO - Run found from index 8695841 to 10445841
-2023-11-04 22:24:16,212 - INFO - Run found from index 10509314 to 12259314
-2023-11-04 22:24:16,212 - INFO - Run found from index 12480866 to 14230866
-2023-11-04 22:24:16,212 - INFO - Run found from index 14294290 to 16044290
-2023-11-04 22:24:16,212 - INFO - Runs identified for run-02 of 4 runs
-2023-11-04 22:24:23,352 - INFO - Output files for run run-02 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 22:24:23,354 - INFO - Output files for run run-02 written successfully.
-2023-11-04 22:24:23,354 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-04 22:24:23,354 - INFO - Metadata for run run-03 extracted successfully.
-2023-11-04 22:24:23,354 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-04 22:24:23,354 - INFO - Repetition time: 2
-2023-11-04 22:24:23,354 - INFO - Number of volumes per run: 175
-2023-11-04 22:24:23,412 - INFO - Run found from index 8695841 to 10445841
-2023-11-04 22:24:23,412 - INFO - Run found from index 10509314 to 12259314
-2023-11-04 22:24:23,412 - INFO - Run found from index 12480866 to 14230866
-2023-11-04 22:24:23,412 - INFO - Run found from index 14294290 to 16044290
-2023-11-04 22:24:23,412 - INFO - Runs identified for run-03 of 4 runs
-2023-11-04 22:24:30,546 - INFO - Output files for run run-03 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 22:24:30,549 - INFO - Output files for run run-03 written successfully.
-2023-11-04 22:24:30,549 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-04 22:24:30,549 - INFO - Metadata for run run-04 extracted successfully.
-2023-11-04 22:24:30,549 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-04 22:24:30,549 - INFO - Repetition time: 2
-2023-11-04 22:24:30,549 - INFO - Number of volumes per run: 175
-2023-11-04 22:24:30,607 - INFO - Run found from index 8695841 to 10445841
-2023-11-04 22:24:30,607 - INFO - Run found from index 10509314 to 12259314
-2023-11-04 22:24:30,607 - INFO - Run found from index 12480866 to 14230866
-2023-11-04 22:24:30,608 - INFO - Run found from index 14294290 to 16044290
-2023-11-04 22:24:30,608 - INFO - Runs identified for run-04 of 4 runs
-2023-11-04 22:24:37,731 - INFO - Output files for run run-04 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-04 22:24:37,734 - INFO - Output files for run run-04 written successfully.
-2023-11-04 22:24:37,734 - INFO - Full dataset shape: (21203169, 12)
-2023-11-04 22:24:37,734 - INFO - Number of runs to plot: 16
-2023-11-04 22:24:37,734 - INFO - Original labels being passed to plot_runs: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+2023-11-05 08:23:02,619 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-05 08:23:02,619 - INFO - Data loaded successfully with shape: (21203169, 12)
+2023-11-05 08:23:02,619 - INFO - Physiological data loaded successfully.
+2023-11-05 08:23:02,619 - INFO - Renaming channels according to BIDS conventions
+2023-11-05 08:23:02,619 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-05 08:23:02,619 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-05 08:23:02,619 - INFO - BIDS Labels: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-05 08:23:02,619 - INFO - Channels renamed according to BIDS format and units dictionary created.
+2023-11-05 08:23:02,619 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-05 08:23:02,620 - INFO - Metadata for run run-01 extracted successfully.
+2023-11-05 08:23:02,620 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-05 08:23:02,620 - INFO - Repetition time: 2
+2023-11-05 08:23:02,620 - INFO - Number of volumes per run: 175
+2023-11-05 08:23:02,701 - INFO - Run found from index 8695841 to 10445841
+2023-11-05 08:23:02,701 - INFO - Run found from index 10509314 to 12259314
+2023-11-05 08:23:02,702 - INFO - Run found from index 12480866 to 14230866
+2023-11-05 08:23:02,702 - INFO - Run found from index 14294290 to 16044290
+2023-11-05 08:23:02,702 - INFO - Runs identified for run-01 of 4 runs
+2023-11-05 08:23:10,056 - INFO - Output files for run run-01 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 08:23:10,058 - INFO - Output files for run run-01 written successfully.
+2023-11-05 08:23:10,058 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
+2023-11-05 08:23:10,058 - INFO - Metadata for run run-02 extracted successfully.
+2023-11-05 08:23:10,058 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
+2023-11-05 08:23:10,058 - INFO - Repetition time: 2
+2023-11-05 08:23:10,058 - INFO - Number of volumes per run: 175
+2023-11-05 08:23:10,121 - INFO - Run found from index 8695841 to 10445841
+2023-11-05 08:23:10,124 - INFO - Run found from index 10509314 to 12259314
+2023-11-05 08:23:10,124 - INFO - Run found from index 12480866 to 14230866
+2023-11-05 08:23:10,124 - INFO - Run found from index 14294290 to 16044290
+2023-11-05 08:23:10,124 - INFO - Runs identified for run-02 of 4 runs
+2023-11-05 08:23:17,359 - INFO - Output files for run run-02 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 08:23:17,361 - INFO - Output files for run run-02 written successfully.
+2023-11-05 08:23:17,361 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
+2023-11-05 08:23:17,361 - INFO - Metadata for run run-03 extracted successfully.
+2023-11-05 08:23:17,361 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
+2023-11-05 08:23:17,361 - INFO - Repetition time: 2
+2023-11-05 08:23:17,361 - INFO - Number of volumes per run: 175
+2023-11-05 08:23:17,416 - INFO - Run found from index 8695841 to 10445841
+2023-11-05 08:23:17,416 - INFO - Run found from index 10509314 to 12259314
+2023-11-05 08:23:17,416 - INFO - Run found from index 12480866 to 14230866
+2023-11-05 08:23:17,417 - INFO - Run found from index 14294290 to 16044290
+2023-11-05 08:23:17,417 - INFO - Runs identified for run-03 of 4 runs
+2023-11-05 08:23:24,577 - INFO - Output files for run run-03 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 08:23:24,579 - INFO - Output files for run run-03 written successfully.
+2023-11-05 08:23:24,580 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
+2023-11-05 08:23:24,580 - INFO - Metadata for run run-04 extracted successfully.
+2023-11-05 08:23:24,580 - INFO - JSON file path: /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
+2023-11-05 08:23:24,580 - INFO - Repetition time: 2
+2023-11-05 08:23:24,580 - INFO - Number of volumes per run: 175
+2023-11-05 08:23:24,638 - INFO - Run found from index 8695841 to 10445841
+2023-11-05 08:23:24,638 - INFO - Run found from index 10509314 to 12259314
+2023-11-05 08:23:24,638 - INFO - Run found from index 12480866 to 14230866
+2023-11-05 08:23:24,638 - INFO - Run found from index 14294290 to 16044290
+2023-11-05 08:23:24,638 - INFO - Runs identified for run-04 of 4 runs
+2023-11-05 08:23:31,884 - INFO - Output files for run run-04 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 08:23:31,887 - INFO - Output files for run run-04 written successfully.
+2023-11-05 08:23:31,887 - INFO - Full dataset shape: (21203169, 12)
+2023-11-05 08:23:31,887 - INFO - Number of runs to plot: 16
+2023-11-05 08:23:31,887 - INFO - Original labels being passed to plot_runs: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
  'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
  'Digital input' 'Digital input' 'Digital input' 'Digital input'
  'Digital input' 'Digital input']
-2023-11-04 22:24:37,734 - INFO - BIDS labels being passed to plot_runs: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-04 22:24:37,734 - INFO - Run 1 start index: 8695841, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 2 start index: 10509314, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 3 start index: 12480866, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 4 start index: 14294290, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 5 start index: 8695841, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 6 start index: 10509314, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 7 start index: 12480866, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 8 start index: 14294290, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 9 start index: 8695841, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 10 start index: 10509314, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 11 start index: 12480866, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 12 start index: 14294290, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 13 start index: 8695841, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 14 start index: 10509314, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 15 start index: 12480866, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - INFO - Run 16 start index: 14294290, data shape: (1750000, 12)
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 8695841 and will be ignored.
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 10509314 and will be ignored.
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 12480866 and will be ignored.
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 14294290 and will be ignored.
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 8695841 and will be ignored.
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 10509314 and will be ignored.
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 12480866 and will be ignored.
-2023-11-04 22:24:37,734 - WARNING - Duplicate run detected at start index 14294290 and will be ignored.
-2023-11-04 22:24:37,735 - WARNING - Duplicate run detected at start index 8695841 and will be ignored.
-2023-11-04 22:24:37,735 - WARNING - Duplicate run detected at start index 10509314 and will be ignored.
-2023-11-04 22:24:37,735 - WARNING - Duplicate run detected at start index 12480866 and will be ignored.
-2023-11-04 22:24:37,735 - WARNING - Duplicate run detected at start index 14294290 and will be ignored.
-2023-11-04 22:24:37,735 - INFO - Number of unique runs to plot after deduplication: 4
-2023-11-04 22:24:37,735 - INFO - Runs info before plotting: [{'data': array([[-0.47790527,  0.15228271, 14.10827534, ...,  0.        ,
+2023-11-05 08:23:31,887 - INFO - BIDS labels being passed to plot_runs: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-05 08:23:31,887 - INFO - Run 1 start index: 8695841, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 2 start index: 10509314, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 3 start index: 12480866, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 4 start index: 14294290, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 5 start index: 8695841, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 6 start index: 10509314, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 7 start index: 12480866, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 8 start index: 14294290, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 9 start index: 8695841, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 10 start index: 10509314, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 11 start index: 12480866, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 12 start index: 14294290, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 13 start index: 8695841, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 14 start index: 10509314, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 15 start index: 12480866, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - INFO - Run 16 start index: 14294290, data shape: (1750000, 12)
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 8695841 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 10509314 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 12480866 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 14294290 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 8695841 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 10509314 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 12480866 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 14294290 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 8695841 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 10509314 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 12480866 and will be ignored.
+2023-11-05 08:23:31,887 - WARNING - Duplicate run detected at start index 14294290 and will be ignored.
+2023-11-05 08:23:31,887 - INFO - Number of unique runs to plot after deduplication: 4
+2023-11-05 08:23:31,888 - INFO - Runs info before plotting: [{'data': array([[-0.47790527,  0.15228271, 14.10827534, ...,  0.        ,
          0.        ,  0.        ],
        [-0.50720215,  0.15228271, 14.10369771, ...,  0.        ,
          0.        ,  0.        ],
@@ -149,9 +149,9 @@
          0.        ,  0.        ],
        [-0.47302246,  0.09094238,  8.27941792, ...,  0.        ,
          0.        ,  0.        ]]), 'start_index': 14294290, 'end_index': 16044290}]
-2023-11-04 22:24:37,735 - ERROR - An error occurred during the main processing
+2023-11-05 08:23:31,888 - ERROR - An error occurred during the main processing
 Traceback (most recent call last):
   File "/Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/process_physio_ses_1.py", line 559, in main
     if not data or not all([run.size > 0 for run in data]):
 ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
-2023-11-04 22:24:37,735 - ERROR - Processing terminated due to an unexpected error.
+2023-11-05 08:23:31,888 - ERROR - Processing terminated due to an unexpected error.
