@@ -178,54 +178,27 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
     return run_id, run_metadata
 
 
-# Extracts the indices where MRI trigger signals start
-def extract_trigger_points(mri_trigger_data, threshold=5):
+# Identifies potential starts of triggers based on the threshold and minimum number of consecutive points.
+def extract_trigger_points(data, threshold, min_consecutive):
     """
+    Identifies potential starts of triggers based on the threshold and minimum number of consecutive points.
     Parameters:
-    - mri_trigger_data: The MRI trigger channel data as a numpy array.
+    - data: The MRI trigger channel data as a numpy array.
     - threshold: The value above which the trigger signal is considered to start.
+    - min_consecutive: Minimum number of consecutive data points above the threshold to consider as a valid trigger start.
     Returns:
-    - A numpy array of indices where triggers start.
+    - A list of potential trigger start indices.
     """
-    try:
-        # Log threshold
-        logging.info("Extracting trigger points with threshold: %d", threshold)
+    triggers = (data > threshold).astype(int)
+    diff_triggers = np.diff(triggers, prepend=0)
+    potential_trigger_starts = np.where(diff_triggers == 1)[0]
 
-        triggers = (mri_trigger_data > threshold).astype(int)
-        diff_triggers = np.diff(triggers, prepend=0)
-        trigger_starts = np.where(diff_triggers == 1)[0]
+    valid_trigger_starts = []
+    for start in potential_trigger_starts:
+        if np.sum(triggers[start:start+min_consecutive]) == min_consecutive:
+            valid_trigger_starts.append(start)
 
-        # Log trigger_starts for debugging purposes
-        # logging.info(f"Type of trigger_starts from extract_trigger_points(): {type(trigger_starts)}")
-        logging.info("Length of trigger_starts from extract_trigger_points(): %d", len(trigger_starts))
-         # logging.info(f"Shape of trigger_starts from extract_trigger_points(): {trigger_starts.shape}")
-
-        # Log mri_trigger_data for debugging purposes
-        # logging.info(f"Type of mri_trigger_data from extract_trigger_points(): {type(mri_trigger_data)}")
-        # logging.info(f"Length of mri_trigger_data from extract_trigger_points(): {len(mri_trigger_data)}")
-        # logging.info(f"Shape of mri_trigger_data from extract_trigger_points(): {mri_trigger_data.shape}")
-
-        # Log triggers for debugging purposes
-        # logging.info(f"Type of triggers from extract_trigger_points(): {type(triggers)}")
-        # logging.info(f"Length of triggers from extract_trigger_points(): {len(triggers)}")
-        # logging.info(f"Shape of triggers from extract_trigger_points(): {triggers.shape}")
-
-        # Log diff_triggers for debugging purposes
-        # logging.info(f"Type of diff_triggers from extract_trigger_points(): {type(diff_triggers)}")
-        # logging.info(f"Length of diff_triggers from extract_trigger_points(): {len(diff_triggers)}")
-        # logging.info(f"Shape of diff_triggers from extract_trigger_points(): {diff_triggers.shape}")
-        
-        return trigger_starts
-    
-    except ValueError as e:
-        logging.error("ValueError in extracting trigger points: %s", e, exc_info=True)
-        raise
-    except TypeError as e:
-        logging.error("TypeError in extracting trigger points: %s", e, exc_info=True)
-        raise
-    except Exception as e:
-        logging.error("Unexpected error in extracting trigger points: %s", e, exc_info=True)
-        raise
+    return valid_trigger_starts
 
 # Finds the next trigger start index for an fMRI run given an array of trigger starts
 def find_trigger_start(trigger_starts, current_index):
@@ -252,83 +225,72 @@ def find_trigger_start(trigger_starts, current_index):
         logging.error(f"No trigger start found after index {current_index}.")
         return None  # Indicate that there are no more triggers to process
 
-# Finds runs based on the MRI trigger data and metadata 
+# Segments the data into runs based on the metadata for each fMRI run and the identified trigger starts..
 def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
-    if data.size == 0:
-        raise ValueError("Data array is empty.")
-    logging.info("Data shape: %s", data.shape)
+    """
+    Parameters:
+    - data: The full MRI data set as a numpy array.
+    - all_runs_metadata: A dictionary containing the metadata for each run.
+    - trigger_starts: A list of potential trigger start indices.
+    - sampling_rate: The rate at which data points are sampled.
 
-    for run_id, metadata in all_runs_metadata.items():
-        if 'RepetitionTime' not in metadata or 'NumVolumes' not in metadata:
-            raise KeyError("Required metadata keys missing for run %s", run_id)
-
-    logging.info("Finding runs based on MRI trigger data and metadata...")
-    logging.info("Starting find_runs...")
-    logging.info("Data shape: %s", data.shape)
-    logging.info("Sampling rate: %d", sampling_rate)
-    logging.info("Number of triggers found: %d", len(trigger_starts))
-
+    Returns:
+    - A list of dictionaries, each containing the start and end indices of a valid run, along with metadata.
+    """
     runs_info = []
-    current_index = 0
+    start_from_index = 0  # Start from the first trigger
 
-    logging.info("Current index: %d", current_index)
     for run_id, metadata in all_runs_metadata.items():
-        logging.info("Processing metadata for run_id: %s", run_id)
-        logging.info("%s", metadata)
-        logging.info("%s", all_runs_metadata)
         try:
-            repetition_time = metadata['RepetitionTime']
-            num_volumes = metadata['NumVolumes']
+            repetition_time = metadata.get('RepetitionTime')
+            num_volumes = metadata.get('NumVolumes')
             if repetition_time is None or num_volumes is None:
-                raise KeyError("RepetitionTime or NumVolumes missing in metadata for run %s", run_id)
-            logging.info("RepetitionTime: %s, NumVolumes: %s", repetition_time, num_volumes)
+                logging.info(f"RepetitionTime or NumVolumes missing in metadata for run {run_id}")
+                continue
 
+            logging.info(f"Processing run {run_id} with {num_volumes} volumes and TR={repetition_time}s")
             samples_per_volume = int(sampling_rate * repetition_time)
-            logging.info("Samples per volume for run %s: %d", run_id, samples_per_volume)
 
-            start_index = find_trigger_start(trigger_starts, current_index)
-            logging.info("Start index found for run %s: %s", run_id, start_index)
-            if start_index is None:
-                logging.error("No valid start index found for run %s after index %d", run_id, current_index)
-                continue
-
-            end_index = start_index + num_volumes * samples_per_volume
-            if end_index is None:
-                logging.error("No valid end index found for run %s after index %s", run_id, start_index)
-                continue
-            logging.info("End index calculated for run %s: %d", run_id, end_index)
-
-            if end_index > data.shape[0]:
-                logging.error("Run %s extends beyond the length of the data. Check the metadata and triggers.", run_id)
-                raise ValueError("End index out of bounds for run %s", run_id)
-
-            run_info = {
-                'run_id': run_id,
-                'start_index': start_index,
-                'end_index': end_index,
-                'metadata': metadata
-            }
-            logging.info("Found run info: %s", run_info)
-            runs_info.append(run_info)
-            logging.info("Run %s added to runs_info: %s", run_id, runs_info)
-
-            current_index = end_index
-            logging.info("Current index updated to %d", current_index)
-            logging.info("Run %s found from index %d to %d", run_id, start_index, end_index)
+            # Start searching for a valid run from the last used trigger index
+            for i in range(start_from_index, len(trigger_starts) - num_volumes + 1):
+                expected_interval = samples_per_volume * (num_volumes - 1)
+                actual_interval = trigger_starts[i + num_volumes - 1] - trigger_starts[i]
+                
+                if actual_interval <= expected_interval:
+                    start_idx = trigger_starts[i]
+                    end_idx = start_idx + num_volumes * samples_per_volume
+                    if end_idx > data.shape[0]:
+                        logging.info(f"Proposed end index {end_idx} for run {run_id} is out of bounds.")
+                        continue
+                    
+                    run_info = {
+                        'run_id': run_id,
+                        'start_index': start_idx,
+                        'end_index': end_idx,
+                        'metadata': metadata
+                    }
+                    runs_info.append(run_info)
+                    logging.info(f"Valid run found for {run_id}: start at {start_idx}, end at {end_idx}")
+                    start_from_index = i + num_volumes  # Update the starting index for the next run
+                    break  # Exit loop after finding a valid start index for this run
+                else:
+                    logging.info(f"Run {run_id} at index {i} does not match expected interval.")
+            
+            if start_from_index >= len(trigger_starts) - num_volumes + 1:
+                logging.info(f"No valid segments found for run {run_id} after index {start_from_index}.")
 
         except KeyError as e:
-            logging.error("Metadata key error for run %s: %s", run_id, e)
-            raise
+            logging.info(f"Metadata key error for run {run_id}: {e}")
         except ValueError as e:
-            logging.error("ValueError for run %s: %s", run_id, e)
-            raise
+            logging.info(f"ValueError for run {run_id}: {e}")
         except Exception as e:
-            logging.error("Unexpected error while finding runs for run %s: %s", run_id, e, exc_info=True)
-            raise
-    logging.info("Total number of runs found: %d", len(runs_info))
-    logging.info("Runs info: %s", runs_info)
-    return runs_info
+            logging.info(f"Unexpected error while finding runs for run {run_id}: {e}")
 
+    logging.info(f"Total number of runs found: {len(runs_info)}")
+    if not runs_info:
+        logging.info("No runs were found. Please check the triggers and metadata.")
+
+    return runs_info
 
 # Segments the runs based on the information provided by find_runs() and writes them to output files. 
 def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, session_id):
@@ -591,9 +553,10 @@ def validate_runs_info(runs_info, bids_root_dir, subject_id, session_id):
     return True
 
 # Plots the segmented data for each run and saves the plots to a PDF.
-def plot_runs(segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path):
+def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path):
     """
     Parameters:
+    - original_data: np.ndarray, the entire original data to be used as a background.
     - segmented_data_list: list of np.ndarray, each element is an array of data for a run.
     - runs_info: list, information about each run, including start and end indices and metadata.
     - bids_labels_list: list of str, BIDS-compliant channel labels.
@@ -601,40 +564,45 @@ def plot_runs(segmented_data_list, runs_info, bids_labels_list, sampling_rate, p
     - plot_file_path: str, the file path to save the plot.
     """
     try:
-        logging.info("Starting to plot runs.")
-        # Check if the data list is empty
-        logging.info("Segmented data list: %s", segmented_data_list)
-        if not segmented_data_list:
-            raise ValueError("Segmented data list is empty, cannot plot runs.")
+        # Define a list of colors for different runs
+        colors = ['r', 'g', 'b', 'm']  # red, green, blue, magenta, etc.
 
-        with PdfPages(plot_file_path) as pdf:
-            for segment_index, (segment_data, run_metadata) in enumerate(zip(segmented_data_list, runs_info)):
-                # Check if the data segment is not empty
-                if isinstance(segment_data, np.ndarray) and segment_data.size > 0:
-                    # Create a figure for the segment
-                    fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(10, 8))
-                    time_axis = np.linspace(0, len(segment_data) / sampling_rate, num=len(segment_data))
+        # Create a figure and a set of subplots
+        fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(10, 8))
 
-                    for i, label in enumerate(bids_labels_list):
-                        axes[i].plot(time_axis, segment_data[:, i], label=label)
-                        axes[i].set_title('Run %s - %s' % (run_metadata["run_id"], label))
-                        axes[i].set_xlabel('Time (s)')
-                        axes[i].set_ylabel('Amplitude')
-                        axes[i].legend(loc='upper right')
+        # Time axis for the original data
+        time_axis_original = np.arange(original_data.shape[0]) / sampling_rate
 
-                    plt.tight_layout()
-                    pdf.savefig(fig)  # Save the current figure into a pdf page
-                    plt.show() # Display the current figure for debugging
-                    #plt.close() # uncomment to close the figure to free memory
-                else:
-                    logging.error("Data segment %d is empty, cannot plot this run.", segment_index)
-                    continue  # Skip this segment and continue with the next
+        # Plot the entire original data as background
+        for i, label in enumerate(bids_labels_list):
+            axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background')
 
-        logging.info("All runs have been plotted and saved to %s", plot_file_path)
+        # Overlay each segmented run on the background
+        for segment_index, (segment_data, run_metadata) in enumerate(zip(segmented_data_list, runs_info)):
+            # Time axis for the segment
+            time_axis_segment = np.arange(run_metadata['start_index'], run_metadata['end_index']) / sampling_rate
+
+            # Choose color
+            color = colors[segment_index % len(colors)]  # Cycle through colors
+
+            for i, label in enumerate(bids_labels_list):
+                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'Run {run_metadata["run_id"]}')
+
+        # Set titles, labels, etc.
+        for i, label in enumerate(bids_labels_list):
+            axes[i].set_title(label)
+            axes[i].set_xlabel('Time (s)')
+            axes[i].set_ylabel('Amplitude')
+            axes[i].legend(loc='upper right')
+
+        plt.tight_layout()
+        plt.savefig(plot_file_path)  # Save the figure
+        plt.show()  # Display the figure
 
     except Exception as e:
         logging.error("Failed to plot runs: %s", e, exc_info=True)
-        raise  # This should be inside the except block
+        raise
+
 
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
@@ -707,15 +675,27 @@ def main(physio_root_dir, bids_root_dir):
             mri_trigger_data = data[:, trigger_channel_index]
         else:
             raise ValueError("Trigger channel not found in BIDS labels.")
-        trigger_starts = extract_trigger_points(mri_trigger_data)
 
-        # Now call find_runs() with the sorted metadata
-        runs_info = find_runs(data, sorted_all_runs_metadata, trigger_starts, sampling_rate)
+        # Extract trigger points with the appropriate threshold and min_consecutive
+        # Note: Adjust the threshold and min_consecutive based on your specific data
+        trigger_starts = extract_trigger_points(mri_trigger_data, threshold=5, min_consecutive=5)
+        if len(trigger_starts) == 0:
+            raise ValueError("No trigger points found, please check the threshold and min_consecutive parameters.")
         logging.info("Trigger starts: %s", len(trigger_starts)) # trigger_starts)
+
+        # Find runs using the extracted trigger points
+        runs_info = find_runs(data, all_runs_metadata, trigger_starts, sampling_rate)
+        if len(runs_info) == 0:
+            raise ValueError("No runs were found, please check the triggers and metadata.")
 
         if not runs_info:
             raise ValueError("No runs were found. Please check the triggers and metadata.")
         logging.info("Runs info: %s", runs_info)
+
+        # Verify that the found runs match the expected runs from the JSON metadata
+        expected_runs = set(run_info['run_id'] for run_info in runs_info)
+        if expected_runs != set(all_runs_metadata.keys()):
+            raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
 
         # Verify that the found runs match the expected runs from the JSON metadata
         if not set(expected_runs) == set([run_info['run_id'] for run_info in runs_info]):
@@ -758,14 +738,18 @@ def main(physio_root_dir, bids_root_dir):
             ))       
 
         # Create a list of segmented data for plotting
-        segmented_data_list = [data[run_info['start_index']:run_info['end_index']] for run_info in runs_info]
-        logging.info("Segmented data list: %s", segmented_data_list)
+        segmented_data_list = [segmented_data_bids_only[run_info['start_index']:run_info['end_index']] for run_info in runs_info]
+        logging.info("Segmented data list length: %s", len(segmented_data_list))
+        logging.info("SEgmented data list shape: %s", segmented_data_list[0].shape)
 
-        # Plot physiological data for all runs
+        # Filter the original data array to retain only the columns with BIDS labels
+        data_bids_only = data[:, [original_label_indices[original] for original in bids_labels_dictionary.keys()]]
+
+        # Plot physiological data for all runs with the filtered background data
         if segmented_data_list:
             logging.info("Preparing to plot runs.")
             plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
-            plot_runs(segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path)
+            plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path)
         else:
             logging.error("No data available to plot.")
 

@@ -1,222 +1,77 @@
-2023-11-05 15:14:03,620 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
-2023-11-05 15:14:03,620 - INFO - Processing subject: sub-LRN001, session: ses-1
-2023-11-05 15:14:03,620 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-05 15:14:03,992 - INFO - Data loaded successfully with shape: (21203169, 12)
-2023-11-05 15:14:03,992 - INFO - Type of 'data': <class 'numpy.ndarray'>
-2023-11-05 15:14:03,992 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
+2023-11-05 16:51:11,497 - INFO - Subject ID: sub-LRN001, Session ID: ses-1
+2023-11-05 16:51:11,497 - INFO - Processing subject: sub-LRN001, session: ses-1
+2023-11-05 16:51:11,497 - INFO - Loading MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-05 16:51:11,851 - INFO - Data loaded successfully with shape: (21203169, 12)
+2023-11-05 16:51:11,851 - INFO - Type of 'data': <class 'numpy.ndarray'>
+2023-11-05 16:51:11,851 - INFO - Labels extracted from MAT file: ['ECG Test - ECG100C' 'RSP Test - RSP100C' 'EDA - EDA100C-MRI'
  'MRI Trigger - Custom, HLT100C - A 4' 'Digital input' 'Digital input'
  'Digital input' 'Digital input' 'Digital input' 'Digital input'
  'Digital input' 'Digital input']
-2023-11-05 15:14:03,992 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
+2023-11-05 16:51:11,851 - INFO - Units extracted from MAT file: ['mV' 'Volts' 'microsiemens' 'Volts' 'Volts' 'Volts' 'Volts' 'Volts'
  'Volts' 'Volts' 'Volts' 'Volts']
-2023-11-05 15:14:03,992 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
-2023-11-05 15:14:03,992 - INFO - Data loaded successfully with shape: (21203169, 12)
-2023-11-05 15:14:03,992 - INFO - Renaming channels according to BIDS conventions
-2023-11-05 15:14:03,992 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
-2023-11-05 15:14:03,992 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
-2023-11-05 15:14:04,068 - INFO - JSON files found: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json']
-2023-11-05 15:14:04,068 - INFO - Extracting metadata from JSON files...
-2023-11-05 15:14:04,068 - INFO - Sorted JSON file paths: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json']
-2023-11-05 15:14:04,068 - INFO - Extracting metadata from JSON files...
-2023-11-05 15:14:04,068 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
-2023-11-05 15:14:04,068 - INFO - Successfully extracted metadata for run-01: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,068 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
-2023-11-05 15:14:04,068 - INFO - Successfully extracted metadata for run-02: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,068 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
-2023-11-05 15:14:04,068 - INFO - Successfully extracted metadata for run-03: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,068 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
-2023-11-05 15:14:04,068 - INFO - Successfully extracted metadata for run-04: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,068 - INFO - Extracting trigger points with threshold: 5
-2023-11-05 15:14:04,164 - INFO - Length of trigger_starts from extract_trigger_points(): 718
-2023-11-05 15:14:04,170 - INFO - Data shape: (21203169, 12)
-2023-11-05 15:14:04,170 - INFO - Finding runs based on MRI trigger data and metadata...
-2023-11-05 15:14:04,170 - INFO - Starting find_runs...
-2023-11-05 15:14:04,170 - INFO - Data shape: (21203169, 12)
-2023-11-05 15:14:04,170 - INFO - Sampling rate: 5000
-2023-11-05 15:14:04,170 - INFO - Number of triggers found: 718
-2023-11-05 15:14:04,170 - INFO - Current index: 0
-2023-11-05 15:14:04,170 - INFO - Processing metadata for run_id: run-01
-2023-11-05 15:14:04,170 - INFO - {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,170 - INFO - OrderedDict([('run-01', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-02', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-03', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-04', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175})])
-2023-11-05 15:14:04,170 - INFO - RepetitionTime: 2, NumVolumes: 175
-2023-11-05 15:14:04,170 - INFO - Samples per volume for run run-01: 10000
-2023-11-05 15:14:04,170 - INFO - Finding trigger start after index 0.
-2023-11-05 15:14:04,170 - INFO - Next trigger start found at index 7929196.
-2023-11-05 15:14:04,170 - INFO - Start index found for run run-01: 7929196
-2023-11-05 15:14:04,170 - INFO - End index calculated for run run-01: 9679196
-2023-11-05 15:14:04,170 - INFO - Found run info: {'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:04,170 - INFO - Run run-01 added to runs_info: [{'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
-2023-11-05 15:14:04,170 - INFO - Current index updated to 9679196
-2023-11-05 15:14:04,170 - INFO - Run run-01 found from index 7929196 to 9679196
-2023-11-05 15:14:04,170 - INFO - Processing metadata for run_id: run-02
-2023-11-05 15:14:04,170 - INFO - {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,170 - INFO - OrderedDict([('run-01', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-02', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-03', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-04', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175})])
-2023-11-05 15:14:04,170 - INFO - RepetitionTime: 2, NumVolumes: 175
-2023-11-05 15:14:04,170 - INFO - Samples per volume for run run-02: 10000
-2023-11-05 15:14:04,170 - INFO - Finding trigger start after index 9679196.
-2023-11-05 15:14:04,170 - INFO - Next trigger start found at index 9685832.
-2023-11-05 15:14:04,170 - INFO - Start index found for run run-02: 9685832
-2023-11-05 15:14:04,170 - INFO - End index calculated for run run-02: 11435832
-2023-11-05 15:14:04,170 - INFO - Found run info: {'run_id': 'run-02', 'start_index': 9685832, 'end_index': 11435832, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:04,170 - INFO - Run run-02 added to runs_info: [{'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 9685832, 'end_index': 11435832, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
-2023-11-05 15:14:04,170 - INFO - Current index updated to 11435832
-2023-11-05 15:14:04,170 - INFO - Run run-02 found from index 9685832 to 11435832
-2023-11-05 15:14:04,170 - INFO - Processing metadata for run_id: run-03
-2023-11-05 15:14:04,170 - INFO - {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,170 - INFO - OrderedDict([('run-01', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-02', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-03', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-04', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175})])
-2023-11-05 15:14:04,170 - INFO - RepetitionTime: 2, NumVolumes: 175
-2023-11-05 15:14:04,170 - INFO - Samples per volume for run run-03: 10000
-2023-11-05 15:14:04,170 - INFO - Finding trigger start after index 11435832.
-2023-11-05 15:14:04,170 - INFO - Next trigger start found at index 11439305.
-2023-11-05 15:14:04,170 - INFO - Start index found for run run-03: 11439305
-2023-11-05 15:14:04,170 - INFO - End index calculated for run run-03: 13189305
-2023-11-05 15:14:04,170 - INFO - Found run info: {'run_id': 'run-03', 'start_index': 11439305, 'end_index': 13189305, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:04,170 - INFO - Run run-03 added to runs_info: [{'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 9685832, 'end_index': 11435832, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-03', 'start_index': 11439305, 'end_index': 13189305, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
-2023-11-05 15:14:04,170 - INFO - Current index updated to 13189305
-2023-11-05 15:14:04,170 - INFO - Run run-03 found from index 11439305 to 13189305
-2023-11-05 15:14:04,170 - INFO - Processing metadata for run_id: run-04
-2023-11-05 15:14:04,170 - INFO - {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
-2023-11-05 15:14:04,170 - INFO - OrderedDict([('run-01', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-02', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-03', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}), ('run-04', {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175})])
-2023-11-05 15:14:04,170 - INFO - RepetitionTime: 2, NumVolumes: 175
-2023-11-05 15:14:04,170 - INFO - Samples per volume for run run-04: 10000
-2023-11-05 15:14:04,170 - INFO - Finding trigger start after index 13189305.
-2023-11-05 15:14:04,170 - INFO - Next trigger start found at index 13190859.
-2023-11-05 15:14:04,170 - INFO - Start index found for run run-04: 13190859
-2023-11-05 15:14:04,170 - INFO - End index calculated for run run-04: 14940859
-2023-11-05 15:14:04,170 - INFO - Found run info: {'run_id': 'run-04', 'start_index': 13190859, 'end_index': 14940859, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:04,170 - INFO - Run run-04 added to runs_info: [{'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 9685832, 'end_index': 11435832, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-03', 'start_index': 11439305, 'end_index': 13189305, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-04', 'start_index': 13190859, 'end_index': 14940859, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
-2023-11-05 15:14:04,170 - INFO - Current index updated to 14940859
-2023-11-05 15:14:04,170 - INFO - Run run-04 found from index 13190859 to 14940859
-2023-11-05 15:14:04,170 - INFO - Total number of runs found: 4
-2023-11-05 15:14:04,170 - INFO - Runs info: [{'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 9685832, 'end_index': 11435832, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-03', 'start_index': 11439305, 'end_index': 13189305, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-04', 'start_index': 13190859, 'end_index': 14940859, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
-2023-11-05 15:14:04,170 - INFO - Trigger starts: 718
-2023-11-05 15:14:04,170 - INFO - Runs info: [{'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 9685832, 'end_index': 11435832, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-03', 'start_index': 11439305, 'end_index': 13189305, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-04', 'start_index': 13190859, 'end_index': 14940859, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
-2023-11-05 15:14:04,170 - INFO - Processing run info: {'run_id': 'run-01', 'start_index': 7929196, 'end_index': 9679196, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:04,170 - INFO - Run ID: run-01
-2023-11-05 15:14:04,170 - INFO - Processing run run-01
-2023-11-05 15:14:04,170 - INFO - start_index: 7929196
-2023-11-05 15:14:04,170 - INFO - end_index: 9679196
-2023-11-05 15:14:04,170 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 15:14:11,357 - INFO - Output files for run run-01 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 15:14:11,357 - INFO - Processing run info: {'run_id': 'run-02', 'start_index': 9685832, 'end_index': 11435832, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:11,357 - INFO - Run ID: run-02
-2023-11-05 15:14:11,357 - INFO - Processing run run-02
-2023-11-05 15:14:11,357 - INFO - start_index: 9685832
-2023-11-05 15:14:11,357 - INFO - end_index: 11435832
-2023-11-05 15:14:11,357 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 15:14:18,451 - INFO - Output files for run run-02 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 15:14:18,451 - INFO - Processing run info: {'run_id': 'run-03', 'start_index': 11439305, 'end_index': 13189305, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:18,451 - INFO - Run ID: run-03
-2023-11-05 15:14:18,451 - INFO - Processing run run-03
-2023-11-05 15:14:18,451 - INFO - start_index: 11439305
-2023-11-05 15:14:18,451 - INFO - end_index: 13189305
-2023-11-05 15:14:18,451 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 15:14:25,433 - INFO - Output files for run run-03 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 15:14:25,433 - INFO - Processing run info: {'run_id': 'run-04', 'start_index': 13190859, 'end_index': 14940859, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
-2023-11-05 15:14:25,433 - INFO - Run ID: run-04
-2023-11-05 15:14:25,433 - INFO - Processing run run-04
-2023-11-05 15:14:25,433 - INFO - start_index: 13190859
-2023-11-05 15:14:25,433 - INFO - end_index: 14940859
-2023-11-05 15:14:25,433 - INFO - Segmented data shape: (1750000, 12)
-2023-11-05 15:14:32,465 - INFO - Output files for run run-04 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
-2023-11-05 15:14:32,465 - INFO - Segmented data list: [array([[ 0.12023926,  0.40740967, 15.15197651, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.14221191,  0.40802002, 15.15197651, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.16723633,  0.40740967, 15.15350239, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [-0.21728516, -0.57861328, 11.239623  , ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.21789551, -0.57800293, 11.24114888, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.21972656, -0.57769775, 11.239623  , ...,  0.        ,
-         0.        ,  0.        ]]), array([[-0.60974121,  0.45318604, 11.22741597, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.63110352,  0.45349121, 11.22283833, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.65490723,  0.45257568, 11.22589009, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [ 0.46142578,  0.20629883,  9.66033833, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.46203613,  0.20629883,  9.65881245, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.46386719,  0.20568848,  9.66033833, ...,  0.        ,
-         0.        ,  0.        ]]), array([[-0.63781738, -0.52429199,  9.65728657, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.67016602, -0.52429199,  9.65423482, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.70007324, -0.52368164,  9.65576069, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [ 0.12023926,  0.71777344, 12.3321523 , ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.11901855,  0.71777344, 12.33062642, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.11962891,  0.71777344, 12.33062642, ...,  0.        ,
-         0.        ,  0.        ]]), array([[ 0.49987793,  0.43334961, 12.30773823, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.46875   ,  0.43426514, 12.30773823, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.43823242,  0.43304443, 12.30926411, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [-0.20080566, -0.18951416,  8.9248647 , ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.20141602, -0.18890381,  8.9248647 , ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.20080566, -0.18890381,  8.9248647 , ...,  0.        ,
-         0.        ,  0.        ]])]
-2023-11-05 15:14:32,465 - INFO - Preparing to plot runs.
-2023-11-05 15:14:32,465 - INFO - Starting to plot runs.
-2023-11-05 15:14:32,465 - INFO - Segmented data list: [array([[ 0.12023926,  0.40740967, 15.15197651, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.14221191,  0.40802002, 15.15197651, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.16723633,  0.40740967, 15.15350239, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [-0.21728516, -0.57861328, 11.239623  , ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.21789551, -0.57800293, 11.24114888, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.21972656, -0.57769775, 11.239623  , ...,  0.        ,
-         0.        ,  0.        ]]), array([[-0.60974121,  0.45318604, 11.22741597, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.63110352,  0.45349121, 11.22283833, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.65490723,  0.45257568, 11.22589009, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [ 0.46142578,  0.20629883,  9.66033833, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.46203613,  0.20629883,  9.65881245, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.46386719,  0.20568848,  9.66033833, ...,  0.        ,
-         0.        ,  0.        ]]), array([[-0.63781738, -0.52429199,  9.65728657, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.67016602, -0.52429199,  9.65423482, ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.70007324, -0.52368164,  9.65576069, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [ 0.12023926,  0.71777344, 12.3321523 , ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.11901855,  0.71777344, 12.33062642, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.11962891,  0.71777344, 12.33062642, ...,  0.        ,
-         0.        ,  0.        ]]), array([[ 0.49987793,  0.43334961, 12.30773823, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.46875   ,  0.43426514, 12.30773823, ...,  0.        ,
-         0.        ,  0.        ],
-       [ 0.43823242,  0.43304443, 12.30926411, ...,  0.        ,
-         0.        ,  0.        ],
-       ...,
-       [-0.20080566, -0.18951416,  8.9248647 , ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.20141602, -0.18890381,  8.9248647 , ...,  0.        ,
-         0.        ,  0.        ],
-       [-0.20080566, -0.18890381,  8.9248647 , ...,  0.        ,
-         0.        ,  0.        ]])]
-2023-11-05 15:14:59,231 - INFO - All runs have been plotted and saved to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_all_runs_physio.png
+2023-11-05 16:51:11,852 - INFO - Successfully loaded MAT file from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/sub-LRN001_ses-1_task-rest_physio.mat
+2023-11-05 16:51:11,852 - INFO - Data loaded successfully with shape: (21203169, 12)
+2023-11-05 16:51:11,852 - INFO - Renaming channels according to BIDS conventions
+2023-11-05 16:51:11,852 - INFO - BIDS labels dictionary mapping: {'ECG Test - ECG100C': 'cardiac', 'RSP Test - RSP100C': 'respiratory', 'EDA - EDA100C-MRI': 'eda', 'MRI Trigger - Custom, HLT100C - A 4': 'trigger'}
+2023-11-05 16:51:11,852 - INFO - BIDS labels list after renaming: ['cardiac', 'respiratory', 'eda', 'trigger']
+2023-11-05 16:51:11,915 - INFO - JSON files found: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json']
+2023-11-05 16:51:11,915 - INFO - Extracting metadata from JSON files...
+2023-11-05 16:51:11,915 - INFO - Sorted JSON file paths: ['/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json', '/Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json']
+2023-11-05 16:51:11,915 - INFO - Extracting metadata from JSON files...
+2023-11-05 16:51:11,915 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-01_bold.json
+2023-11-05 16:51:11,915 - INFO - Successfully extracted metadata for run-01: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:51:11,915 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-02_bold.json
+2023-11-05 16:51:11,915 - INFO - Successfully extracted metadata for run-02: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:51:11,915 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-03_bold.json
+2023-11-05 16:51:11,916 - INFO - Successfully extracted metadata for run-03: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:51:11,916 - INFO - Extracting metadata from /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func/sub-LRN001_ses-1_task-rest_run-04_bold.json
+2023-11-05 16:51:11,916 - INFO - Successfully extracted metadata for run-04: {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}
+2023-11-05 16:51:11,994 - INFO - Trigger starts: 718
+2023-11-05 16:51:11,994 - INFO - Processing run run-01 with 175 volumes and TR=2s
+2023-11-05 16:51:11,994 - INFO - Run run-01 at index 0 does not match expected interval.
+2023-11-05 16:51:11,994 - INFO - Run run-01 at index 1 does not match expected interval.
+2023-11-05 16:51:11,994 - INFO - Run run-01 at index 2 does not match expected interval.
+2023-11-05 16:51:11,994 - INFO - Run run-01 at index 3 does not match expected interval.
+2023-11-05 16:51:11,994 - INFO - Run run-01 at index 4 does not match expected interval.
+2023-11-05 16:51:11,994 - INFO - Run run-01 at index 5 does not match expected interval.
+2023-11-05 16:51:11,994 - INFO - Valid run found for run-01: start at 8695841, end at 10445841
+2023-11-05 16:51:11,994 - INFO - Processing run run-02 with 175 volumes and TR=2s
+2023-11-05 16:51:11,994 - INFO - Valid run found for run-02: start at 10509314, end at 12259314
+2023-11-05 16:51:11,994 - INFO - Processing run run-03 with 175 volumes and TR=2s
+2023-11-05 16:51:11,994 - INFO - Valid run found for run-03: start at 12480866, end at 14230866
+2023-11-05 16:51:11,994 - INFO - Processing run run-04 with 175 volumes and TR=2s
+2023-11-05 16:51:11,994 - INFO - Valid run found for run-04: start at 14294290, end at 16044290
+2023-11-05 16:51:11,994 - INFO - No valid segments found for run run-04 after index 706.
+2023-11-05 16:51:11,994 - INFO - Total number of runs found: 4
+2023-11-05 16:51:11,994 - INFO - Runs info: [{'run_id': 'run-01', 'start_index': 8695841, 'end_index': 10445841, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-02', 'start_index': 10509314, 'end_index': 12259314, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-03', 'start_index': 12480866, 'end_index': 14230866, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}, {'run_id': 'run-04', 'start_index': 14294290, 'end_index': 16044290, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}]
+2023-11-05 16:51:11,994 - INFO - Processing run info: {'run_id': 'run-01', 'start_index': 8695841, 'end_index': 10445841, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:51:11,994 - INFO - Run ID: run-01
+2023-11-05 16:51:11,994 - INFO - Processing run run-01
+2023-11-05 16:51:11,994 - INFO - start_index: 8695841
+2023-11-05 16:51:11,994 - INFO - end_index: 10445841
+2023-11-05 16:51:11,994 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:51:19,184 - INFO - Output files for run run-01 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:51:19,184 - INFO - Processing run info: {'run_id': 'run-02', 'start_index': 10509314, 'end_index': 12259314, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:51:19,184 - INFO - Run ID: run-02
+2023-11-05 16:51:19,184 - INFO - Processing run run-02
+2023-11-05 16:51:19,184 - INFO - start_index: 10509314
+2023-11-05 16:51:19,184 - INFO - end_index: 12259314
+2023-11-05 16:51:19,184 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:51:26,244 - INFO - Output files for run run-02 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:51:26,244 - INFO - Processing run info: {'run_id': 'run-03', 'start_index': 12480866, 'end_index': 14230866, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:51:26,244 - INFO - Run ID: run-03
+2023-11-05 16:51:26,245 - INFO - Processing run run-03
+2023-11-05 16:51:26,245 - INFO - start_index: 12480866
+2023-11-05 16:51:26,245 - INFO - end_index: 14230866
+2023-11-05 16:51:26,245 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:51:33,394 - INFO - Output files for run run-03 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:51:33,395 - INFO - Processing run info: {'run_id': 'run-04', 'start_index': 14294290, 'end_index': 16044290, 'metadata': {'TaskName': 'rest', 'RepetitionTime': 2, 'NumVolumes': 175}}
+2023-11-05 16:51:33,395 - INFO - Run ID: run-04
+2023-11-05 16:51:33,395 - INFO - Processing run run-04
+2023-11-05 16:51:33,395 - INFO - start_index: 14294290
+2023-11-05 16:51:33,395 - INFO - end_index: 16044290
+2023-11-05 16:51:33,395 - INFO - Segmented data shape: (1750000, 12)
+2023-11-05 16:51:40,357 - INFO - Output files for run run-04 written successfully to /Users/PAM201/Documents/MRI/LEARN/BIDS_test/dataset/sub-LRN001/ses-1/func
+2023-11-05 16:51:40,357 - INFO - Segmented data list length: 4
+2023-11-05 16:51:40,357 - INFO - SEgmented data list shape: (1750000, 4)
+2023-11-05 16:51:40,418 - INFO - Preparing to plot runs.
