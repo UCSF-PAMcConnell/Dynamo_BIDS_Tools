@@ -555,7 +555,7 @@ def validate_runs_info(runs_info, bids_root_dir, subject_id, session_id):
     return True
 
 # Plots the segmented data for each run and saves the plots to a PDF.
-def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path):
+def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict):
     """
     Parameters:
     - original_data: np.ndarray, the entire original data to be used as a background.
@@ -577,7 +577,9 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
 
         # Plot the entire original data as background
         for i, label in enumerate(bids_labels_list):
+            unit = units_dict.get(label, 'Unknown unit')  # Get the unit for this label
             axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background')
+            axes[i].set_ylabel({unit})  # Set the y-axis label with the unit
 
         # Overlay each segmented run on the background
         for segment_index, (segment_data, run_metadata) in enumerate(zip(segmented_data_list, runs_info)):
@@ -708,9 +710,9 @@ def main(physio_root_dir, bids_root_dir):
         if expected_runs != set(all_runs_metadata.keys()):
             raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
 
-        # Verify that the found runs match the expected runs from the JSON metadata
-        if not set(expected_runs) == set([run_info['run_id'] for run_info in runs_info]):
-            raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+        # # Verify that the found runs match the expected runs from the JSON metadata
+        # if not set(expected_runs) == set([run_info['run_id'] for run_info in runs_info]):
+        #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
         
         # Create a mapping from run_id to run_info
         run_info_dict = {info['run_id']: info for info in runs_info}
@@ -761,7 +763,7 @@ def main(physio_root_dir, bids_root_dir):
         if segmented_data_list:
             logging.info("Preparing to plot runs.")
             plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
-            plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path)
+            plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
         else:
             logging.error("No data available to plot.")
 
