@@ -177,7 +177,6 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
 
     return run_id, run_metadata
 
-
 # Identifies potential starts of triggers based on the threshold and minimum number of consecutive points.
 def extract_trigger_points(data, threshold, min_consecutive):
     """
@@ -314,7 +313,8 @@ def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, sessi
         start_index = run['start_index']
         end_index = run['end_index']
         run_metadata = run['run_metadata']
-
+        task_name = run_metadata['TaskName']  # Extract the TaskName from the metadata
+        
         logging.info("Segmenting run %s from index %d to %d", run_id, start_index, end_index)
 
         # Perform any necessary processing on the data segment.
@@ -326,6 +326,7 @@ def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, sessi
             # Call the existing write_output_files function with the appropriate parameters
             write_output_files(data, run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id)
             output_file_path = os.path.join(output_dir, f"{subject_id}_{session_id}_task-rest_{run_id}_physio.tsv.gz")
+            #output_file_path = os.path.join(output_dir, f"{subject_id}_{session_id}_task-{TaskName}_{run_id}_physio.tsv.gz")
             output_files.append(output_file_path)
             logging.info("Output file for run %s written to %s", run_id, output_file_path)
         except IOError as e:
@@ -347,6 +348,7 @@ def create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict):
     """
     # Initialize the metadata dictionary with common information
     metadata_dict = {
+        "RunID": run_info['run_id'],
         "SamplingFrequency": sampling_rate,
         "SamplingRate": {
             "Value": sampling_rate,  
@@ -589,7 +591,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
             color = colors[segment_index % len(colors)]  # Cycle through colors
 
             for i, label in enumerate(bids_labels_list):
-                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'Run {run_metadata["run_id"]}')
+                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=run_metadata["run_id"])
 
         # Set titles, labels, etc.
         for i, label in enumerate(bids_labels_list):
