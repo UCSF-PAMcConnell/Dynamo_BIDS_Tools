@@ -436,7 +436,6 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         # Define filenames based on the BIDS format
         tsv_filename = f"{subject_id}_{session_id}_task-rest_{run_id}_physio.tsv.gz"
         json_filename = f"{subject_id}_{session_id}_task-rest_{run_id}_physio.json"
-
         # Prepare the full file paths
         tsv_file_path = os.path.join(output_dir, tsv_filename)
         json_file_path = os.path.join(output_dir, json_filename)
@@ -579,7 +578,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
         for i, label in enumerate(bids_labels_list):
             unit = units_dict.get(label, 'Unknown unit')  # Get the unit for this label
             axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background')
-            axes[i].set_ylabel({unit})  # Set the y-axis label with the unit
+            axes[i].set_ylabel(f'Amplitude ({unit})')  # Set the y-axis label with the unit
 
         # Overlay each segmented run on the background
         for segment_index, (segment_data, run_metadata) in enumerate(zip(segmented_data_list, runs_info)):
@@ -596,7 +595,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
         for i, label in enumerate(bids_labels_list):
             axes[i].set_title(label)
             axes[i].set_xlabel('Time (s)')
-            axes[i].set_ylabel('Amplitude')
+            #axes[i].set_ylabel(f'Amplitude ({unit})')
             axes[i].legend(loc='upper right')
 
         plt.tight_layout()
