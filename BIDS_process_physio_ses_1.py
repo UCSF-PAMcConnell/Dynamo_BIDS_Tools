@@ -348,14 +348,14 @@ def create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict):
     # Initialize the metadata dictionary with common information
     metadata_dict = {
         "SamplingFrequency": {
-            "Value": sampling_rate,  
+            sampling_rate,  
         },
         "SamplingRate": {
             "Value": sampling_rate,  
             "Units": "Hz"
         },
         "StartTime": {
-            "Value": run_info['start_index'] / sampling_rate, 
+             run_info['start_index'] / sampling_rate, 
         },
         "StartTimeSec": {
             "Value": run_info['start_index'] / sampling_rate, 
