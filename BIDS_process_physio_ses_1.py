@@ -556,6 +556,7 @@ def validate_runs_info(runs_info, bids_root_dir, subject_id, session_id):
     return True
 
 # Plots the segmented data for each run and saves the plots to a PDF.
+# Plots the segmented data for each run and saves the plots to a png file.
 def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict):
     """
     Parameters:
@@ -565,49 +566,77 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
     - bids_labels_list: list of str, BIDS-compliant channel labels.
     - sampling_rate: int, the rate at which data was sampled.
     - plot_file_path: str, the file path to save the plot.
+    - units_dict: dict, a dictionary mapping labels to their units.
     """
+    logging.basicConfig(level=logging.INFO)
+    
     try:
         # Define a list of colors for different runs
-        colors = ['r', 'g', 'b', 'm']  # red, green, blue, magenta, etc.
+        colors = [
+            'r', 'g', 'b', 'c', 'm', 'y', 'k', 'orange',
+            'pink', 'purple', 'lime', 'indigo', 'violet', 'gold', 'grey', 'brown'
+        ]
 
         # Create a figure and a set of subplots
-        fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(10, 8))
+        fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(20, 10))
 
         # Time axis for the original data
-        time_axis_original = np.arange(original_data.shape[0]) / sampling_rate
+        time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60
 
         # Plot the entire original data as background
         for i, label in enumerate(bids_labels_list):
-            unit = units_dict.get(label, 'Unknown unit')  # Get the unit for this label
-            axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background')
-            axes[i].set_ylabel(f'Amplitude ({unit})')  # Set the y-axis label with the unit
+            unit = units_dict.get(label, 'Unknown unit')
+            axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background' if i == 0 else "")
+            axes[i].set_ylabel(f'{label}\n({unit})')
 
         # Overlay each segmented run on the background
-        for segment_index, (segment_data, run_metadata) in enumerate(zip(segmented_data_list, runs_info)):
-            # Time axis for the segment
-            time_axis_segment = np.arange(run_metadata['start_index'], run_metadata['end_index']) / sampling_rate
-
-            # Choose color
+        for segment_index, (segment_data, run_info) in enumerate(zip(segmented_data_list, runs_info)):
+            # Define time_axis_segment for each segmented run
+            time_axis_segment = np.arange(run_info['start_index'], run_info['end_index']) / sampling_rate / 60
             color = colors[segment_index % len(colors)]  # Cycle through colors
-
             for i, label in enumerate(bids_labels_list):
-                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=run_metadata["run_id"])
+                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'Run {run_info["run_id"]}' if i == 0 else "")
 
-        # Set titles, labels, etc.
-        for i, label in enumerate(bids_labels_list):
-            axes[i].set_title(label)
-            axes[i].set_xlabel('Time (s)')
-            #axes[i].set_ylabel(f'Amplitude ({unit})')
-            axes[i].legend(loc='upper right')
+        # Set the x-axis label for the bottom subplot
+        axes[-1].set_xlabel('Time (min)')
 
-        plt.tight_layout()
-        plt.savefig(plot_file_path)  # Save the figure
-        plt.show()  # Display the figure
+        # Collect handles and labels for the legend from all axes
+        handles, labels = [], []
+        for ax in axes.flat:
+            h, l = ax.get_legend_handles_labels()
+            # Add the handle/label if it's not already in the list
+            for hi, li in zip(h, l):
+                if li not in labels:
+                    handles.append(hi)
+                    labels.append(li)
+
+        # Log the handles and labels
+        logging.info(f"Legend handles: {handles}")
+        logging.info(f"Legend labels: {labels}")
+
+        # Only create a legend if there are items to display
+        if handles and labels:
+            ncol = min(len(handles), len(labels))
+            fig.legend(handles, labels, loc='lower center', ncol=ncol)
+        else:
+            logging.info("No legend items to display.")
+
+        # Apply tight layout with padding to make room for the legend
+        #fig.tight_layout(rect=[0, 0.03, 1, 0.97])
+
+        # Apply tight layout with padding to make room for the legend and axis labels
+        fig.tight_layout(rect=[0.05, 0.1, 0.95, 0.97])  # Adjust the left and bottom values as needed
+
+        # Adjust subplot parameters to give more space
+        #plt.subplots_adjust(left=0.07, right=0.95, bottom=0.15, top=0.95)
+
+        # Save and show the figure
+        plt.savefig(plot_file_path, dpi=600)
+        plt.show()
 
     except Exception as e:
         logging.error("Failed to plot runs: %s", e, exc_info=True)
         raise
-
 
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
