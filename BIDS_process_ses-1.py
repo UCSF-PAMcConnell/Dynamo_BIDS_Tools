@@ -83,7 +83,7 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
 if __name__ == "__main__":
     
     # Desired Conda environment name
-    desired_env = "fmri"
+    desired_env = "datalad"
 
     # Check if the correct Conda environment is activated
     current_env = get_conda_env()

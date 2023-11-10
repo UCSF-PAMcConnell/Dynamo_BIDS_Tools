@@ -1,0 +1,36 @@
+Standard Library Modules
+os: Interface with the operating system
+sys: Access system-specific parameters and functions
+argparse: Parser for command-line options, arguments, and sub-commands
+logging: Logging facility for Python
+subprocess: Spawn new processes, connect to their input/output/error pipes, and obtain their return codes
+re: Regular expression operations
+json: JSON encoder and decoder
+warnings: Issue warning messages and control their disposition
+tempfile: Generate temporary files and directories
+shutil: High-level file operations
+glob: Unix style pathname pattern expansion
+
+Third-Party Modules
+numpy: Fundamental package for scientific computing with Python
+pandas: Data structures and data analysis tools
+matplotlib.pyplot: Plotting and visualization
+scipy.io: SciPy Input and Output
+pydicom: Read, modify, and write DICOM files with Python
+
+Specific Functionality from Matplotlib
+matplotlib.backends.backend_pdf.PdfPages: Create multipage PDFs with matplotlib plots
+
+Collections Module
+collections.OrderedDict: Dictionary that remembers the order entries were added
+
+Additional Tools (Mentioned but not Imported)
+pydeface: Defacing tool for MRI images
+cubids: Tool for organizing neuroimaging data into the BIDS format
+dcm2niix: Converts DICOM and PAR/REC files into the NIfTI format
+
+Notes
+For the additional tools (pydeface, cubids, dcm2niix), 
+make sure they are installed in your environment and accessible from your 
+script. These might not be standard Python modules but standalone tools 
+or applications.
