@@ -23,18 +23,6 @@ logging.basicConfig(
 
 # Helper functions
 
-# Returns the name of the current conda environment.
-def get_conda_env():
-    try:
-        env_name = os.environ.get('CONDA_DEFAULT_ENV')
-        if env_name:
-            return env_name
-        else:
-            return None
-    except Exception as e:
-        logging.error(f"Error getting Conda environment: {e}")
-        return None
-
 # Extract the subject and session IDs from the physio_root_dir path
 def extract_subject_session(physio_root_dir):
     """
@@ -934,19 +922,6 @@ def main(physio_root_dir, bids_root_dir):
 
 # Main function to run the script from the command line
 if __name__ == '__main__':
-    
-    # Desired Conda environment name
-    desired_env = "fmri"
-
-    # Check if the correct Conda environment is activated
-    current_env = get_conda_env()
-    if current_env != desired_env:
-        logging.error(f"Script is not running in the '{desired_env}' Conda environment. Current environment: '{current_env}'")
-        logging.info(f"Please activate the correct Conda environment by running: conda activate {desired_env}")
-        sys.exit(1)
-    else:
-        logging.info(f"Running in the correct Conda environment: '{current_env}'")
-
     parser = argparse.ArgumentParser(description="Convert physiological data to BIDS format.")
     parser.add_argument("physio_root_dir", help="Directory containing the physiological .mat file.")
     parser.add_argument("bids_root_dir", help="Path to the root of the BIDS dataset.")
