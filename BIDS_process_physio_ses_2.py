@@ -11,6 +11,7 @@ import warnings
 import glob
 from matplotlib.backends.backend_pdf import PdfPages
 from collections import OrderedDict
+import sys
 
 # Configure logging
 logging.basicConfig(
@@ -579,8 +580,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
     - plot_file_path: str, the file path to save the plot.
     - units_dict: dict, a dictionary mapping labels to their units.
     """
-    logging.basicConfig(level=logging.INFO)
-    
+
     try:
         # Define a list of colors for different runs
         colors = [
@@ -643,6 +643,110 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
 
         # Save and show the figure
         plt.savefig(plot_file_path, dpi=600)
+        plt.show()
+
+    except Exception as e:
+        logging.error("Failed to plot runs: %s", e, exc_info=True)
+        raise
+
+# Parses the events file to extract relevant information.
+def parse_events_file(events_file_path):
+    """
+    Parameters:
+    - events_file_path: str, the file path of the events file.
+    Returns:
+    - DataFrame containing 'onset', 'duration', and 'trial_type' columns.
+    """
+    try:
+        # Read the events file into a DataFrame
+        events_df = pd.read_csv(events_file_path, sep='\t')
+        logging.info(f"Events file '{events_file_path}' successfully read.")
+        return events_df[['onset', 'duration', 'trial_type']]
+    except Exception as e:
+        logging.error(f"Error reading events file '{events_file_path}': {e}", exc_info=True)
+        raise
+
+# Segments the data based on the events described in the events DataFrame.
+def segment_data_by_events(data, events_df, sampling_rate):
+    """
+    Parameters:
+    - data: np.ndarray, the original data array.
+    - events_df: DataFrame, contains 'onset', 'duration', and 'trial_type'.
+    - sampling_rate: int, the rate at which data was sampled.
+    Returns:
+    - List of tuples, each containing a segment of data and its trial type.
+    """
+    segments = []
+    try:
+        for _, row in events_df.iterrows():
+            start_idx = int(row['onset'] * sampling_rate)
+            end_idx = start_idx + int(row['duration'] * sampling_rate)
+            segment = data[start_idx:end_idx]
+            segments.append((segment, row['trial_type']))
+        logging.info("Data segmentation by events completed successfully.")
+        return segments
+    except Exception as e:
+        logging.error("Error in segmenting data by events: %s", e, exc_info=True)
+        raise
+
+# Plots the segmented data for each run and saves the plots to a png file.
+def plot_runs_with_events(original_data, event_segments_by_run, runs_info, bids_labels_list, sampling_rate, plot_events_file_path, units_dict):
+
+    try:
+        # Define a list of colors for different runs
+        colors = [
+            'r', 'g', 'b', 'c', 'm', 'y', 'k', 'orange',
+            'pink', 'purple', 'lime', 'indigo', 'violet', 'gold', 'grey', 'brown'
+        ]
+
+        # Create a figure and a set of subplots
+        fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(20, 10))
+
+        # Time axis for the original data
+        time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60
+
+        # Plot the entire original data as background
+        for i, label in enumerate(bids_labels_list):
+            unit = units_dict.get(label, 'Unknown unit')
+            axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background' if i == 0 else "")
+            axes[i].set_ylabel(f'{label}\n({unit})')
+
+        # Overlay each segmented run on the background
+        for run_id, event_segments in event_segments_by_run.items():
+            for segment_data, trial_type in event_segments:
+                time_axis_segment = np.arange(segment_data.shape[0]) / sampling_rate / 60
+                color = 'red' if trial_type == 'sequence' else 'blue'
+                for i, label in enumerate(bids_labels_list):
+                    axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'{trial_type} Block - Run {run_id}' if i == 0 else "")
+    
+        # Set the x-axis label for the bottom subplot
+        axes[-1].set_xlabel('Time (min)')
+
+        # Collect handles and labels for the legend from all axes
+        handles, labels = [], []
+        for ax in axes.flat:
+            h, l = ax.get_legend_handles_labels()
+            # Add the handle/label if it's not already in the list
+            for hi, li in zip(h, l):
+                if li not in labels:
+                    handles.append(hi)
+                    labels.append(li)
+
+        # Log the handles and labels
+        logging.info(f"Legend handles: {handles}")
+        logging.info(f"Legend labels: {labels}")
+
+        # Only create a legend if there are items to display
+        if handles and labels:
+            ncol = min(len(handles), len(labels))
+            fig.legend(handles, labels, loc='lower center', ncol=ncol)
+        else:
+            logging.info("No legend items to display.")
+        # Apply tight layout with padding to make room for the legend and axis labels
+        fig.tight_layout(rect=[0.05, 0.1, 0.95, 0.97])  # Adjust the left and bottom values as needed
+
+        # Save and show the figure
+        plt.savefig(plot_events_file_path, dpi=600)
         plt.show()
 
     except Exception as e:
@@ -751,16 +855,14 @@ def main(physio_root_dir, bids_root_dir):
         if expected_runs != set(all_runs_metadata.keys()):
             raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
 
-        # # Verify that the found runs match the expected runs from the JSON metadata
-        # if not set(expected_runs) == set([run_info['run_id'] for run_info in runs_info]):
-        #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
-        
         # Create a mapping from run_id to run_info
         run_info_dict = {info['run_id']: info for info in runs_info}
 
         # Verify that the found runs match the expected runs from the JSON metadata
         if not set(sorted_run_ids) == set(run_info_dict.keys()):
             raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+
+        event_segments_by_run = {}  # Dictionary to store event segments for each run
 
         # Segment runs and write output files for each run, using sorted_run_ids to maintain order
         output_files = []
@@ -775,10 +877,26 @@ def main(physio_root_dir, bids_root_dir):
             segmented_data = data[start_index:end_index]
             logging.info("Segmented data shape: %s", segmented_data.shape)
             output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
-            
+            # Construct the events file path
+            events_file_path = os.path.join(
+                bids_root_dir, 
+                subject_id, 
+                session_id, 
+                'func', 
+                f"{subject_id}_{session_id}_task-learn_{run_id}_events.tsv"
+            )
             # Create the metadata dictionary for the current run
             metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
             logging.info("Metadata dictionary for run %s: %s", run_id, metadata_dict)
+
+            # Parse the events file
+            events_df = parse_events_file(events_file_path)
+
+            # Segment the data based on events
+            event_segments = segment_data_by_events(data, events_df, sampling_rate)
+
+            # Store the event segments for this run
+            event_segments_by_run[run_id] = event_segments
 
             # Call the write_output_files function with the correct parameters
             output_files.append(write_output_files(
@@ -805,6 +923,8 @@ def main(physio_root_dir, bids_root_dir):
             logging.info("Preparing to plot runs.")
             plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_runs_physio.png")
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
+            plot_events_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
+            plot_runs_with_events(data_bids_only, event_segments_by_run, runs_info, bids_labels_list, sampling_rate, plot_events_file_path, units_dict)
         else:
             logging.error("No data available to plot.")
 
