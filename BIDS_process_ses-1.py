@@ -1,8 +1,30 @@
 import argparse
 import subprocess
 import os
+import logging
+import sys
 
+# Configure logging.
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Returns the name of the current conda environment.
+def get_conda_env():
+    try:
+        env_name = os.environ.get('CONDA_DEFAULT_ENV')
+        return env_name
+    except Exception as e:
+        logging.error(f"Error getting Conda environment: {e}")
+        return None
+
+# Executes a series of processing commands for MRI data.
 def execute_commands(sourcedata_root_dir, subject_id, session_id):
+    """
+    Parameters:
+    sourcedata_root_dir (str): Root directory of the source data.
+    subject_id (str): Identifier for the subject.
+    session_id (str): Identifier for the session.
+    """
+    # List of processing commands
     commands = [
         "process_PCASL.py",
         "process_T1.py",
@@ -13,55 +35,72 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
         "process_fmap_EPI_ses_1.py"
     ]
     
+    # Base command pattern
     base_command = "python ~/Documents/MATLAB/software/iNR/BIDS_tools/{} {}{}/{}/dicom_sorted/ ~/Documents/MRI/LEARN/BIDS_test/dataset"
     func_rest_extra_arg = " 4"
     
-    # Determine bids_root_dir by going up two levels from sourcedata_root_dir and into the dataset directory
+    # Determine bids_root_dir
     bids_root_dir = os.path.join(os.path.dirname(os.path.dirname(sourcedata_root_dir)), 'dataset')
 
-
-    # Check if the directory exists in bids_root_dir, if not create it
+    # Ensure the directory exists
     dir_to_create = os.path.join(bids_root_dir, subject_id, session_id)
     os.makedirs(dir_to_create, exist_ok=True)
     
     for command in commands:
+        # Construct the command
+        cmd = base_command.format(command, sourcedata_root_dir, subject_id, session_id)
         if command == "process_func_rest.py":
-            cmd = base_command.format(command, sourcedata_root_dir, subject_id, session_id) + func_rest_extra_arg
-        else:
-            cmd = base_command.format(command, sourcedata_root_dir, subject_id, session_id)
+            cmd += func_rest_extra_arg
         
-        print(f"Executing: {cmd}")
-        # Uncomment the following line to actually execute the commands
-        subprocess.run(cmd, shell=True)
-    
+        logging.info(f"Executing: {cmd}")
+        try:
+            subprocess.run(cmd, shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Command '{cmd}' failed with error: {e}")
+
     # Change the working directory to bids_root_dir and execute the cubids-validate command
-    os.chdir(bids_root_dir)
-    print(f"Current working directory: {os.getcwd()}")  # Debugging line to print current directory
-    
-    # Using the full path of cubids-validate and cubids-add-nifti-info
-    cubids_add_nii_hdr_path = "~/anaconda3/envs/fmri/bin/cubids-add-nifti-info"
-    cubids_add_nii_hdr_command = f"python {cubids_add_nii_hdr_path} {bids_root_dir}"
-    cubids_validate_path = "~/anaconda3/envs/fmri/bin/cubids-validate"
-    cubids_validate_command = f"python {cubids_validate_path} {bids_root_dir} cubids"
+    try:
+        os.chdir(bids_root_dir)
+        logging.info(f"Changed working directory to: {os.getcwd()}")
 
-    
-    print(f"Executing: {cubids_add_nii_hdr_command}")
-    # Uncomment the following line to actually execute the command
-    subprocess.run(cubids_add_nii_hdr_command, shell=True)
+        # Full paths of cubids commands
+        cubids_add_nii_hdr_path = "~/anaconda3/envs/fmri/bin/cubids-add-nifti-info"
+        cubids_add_nii_hdr_command = f"python {cubids_add_nii_hdr_path} {bids_root_dir}"
+        cubids_validate_path = "~/anaconda3/envs/fmri/bin/cubids-validate"
+        cubids_validate_command = f"python {cubids_validate_path} {bids_root_dir} cubids"
+        
+        # Execute cubids-add-nifti-info
+        logging.info(f"Executing: {cubids_add_nii_hdr_command}")
+        subprocess.run(cubids_add_nii_hdr_command, shell=True, check=True)
 
-    print(f"Executing: {cubids_validate_command}")
-    # Uncomment the following line to actually execute the command
-    subprocess.run(cubids_validate_command, shell=True)
+        # Execute cubids-validate
+        logging.info(f"Executing: {cubids_validate_command}")
+        subprocess.run(cubids_validate_command, shell=True, check=True)
 
-
-
+    except Exception as e:
+        logging.error(f"Error in processing with cubids commands: {e}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Execute processing commands.')
+    
+    # Desired Conda environment name
+    desired_env = "fmri"
+
+    # Check if the correct Conda environment is activated
+    current_env = get_conda_env()
+    if current_env != desired_env:
+        logging.error(f"Script is not running in the '{desired_env}' Conda environment. Current environment: '{current_env}'")
+        logging.info(f"Please activate the correct Conda environment by running: conda activate {desired_env}")
+        sys.exit(1)
+    else:
+        logging.info(f"Running in the correct Conda environment: '{current_env}'")
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Execute processing commands for MRI data.')
     parser.add_argument('sourcedata_root_dir', type=str, help='Path to the sourcedata root directory.')
     parser.add_argument('subject_id', type=str, help='Subject ID.')
     parser.add_argument('session_id', type=str, help='Session ID.')
     
     args = parser.parse_args()
     
+    # Execute the processing commands
     execute_commands(args.sourcedata_root_dir, args.subject_id, args.session_id)
