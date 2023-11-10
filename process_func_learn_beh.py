@@ -6,9 +6,22 @@ import glob
 import logging
 import re
 import json
+import sys
 
 # Configuring logging to display informational messages and errors
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Returns the name of the current conda environment.
+def get_conda_env():
+    try:
+        env_name = os.environ.get('CONDA_DEFAULT_ENV')
+        if env_name:
+            return env_name
+        else:
+            return None
+    except Exception as e:
+        logging.error(f"Error getting Conda environment: {e}")
+        return None
 
 # Load MATLAB data from the provided file path and extract relevant fields.
 def load_matlab_data(matlab_file_path):
@@ -115,6 +128,18 @@ def save_as_tsv(data, output_path):
 # Main function
 if __name__ == "__main__":
     
+    # Desired Conda environment name
+    desired_env = "fmri"
+
+    # Check if the correct Conda environment is activated
+    current_env = get_conda_env()
+    if current_env != desired_env:
+        logging.error(f"Script is not running in the '{desired_env}' Conda environment. Current environment: '{current_env}'")
+        logging.info(f"Please activate the correct Conda environment by running: conda activate {desired_env}")
+        sys.exit(1)
+    else:
+        logging.info(f"Running in the correct Conda environment: '{current_env}'")
+
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Process behavioral files and convert to .tsv in BIDS format.')
     parser.add_argument('matlab_dir', type=str, help='Directory containing the MATLAB files.')
