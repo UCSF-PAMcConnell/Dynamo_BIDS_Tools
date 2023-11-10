@@ -45,4 +45,4 @@ dependencies:
       - requests-toolbelt==1.0.0
       - tqdm==4.66.1
       - urllib3==2.0.7
-prefix: /Users/PAM201/anaconda3/envs/datalad
+prefix: ~/anaconda3/envs/datalad
