@@ -1,60 +1,90 @@
-import os
-import re
-import logging
-import argparse
-import scipy.io as sio
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import json
-import warnings
-import glob
-from matplotlib.backends.backend_pdf import PdfPages
-from collections import OrderedDict
-import sys
+"""
+BIDS_process_physio_ses_2.py
 
-# Configure basic debug logging
-logging.basicConfig(
-    filename='process_physio_ses_2.log',
-    filemode='w', # a to append, w to overwrite
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+Description:
+This script processes physiological data acquired through Biopac Acqknowledge during Task fMRI sessions into BIDS-compliant files.
+It includes functions for loading data, segmenting physio data based on full run and event types, writing metadata, and generating quality control plots.
 
-# def setup_logging(subject_id, session_id, bids_root_dir):
+Usage:
+python BIDS_process_physio_ses_2.py <physio_root_directory> <bids_root_dir>
+e.g.,
+<dataset_root_dir>/sourcedata/sub-01/ses-01/physio/sub-01_ses-01_task-learn_physio.mat # <physio_root_dir>
+<dataset_root_dir>/dataset # <bids_root_dir>
+
+Author: PAMcConnell
+Created on: 20231111
+Last Modified: 20231111
+
+License: MIT License
+
+Dependencies:
+- numpy, pandas, matplotlib, scipy
+
+Environment Setup:
+To set up the required environment, use the provided environment.yml file with Conda. <datalad.yml>
+
+Change Log:
+- 20231111: Initial version
+
+"""
+
+import os                                             # Used for interacting with the operating system, like file path operations.
+import re                                             # Regular expressions, useful for text matching and manipulation.
+import logging                                        # Logging library, for tracking events that happen when running the software.
+import argparse                                       # Parser for command-line options, arguments, and sub-commands.
+import scipy.io as sio                                # SciPy module for reading and writing MATLAB files.
+import numpy as np                                    # NumPy library for numerical operations on arrays and matrices.
+import pandas as pd                                   # Pandas library for data manipulation and analysis.
+import matplotlib.pyplot as plt                       # Matplotlib's pyplot, a plotting library.
+import json                                           # Library for working with JSON data.
+import glob                                           # Used for Unix style pathname pattern expansion.
+from collections import OrderedDict                   # Dictionary subclass that remembers the insertion order of keys.
+import sys                                            # System-specific parameters and functions.
+
+
+## Helper Functions. 
+
+# # Configure basic debug logging
+# logging.basicConfig(
+#     filename='process_physio_ses_2.log',
+#     filemode='w', # a to append, w to overwrite
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     level=logging.INFO
+# )
+
+# Set up logging for individual archive logs.
+def setup_logging(subject_id, session_id, bids_root_dir):
     
-#     # Extract the base name of the script without the .py extension
-#     script_name = os.path.basename(__file__).replace('.py', '')
+    # Extract the base name of the script without the .py extension
+    script_name = os.path.basename(__file__).replace('.py', '')
 
-#     # Construct the log directory path
-#     log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name)
+    # Construct the log directory path
+    log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name)
 
-#     # Create the log directory if it doesn't exist
-#     if not os.path.exists(log_dir):
-#         os.makedirs(log_dir)
+    # Create the log directory if it doesn't exist
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
-#     # Construct the log file name
-#     log_file_name = f"{subject_id}_{session_id}_{script_name}.log"
-#     log_file_path = os.path.join(log_dir, log_file_name)
+    # Construct the log file name
+    log_file_name = f"{subject_id}_{session_id}_{script_name}.log"
+    log_file_path = os.path.join(log_dir, log_file_name)
 
-#     # Configure logging
-#     logging.basicConfig(
-#         level=logging.INFO,
-#         format='%(asctime)s - %(levelname)s - %(message)s',
-#         filename=log_file_path,
-#         filemode='w'
-#     )
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        filename=log_file_path,
+        filemode='w'
+    )
 
-#     # If you also want to log to console
-#     console_handler = logging.StreamHandler(sys.stdout)
-#     console_handler.setLevel(logging.INFO)
-#     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-#     console_handler.setFormatter(formatter)
-#     logging.getLogger().addHandler(console_handler)
+    # If you also want to log to console
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logging.getLogger().addHandler(console_handler)
 
-#     logging.info(f"Logging setup complete. Log file: {log_file_path}")
-
-## Helper functions
+    logging.info(f"Logging setup complete. Log file: {log_file_path}")
 
 # Extract the subject and session IDs from the physio_root_dir path
 def extract_subject_session(physio_root_dir):
@@ -477,11 +507,11 @@ def create_event_metadata_dict(run_info, segment_length, sampling_rate, repetiti
     logging.info(f"Segment duration: {segment_duration_min} minutes")
     logging.info((run_info['start_index'] / sampling_rate) + event_onset)
 
-
     # Initialize the metadata dictionary with segment-specific information
     metadata_dict_events = {
         "RunID": run_info['run_id'],
         "NumVolumes": num_volumes_events,
+        "RepetitionTime": repetition_time,
         "SamplingFrequency": sampling_rate,
         "StartTime": (run_info['start_index'] / sampling_rate) + event_onset,
         "StartTimeSec": {
@@ -986,7 +1016,7 @@ def main(physio_root_dir, bids_root_dir):
         subject_id, session_id = extract_subject_session(physio_root_dir)
         
         # Setup logging after extracting subject_id and session_id
-        #setup_logging(subject_id, session_id, bids_root_dir) # Uncomment this line and helper function to enable archived logging
+        setup_logging(subject_id, session_id, bids_root_dir) # Uncomment this line and helper function to enable archived logging
 
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
