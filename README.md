@@ -1,7 +1,10 @@
 ## BIDS_tools
  code for BIDS data processing / inputs: dicom_root_dir or physio_root_dir, bids_root_dir
  
- assumes BIDS compliant directory structure
+ assumes BIDS compliant directory structure (where 'BIDS' is project/dataset root directory):
+
+ /BIDS/code
+ /BIDS/doc
  /BIDS/derivatives
  /BIDS/sourcedata/ (dicom_root_dir) + /sub-/ses-/dicom -> dicom_sorted
  /BIDS/sourcedata/sub-/ses-/physio (physio_root_dir)
@@ -28,4 +31,8 @@ python ~/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py ~/Docume
 
 # Process physio to BIDS - ses-1
 
-python ~/Documents/MATLAB/software/iNR/BIDS_tools/process_physio_ses_1.py ~/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/  ~/Documents/MRI/LEARN/BIDS_test/dataset
+python ~/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_physio_ses_1.py ~/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-1/physio/  ~/Documents/MRI/LEARN/BIDS_test/dataset
+
+# Process physio to BIDS - ses-2
+
+python ~/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_physio_ses_2.py ~/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN001/ses-2/physio/  ~/Documents/MRI/LEARN/BIDS_test/dataset
