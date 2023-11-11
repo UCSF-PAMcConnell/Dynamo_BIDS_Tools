@@ -41,7 +41,7 @@ import json                                           # Library for working with
 import glob                                           # Used for Unix style pathname pattern expansion.
 from collections import OrderedDict                   # Dictionary subclass that remembers the insertion order of keys.
 import sys                                            # System-specific parameters and functions.
-
+from matplotlib.lines import Line2D                   # Import Line2D from matplotlib to create custom line objects.
 
 ## Helper Functions. 
 
@@ -57,7 +57,7 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     This function sets up a logging system that writes logs to both a file and the console. 
     The log file is named based on the subject ID, session ID, and the script name. 
-    It's stored in a 'logs' directory within the 'doc' folder, which is located at the same 
+    It's stored in a 'logs' directory within the 'doc' folder by subject ID, which is located at the same 
     level as the BIDS root directory.
 
     The logging level is set to INFO, meaning it captures all informational, warning, and error messages.
@@ -70,7 +70,7 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     script_name = os.path.basename(__file__).replace('.py', '')
 
     # Construct the log directory path within 'doc/logs'
-    log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name)
+    log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name, subject_id)
 
     # Create the log directory if it doesn't exist.
     if not os.path.exists(log_dir):
@@ -131,8 +131,6 @@ def extract_subject_session(physio_root_dir):
     
     subject_id, session_id = match.groups()
 
-    # Set up log to print the extracted IDs
-    logging.info("Subject ID: %s, Session ID: %s", subject_id, session_id)
     return subject_id, session_id
 
 # Load a MATLAB (.mat) file containing physiological data and extracts labels, data, and units.
@@ -241,8 +239,8 @@ def rename_channels(labels):
             logging.warning("Label '%s' does not match any BIDS convention and will be omitted.", label)
     
     # Log the results of the renaming process.
-    logging.info(f"BIDS Labels Dictionary: {bids_labels_dictionary}")
-    logging.info(f"BIDS Labels List: {bids_labels_list}")
+    # logging.info(f"BIDS Labels Dictionary: {bids_labels_dictionary}")
+    # logging.info(f"BIDS Labels List: {bids_labels_list}")
     
     return bids_labels_dictionary, bids_labels_list
 
@@ -309,7 +307,7 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
 
     # Return the run ID and extracted metadata.
     run_metadata = {field: metadata[field] for field in required_fields}
-    logging.info(f"Extracted metadata for run {run_id}: {run_metadata}")
+    # logging.info(f"Extracted metadata for run {run_id}: {run_metadata}")
     return run_id, run_metadata
 
 # Extracts the starting points of triggers in MRI data based on a specified threshold and minimum consecutive points.
@@ -439,7 +437,7 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
                     start_from_index = i + num_volumes  # Update the starting index for the next run.
                     break  # Exit loop after finding a valid start index for this run.
                 else:
-                    logging.info(f"{run_id} at index {i} does not match expected interval.")
+                    logging.info(f"{run_id} at index {i} does not match expected interval, skipping....")
             
             if start_from_index >= len(trigger_starts) - num_volumes + 1:
                 logging.warning(f"No more valid segments for {run_id} after index {start_from_index}.")
@@ -496,7 +494,7 @@ def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, sessi
             write_output_files(data, run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id)
             
             output_files.append(output_file_path)
-            logging.info("Output file for run %s written to %s", run_id, output_file_path)
+            #logging.info("Output file for run %s written to %s", run_id, output_file_path)
 
         except IOError as e:
             logging.error("Failed to write output file for run %s: %s", run_id, e, exc_info=True)
@@ -642,7 +640,7 @@ def create_event_metadata_dict(run_info, segment_length, sampling_rate, repetiti
     logging.info(f"NumVolumes: {num_volumes_events}")
     logging.info(f"Segment length: {segment_length} data points")
     logging.info(f"Segment duration: {segment_duration_min} minutes")
-    logging.info((run_info['start_index'] / sampling_rate) + event_onset)
+    #logging.info((run_info['start_index'] / sampling_rate) + event_onset)
 
     # Initialize the metadata dictionary with segment-specific information.
     metadata_dict_events = {
@@ -772,11 +770,11 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
             json.dump(combined_metadata, json_file, indent=4)
 
         # Log the successful writing of files.
-        logging.info(f"Output files for {run_id} written successfully to {output_dir}")
+        logging.info(f"Run output files for {run_id} written successfully to {output_dir}")
     
     except Exception as e:
         # Log any exceptions that occur during the file writing process.
-        logging.error(f"Failed to write output files for {run_id}: {e}", exc_info=True)
+        # logging.error(f"Failed to write output files for {run_id}: {e}", exc_info=True)
         # Re-raise the exception for further handling
         raise
 
@@ -808,7 +806,7 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
     try:
         # Ensure the output directory exists.
         os.makedirs(output_dir, exist_ok=True)
-        logging.info(f"Output directory '{output_dir}' created successfully.")
+        #logging.info(f"Output directory '{output_dir}' created successfully.")
 
         # Loop through each segment and write to individual files.
         for i, segment_info in enumerate(event_segments):
@@ -826,7 +824,7 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
             # Prepare file paths.
             tsv_event_file_path = os.path.join(output_dir, tsv_event_filename)
             json_event_file_path = os.path.join(output_dir, json_event_filename)
-            logging.info(f"File paths set for segment {i}: TSV - {tsv_event_file_path}, JSON - {json_event_file_path}")
+            # logging.info(f"File paths set for segment {i}: TSV - {tsv_event_file_path}, JSON - {json_event_file_path}")
 
             # Check if segment data is not empty.
             if segment_data.size == 0:
@@ -836,12 +834,12 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
             # Create a DataFrame and save to a TSV file.
             df = pd.DataFrame(segment_data, columns=bids_labels_list)
             df.to_csv(tsv_event_file_path, sep='\t', index=False, compression='gzip')
-            logging.info(f"TSV file written for segment {i}, trial type '{trial_type}'.")
+            #logging.info(f"TSV file written for segment {i}, trial type '{trial_type}'.")
 
             # Write the event metadata to a JSON file.
             with open(json_event_file_path, 'w') as json_file:
                 json.dump(metadata_dict_events, json_file, indent=4)
-                logging.info(f"JSON file written for segment {i}, trial type '{trial_type}'.")
+                #logging.info(f"JSON file written for segment {i}, trial type '{trial_type}'.")
 
             # Log the successful writing of files.
             logging.info(f"Event output files for {run_id}, segment {i}, trial type '{trial_type}' written successfully to {output_dir}.")
@@ -932,6 +930,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
         # Save and show the figure.
         plt.savefig(plot_file_path, dpi=600)
         plt.show()  # Comment this line if you want to bypass plot display.
+        logging.info(f"Plot saved to {plot_file_path}")
 
     except Exception as e:
         logging.error("Failed to plot runs: %s", e, exc_info=True)
@@ -986,7 +985,7 @@ def segment_data_by_events(data, events_df, sampling_rate, run_info, run_id):
     for trial_type in ['sequence', 'random']:
         block_events = events_df[events_df['trial_type'] == trial_type]
         if block_events.empty:
-            logging.warning(f"No events found for trial type '{trial_type}' in {run_id}.")
+            #logging.warning(f"No events found for trial type '{trial_type}' in {run_id}.")
             continue
 
         # Calculate segment start and end times in seconds.
@@ -995,7 +994,7 @@ def segment_data_by_events(data, events_df, sampling_rate, run_info, run_id):
         segment_start_time = (run_info['start_index'] + (block_start_onset * sampling_rate)) / sampling_rate
         logging.info(f"Segment start time: {segment_start_time}")
         last_event = block_events.iloc[-1]
-        logging.info(f"Last event: {last_event}")
+        # logging.info(f"Last event: {last_event}")
         block_end_time = last_event['onset'] + last_event['duration']
         logging.info(f"Block end time: {block_end_time}")
         segment_end_time = (run_info['start_index'] + (block_end_time * sampling_rate)) / sampling_rate
@@ -1052,9 +1051,13 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
     # Define colors for different trial types.
     colors = {'sequence': 'red', 'random': 'blue'}
 
+    # Create custom legend handles.
+    custom_handles = [Line2D([0], [0], color=colors['sequence'], lw=2, label='Sequence'),
+                    Line2D([0], [0], color=colors['random'], lw=2, label='Random')]
+    
     # Create figure and subplots.
     fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(20, 10))
-    logging.info("Created figure and subplots for event plotting.")
+    #logging.info("Created figure and subplots for event plotting.")
 
     # Plot the original data as a background reference.
     time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60  # Convert to minutes.
@@ -1064,7 +1067,7 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
 
     # Overlay segmented data on top of the original data.
     for run_id, segments in event_segments_by_run.items():
-        logging.info(f"Processing run ID for event plotting: {run_id}")
+        #logging.info(f"Processing run ID for event plotting: {run_id}")
         for segment_data, trial_type, segment_start_time, segment_duration in segments:
             # Calculate the time axis for the segment.
             start_time = segment_start_time / 60  # Convert to minutes.
@@ -1073,13 +1076,13 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
 
             # Plot each segment.
             for i, label in enumerate(bids_labels_list):
-                axes[i].plot(time_axis_segment, segment_data[:, i], color=colors[trial_type], label=f'{trial_type.capitalize()} - {run_id}')
-            logging.info(f"Plotted {trial_type} segment for {run_id}")
+                axes[i].plot(time_axis_segment, segment_data[:, i], color=colors[trial_type])
+            #logging.info(f"Plotted {trial_type} segment for {run_id}")
 
     # Set x-axis label and legend.
     axes[-1].set_xlabel('Time (min)')
     handles, labels = axes[-1].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='lower center', ncol=len(handles))
+    fig.legend(handles=custom_handles, loc='lower center', ncol=len(custom_handles))
 
     # Adjust layout to fit all elements.
     plt.tight_layout()
@@ -1089,7 +1092,7 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
     plt.savefig(plot_events_file_path, dpi=600)
     plt.show()
     logging.info(f"Plot saved to {plot_events_file_path}")
-
+    
 # Main function to orchestrate the conversion of physiological data to BIDS format.
 def main(physio_root_dir, bids_root_dir):
     """
@@ -1119,7 +1122,6 @@ def main(physio_root_dir, bids_root_dir):
         
         # Setup logging after extracting subject_id and session_id.
         setup_logging(subject_id, session_id, bids_root_dir) # Uncomment this line and helper function to enable archived logging.
-
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
         # Load physiological data.
@@ -1149,8 +1151,7 @@ def main(physio_root_dir, bids_root_dir):
 
         # Process JSON files to extract metadata for each run.
         json_file_paths = glob.glob(os.path.join(bids_root_dir, subject_id, session_id, 'func', '*_bold.json'))
-        logging.info("JSON files found: %s", json_file_paths)
-        logging.info("Extracting metadata from JSON files...")
+        logging.info("Extracting run metadata from JSON files...")
 
         # Assume json_file_paths is a list of paths to your JSON files.
         all_runs_metadata = {}
@@ -1160,6 +1161,7 @@ def main(physio_root_dir, bids_root_dir):
         sorted_json_file_paths = sorted(
             json_file_paths,
             key=lambda x: int(re.search(r"run-(\d+)_bold\.json$", x).group(1)))
+        #logging.info("JSON files found: %s", sorted_json_file_paths)
 
         # Now use the sorted_json_file_paths instead of the unsorted json_file_paths.
         for json_file_path in sorted_json_file_paths:
@@ -1196,7 +1198,7 @@ def main(physio_root_dir, bids_root_dir):
 
         if not runs_info:
             raise ValueError("No runs were found. Please check the triggers and metadata.")
-        logging.info("Runs info: %s", runs_info)
+        # logging.info("Runs info: %s", runs_info)
 
         # Verify that the found runs match the expected runs from the JSON metadata.
         expected_runs = set(run_info['run_id'] for run_info in runs_info)
@@ -1216,7 +1218,7 @@ def main(physio_root_dir, bids_root_dir):
         output_files = []
         for run_id in sorted_run_ids:
             run_info = run_info_dict[run_id]
-            logging.info("Processing %s", run_id)
+            #logging.info("Processing %s", run_id)
             repetition_time = all_runs_metadata[run_id]['RepetitionTime']  # Retrieve repetition time from metadata.
             
             # Construct the events file path.
@@ -1227,7 +1229,7 @@ def main(physio_root_dir, bids_root_dir):
                 'func', 
                 f"{subject_id}_{session_id}_task-learn_{run_id}_events.tsv"
             )
-            logging.info(f" Events file path: {events_file_path}")
+            logging.info(f"Events file path: {events_file_path}")
             
             # Read the events file into events_df.
             try:
@@ -1236,8 +1238,8 @@ def main(physio_root_dir, bids_root_dir):
                 logging.error(f"Error reading events file for {run_id}: {e}", exc_info=True)
                 continue  # Skip this run if events file cannot be read.
             
-            # Log events DataFrame details.
-            logging.info("Events DataFrame for %s:\n%s", run_id, events_df.head())
+            # Log events DataFrame details for debugging. 
+            # logging.info("Events DataFrame for %s:\n%s", run_id, events_df.head())
 
             # Process each segment within the run.
             event_segments = segment_data_by_events(data, events_df, sampling_rate, run_info, run_id)
@@ -1250,13 +1252,8 @@ def main(physio_root_dir, bids_root_dir):
             
             # Create the metadata dictionary for the current run.
             metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
-            logging.info("Metadata dictionary for %s: %s", run_id, metadata_dict)
+            # logging.info("Metadata dictionary for %s: %s", run_id, metadata_dict)
             
-            # Process each segment within the run.
-            event_segments = segment_data_by_events(data, events_df, sampling_rate, run_info, run_id)
-            logging.info("Event segments for %s: %s", run_id, event_segments)
-            event_segments_by_run[run_id] = event_segments
-
             for segment in event_segments:
                 logging.info(f"Processing segment in {run_id}") 
                 if len(segment) != 4:
@@ -1280,18 +1277,13 @@ def main(physio_root_dir, bids_root_dir):
                     segment_start_time, event_onset, segment_duration
                 )
 
-                logging.info(f"Metadata event dictionary for {run_id}: {metadata_dict_events}")
+                # logging.info(f"Metadata event dictionary for {run_id}: {metadata_dict_events}")
                 
-                success = write_event_output_files(
+                write_event_output_files(
                     [segment], sorted_all_runs_metadata[run_id], metadata_dict_events, 
                     bids_labels_list, output_dir, subject_id, session_id, run_id
                 )
-                if success:
-                    logging.info("Output files successfully written for run %s, segment of trial type '%s'", run_id, trial_type)
-                else:
-                    logging.error("Failed to write output files for run %s, segment of trial type '%s'", run_id, trial_type)
-
-                logging.info(f"Written output files for {run_id}, segment of trial type '{trial_type}'")
+                #logging.info("Event output files successfully written for run %s, segment of trial type '%s'", run_id, trial_type)
 
             # Call the write_output_files function with the correct parameters.
             output_files.append(write_output_files(
@@ -1307,19 +1299,36 @@ def main(physio_root_dir, bids_root_dir):
 
         # Create a list of segmented data for plotting.
         segmented_data_list = [segmented_data_bids_only[run_info['start_index']:run_info['end_index']] for run_info in runs_info]
-        logging.info("Segmented data list length: %s", len(segmented_data_list))
+        logging.info("Number of runs segmented: %s", len(segmented_data_list))
 
         # Filter the original data array to retain only the columns with BIDS labels.
         data_bids_only = data[:, [original_label_indices[original] for original in bids_labels_dictionary.keys()]]
 
         # Plot physiological data for all runs with the filtered background data.
         if segmented_data_list:
+            
+            # plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_runs_physio.png")
+            
+            # Extract the base name of the script without the .py extension.
+            script_name = os.path.basename(__file__).replace('.py', '')
+
+            # Construct the log directory path within 'doc/logs'
+            log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name, subject_id)
+
+            # Create the log directory if it doesn't exist.
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            
+            # Call the plot_runs function with the correct parameters and save plots to the log directory.
             logging.info("Preparing to plot runs.")
-            plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_runs_physio.png")
+            log_file_path_plot_runs = os.path.join(log_dir, f"{subject_id}_{session_id}_task-learn_all_runs_physio.png")
+            plot_file_path = log_file_path_plot_runs
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
 
             logging.info("Preparing to plot event blocks.")
-            plot_events_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
+            #plot_events_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
+            log_file_path_plot_events = os.path.join(log_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
+            plot_events_file_path = log_file_path_plot_events
             plot_runs_with_events(data_bids_only, event_segments_by_run, events_df, sampling_rate, plot_events_file_path, units_dict, bids_labels_list, run_info_dict)
         else:
             logging.error("No data available to plot.")
