@@ -27,7 +27,7 @@ Dependencies:
 
 Environment Setup:
 Ensure Python 3.12 and pydicom library are installed in your environment.
-You can install pydicom using pip: `pip install pydicom`.
+You can install pydicom using conda: `conda install -c conda-forge pydicom`.
 To set up the required environment, you can use the provided environment.yml file with Conda. <datalad.yml>
 
 Change Log:
