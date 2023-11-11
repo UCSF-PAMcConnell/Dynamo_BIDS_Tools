@@ -13,7 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from collections import OrderedDict
 import sys
 
-# Configure logging
+# Configure basic debug logging
 logging.basicConfig(
     filename='process_physio_ses_2.log',
     filemode='w', # a to append, w to overwrite
@@ -21,7 +21,40 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# Helper functions
+# def setup_logging(subject_id, session_id, bids_root_dir):
+    
+#     # Extract the base name of the script without the .py extension
+#     script_name = os.path.basename(__file__).replace('.py', '')
+
+#     # Construct the log directory path
+#     log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name)
+
+#     # Create the log directory if it doesn't exist
+#     if not os.path.exists(log_dir):
+#         os.makedirs(log_dir)
+
+#     # Construct the log file name
+#     log_file_name = f"{subject_id}_{session_id}_{script_name}.log"
+#     log_file_path = os.path.join(log_dir, log_file_name)
+
+#     # Configure logging
+#     logging.basicConfig(
+#         level=logging.INFO,
+#         format='%(asctime)s - %(levelname)s - %(message)s',
+#         filename=log_file_path,
+#         filemode='w'
+#     )
+
+#     # If you also want to log to console
+#     console_handler = logging.StreamHandler(sys.stdout)
+#     console_handler.setLevel(logging.INFO)
+#     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+#     console_handler.setFormatter(formatter)
+#     logging.getLogger().addHandler(console_handler)
+
+#     logging.info(f"Logging setup complete. Log file: {log_file_path}")
+
+## Helper functions
 
 # Extract the subject and session IDs from the physio_root_dir path
 def extract_subject_session(physio_root_dir):
@@ -245,10 +278,10 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
             repetition_time = metadata.get('RepetitionTime')
             num_volumes = metadata.get('NumVolumes')
             if repetition_time is None or num_volumes is None:
-                logging.info(f"RepetitionTime or NumVolumes missing in metadata for run {run_id}")
+                logging.info(f"RepetitionTime or NumVolumes missing in metadata for {run_id}")
                 continue
 
-            logging.info(f"Processing run {run_id} with {num_volumes} volumes and TR={repetition_time}s")
+            logging.info(f"Processing {run_id} with {num_volumes} volumes and TR={repetition_time}s")
             samples_per_volume = int(sampling_rate * repetition_time)
 
             # Start searching for a valid run from the last used trigger index
@@ -260,7 +293,7 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
                     start_idx = trigger_starts[i]
                     end_idx = start_idx + num_volumes * samples_per_volume
                     if end_idx > data.shape[0]:
-                        logging.info(f"Proposed end index {end_idx} for run {run_id} is out of bounds.")
+                        logging.info(f"Proposed end index {end_idx} for {run_id} is out of bounds.")
                         continue
                     
                     run_info = {
@@ -274,17 +307,17 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
                     start_from_index = i + num_volumes  # Update the starting index for the next run
                     break  # Exit loop after finding a valid start index for this run
                 else:
-                    logging.info(f"Run {run_id} at index {i} does not match expected interval.")
+                    logging.info(f"{run_id} at index {i} does not match expected interval.")
             
             if start_from_index >= len(trigger_starts) - num_volumes + 1:
-                logging.info(f"No valid segments found for run {run_id} after index {start_from_index}.")
+                logging.info(f"No valid segments found for {run_id} after index {start_from_index}.")
 
         except KeyError as e:
-            logging.info(f"Metadata key error for run {run_id}: {e}")
+            logging.info(f"Metadata key error for {run_id}: {e}")
         except ValueError as e:
-            logging.info(f"ValueError for run {run_id}: {e}")
+            logging.info(f"ValueError for {run_id}: {e}")
         except Exception as e:
-            logging.info(f"Unexpected error while finding runs for run {run_id}: {e}")
+            logging.info(f"Unexpected error while finding runs for {run_id}: {e}")
 
     logging.info(f"Total number of runs found: {len(runs_info)}")
     if not runs_info:
@@ -419,6 +452,105 @@ def create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict):
 
     return metadata_dict
 
+def create_event_metadata_dict(run_info, segment_length, sampling_rate, repetition_time, 
+                               bids_labels_list, units_dict, trial_type, 
+                               segment_start_time, event_onset, segment_duration):
+    """                        
+    Creates a metadata dictionary for an event segment based on the available channel information and segment details.
+
+    Parameters:
+    - run_info: dict containing information about the run.
+    - segment_length: int, length of the segment in data points.
+    - sampling_rate: int, sampling rate in Hz.
+    - repetition_time: float, repetition time in seconds.
+    - bids_labels_list: list of BIDS-compliant labels for the channels.
+    - units_dict: dict mapping BIDS-compliant labels to units.
+
+    Returns:
+    - A metadata dictionary with relevant information for the event segment.
+    """
+    # Calculate the number of volumes and the duration of the segment
+    num_volumes_events = int(segment_length / (sampling_rate * repetition_time))
+    logging.info(f"NumVolumes: {num_volumes_events}")
+    segment_duration_min = (segment_length / sampling_rate) / 60
+    logging.info(f"Segment length: {segment_length} data points")
+    logging.info(f"Segment duration: {segment_duration_min} minutes")
+    logging.info((run_info['start_index'] / sampling_rate) + event_onset)
+
+
+    # Initialize the metadata dictionary with segment-specific information
+    metadata_dict_events = {
+        "RunID": run_info['run_id'],
+        "NumVolumes": num_volumes_events,
+        "SamplingFrequency": sampling_rate,
+        "StartTime": (run_info['start_index'] / sampling_rate) + event_onset,
+        "StartTimeSec": {
+            "Value": (run_info['start_index'] / sampling_rate) + event_onset,
+            "Description": "Start time of the segment relative to recording onset",
+            "Units": "seconds"
+        },
+        "StartTimeMin": {
+            "Value": ((run_info['start_index'] / sampling_rate) + event_onset) / 60,
+            "Description": "Start time of the segment relative to recording onset",
+            "Units": "minutes"
+        },
+        "DurationMin": {
+            "Value": segment_duration_min,
+            "Description": "Duration of the segment",
+            "Units": "minutes"
+        },
+        "TrialType": trial_type,  # Include trial type in the metadata
+        "Columns": bids_labels_list
+    }
+  
+    # Channel-specific metadata
+    channel_event_metadata = {
+        "cardiac": {
+            "Description": "Continuous ECG measurement",
+            "Placement": "Lead 1",
+            "Gain": 500,
+            "35HzLPN": "off / 150HzLP",
+            "HPF": "0.05 Hz",
+        },
+        "respiratory": {
+            "Description": "Continuous measurements by respiration belt",
+            "Gain": 10,
+            "LPF": "10 Hz",
+            "HPF1": "DC",
+            "HPF2": "0.05 Hz",
+        },
+        "eda": {
+            "Description": "Continuous EDA measurement",
+            "Placement": "Right plantar instep",
+            "Gain": 5,
+            "LPF": "1.0 Hz",
+            "HPF1": "DC",
+            "HPF2": "DC",
+        },
+        "trigger": {
+            "Description": "fMRI Volume Marker",
+        },
+        "ppg": {
+            "Description": "Continuous PPG measurement",
+            "Placement": "Left index toe",
+            "Gain": 10,
+            "LPF": "3.0 Hz",
+            "HPF1": "0.5 Hz",
+            "HPF2": "0.05 Hz",
+        }
+    }
+
+    # Add channel-specific metadata to the dictionary if the channel is present
+    for channel in channel_event_metadata:
+    # Assuming 'channel' is a variable in this function that holds the current channel being processed
+        if channel in bids_labels_list:
+            channel_specific_event_metadata = channel_event_metadata[channel]
+            # Set the 'Units' dynamically based on the units_dict
+            channel_specific_event_metadata['Units'] = units_dict.get(channel, "Unknown")
+            metadata_dict_events[channel] = channel_specific_event_metadata
+
+    return metadata_dict_events
+
 # Writes the segmented data to TSV and JSON files according to the BIDS format
 def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_list, output_dir, subject_id, session_id, run_id):
     """
@@ -457,11 +589,11 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
             json.dump(combined_metadata, json_file, indent=4)
 
         # Log the successful writing of files
-        logging.info(f"Output files for run {run_id} written successfully to {output_dir}")
+        logging.info(f"Output files for {run_id} written successfully to {output_dir}")
     
     except Exception as e:
         # Log any exceptions that occur during the file writing process
-        logging.error(f"Failed to write output files for run {run_id}: {e}", exc_info=True)
+        logging.error(f"Failed to write output files for {run_id}: {e}", exc_info=True)
         raise
 
 # Validates the structure and integrity of runs_info by comparing it against run identifiers extracted from fMRI .json files
@@ -556,6 +688,67 @@ def validate_runs_info(runs_info, bids_root_dir, subject_id, session_id):
     # If all checks pass, the runs_info structure is validated
     return True
 
+# Writes the event-segmented data to TSV and JSON files according to the BIDS format.
+def write_event_output_files(event_segments, run_metadata, metadata_dict_events, bids_labels_list, output_dir, subject_id, session_id, run_id):
+    """
+    Writes output files for each event segment of physiological data.
+    
+    Parameters:
+    - event_segments: list of tuples, each tuple contains a segment of data (numpy array) and its corresponding trial type (str).
+    - run_metadata: dict, metadata for the run.
+    - metadata_dict_events: dict, additional metadata for the events.
+    - bids_labels_list: list of str, BIDS-compliant labels of the data channels.
+    - output_dir: str, directory to write the files.
+    - subject_id: str, identifier for the subject.
+    - session_id: str, identifier for the session.
+    - run_id: str, identifier for the run.
+    """
+    try:
+        # Ensure the output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+        logging.info(f"Output directory '{output_dir}' created successfully.")
+
+        # Loop through each segment and write to individual files
+        for i, segment_info in enumerate(event_segments):
+            # Unpack the segment_info tuple
+            if len(segment_info) == 4:  # Assuming there are four elements in the tuple
+                segment_data, trial_type, segment_start_time, segment_duration = segment_info
+            else:
+                logging.error(f"Unexpected segment format for {run_id}: {segment_info}")
+                continue  # Skip this segment
+
+            # Define filenames based on the BIDS format
+            tsv_event_filename = f"{subject_id}_{session_id}_task-learn_{run_id}_recording-{trial_type}_physio.tsv.gz"
+            json_event_filename = f"{subject_id}_{session_id}_task-learn_{run_id}_recording-{trial_type}_physio.json"
+
+            # Prepare file paths
+            tsv_event_file_path = os.path.join(output_dir, tsv_event_filename)
+            json_event_file_path = os.path.join(output_dir, json_event_filename)
+            logging.info(f"File paths set for segment {i}: TSV - {tsv_event_file_path}, JSON - {json_event_file_path}")
+
+            # Check if segment data is not empty
+            if segment_data.size == 0:
+                logging.warning(f"No data found for segment {i} of trial type '{trial_type}' in run '{run_id}'. Skipping file writing.")
+                continue
+
+            # Create a DataFrame and save to a TSV file
+            df = pd.DataFrame(segment_data, columns=bids_labels_list)
+            df.to_csv(tsv_event_file_path, sep='\t', index=False, compression='gzip')
+            logging.info(f"TSV file written for segment {i}, trial type '{trial_type}'.")
+
+            # Write the event metadata to a JSON file
+            with open(json_event_file_path, 'w') as json_file:
+                json.dump(metadata_dict_events, json_file, indent=4)
+                logging.info(f"JSON file written for segment {i}, trial type '{trial_type}'.")
+
+            # Log the successful writing of files
+            logging.info(f"Event output files for {run_id}, segment {i}, trial type '{trial_type}' written successfully to {output_dir}.")
+
+    except Exception as e:
+        # Log any exceptions during the file writing process
+        logging.error(f"Failed to write event output files for {run_id}: {e}", exc_info=True)
+        raise
+
 # Plots the segmented data for each run and saves the plots to a png file.
 def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict):
     """
@@ -594,7 +787,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
             time_axis_segment = np.arange(run_info['start_index'], run_info['end_index']) / sampling_rate / 60
             color = colors[segment_index % len(colors)]  # Cycle through colors
             for i, label in enumerate(bids_labels_list):
-                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'Run {run_info["run_id"]}' if i == 0 else "")
+                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'{run_info["run_id"]}' if i == 0 else "")
 
         # Set the x-axis label for the bottom subplot
         axes[-1].set_xlabel('Time (min)')
@@ -654,92 +847,134 @@ def parse_events_file(events_file_path):
         logging.error(f"Error reading events file '{events_file_path}': {e}", exc_info=True)
         raise
 
-# Segments the data based on the events described in the events DataFrame.
-def segment_data_by_events(data, events_df, sampling_rate):
+# Segments the data based on the events described in the events DataFrame, considering the order of 'sequence' and 'random' blocks.
+def segment_data_by_events(data, events_df, sampling_rate, run_info, run_id):
     """
+    Segments data based on events in the events DataFrame, considering 'sequence' and 'random' blocks.
+    Special handling for runs with only 'random' blocks (e.g., run-00, run-07).
+
     Parameters:
     - data: np.ndarray, the original data array.
     - events_df: DataFrame, contains 'onset', 'duration', and 'trial_type'.
     - sampling_rate: int, the rate at which data was sampled.
+    - run_info: dict, information about the current run including the start index.
+    - run_id: str, the identifier of the current run.
+
     Returns:
-    - List of tuples, each containing a segment of data and its trial type.
+    - List of tuples, each containing a segment of data, its trial type, start time, and duration.
     """
     segments = []
-    try:
-        for _, row in events_df.iterrows():
-            start_idx = int(row['onset'] * sampling_rate)
-            end_idx = start_idx + int(row['duration'] * sampling_rate)
-            segment = data[start_idx:end_idx]
-            segments.append((segment, row['trial_type']))
-        logging.info("Data segmentation by events completed successfully.")
+    logging.info(f"Starting data segmentation by events for {run_id}.")
+
+    # Handling for run-00 and run-07 which only have 'random' blocks
+    if run_id in ["00", "07"]:
+        # Determine end time of the last 'random' event
+        last_random_event = events_df[events_df['trial_type'] == 'random'].iloc[-1]
+        logging.info(f"Last 'random' event: {last_random_event}")
+        segment_end_time = last_random_event['onset'] + last_random_event['duration']
+        logging.info(f"Segment end time: {segment_end_time}")
+        end_index = int((run_info['start_index'] + segment_end_time) * sampling_rate)
+        logging.info(f"Start index: {run_info['start_index']}")
+        logging.info(f"End index: {end_index}")
+
+        # Extract segment for 'random' block
+        segment_data = data[:end_index]
+        segments.append((segment_data, 'random', run_info['start_index'] / sampling_rate, segment_end_time))
+        logging.info(f"Processed 'random' block for {run_id} with segment end time: {segment_end_time} seconds")
         return segments
-    except Exception as e:
-        logging.error("Error in segmenting data by events: %s", e, exc_info=True)
-        raise
 
-# Plots the segmented data for each run and saves the plots to a png file.
-def plot_runs_with_events(original_data, event_segments_by_run, runs_info, bids_labels_list, sampling_rate, plot_events_file_path, units_dict):
+    # For other runs, handle both 'sequence' and 'random' events
+    for trial_type in ['sequence', 'random']:
+        block_events = events_df[events_df['trial_type'] == trial_type]
+        if block_events.empty:
+            logging.warning(f"No events found for trial type '{trial_type}' in {run_id}.")
+            continue
 
-    try:
-        # Define a list of colors for different runs
-        colors = [
-            'r', 'g', 'b', 'c', 'm', 'y', 'k', 'orange',
-            'pink', 'purple', 'lime', 'indigo', 'violet', 'gold', 'grey', 'brown'
-        ]
+        # Calculate segment start and end times in seconds
+        block_start_onset = block_events.iloc[0]['onset']
+        logging.info(f"Block start onset: {block_start_onset}")
+        segment_start_time = (run_info['start_index'] + (block_start_onset * sampling_rate)) / sampling_rate
+        logging.info(f"Segment start time: {segment_start_time}")
+        last_event = block_events.iloc[-1]
+        logging.info(f"Last event: {last_event}")
+        block_end_time = last_event['onset'] + last_event['duration']
+        logging.info(f"Block end time: {block_end_time}")
+        segment_end_time = (run_info['start_index'] + (block_end_time * sampling_rate)) / sampling_rate
+        logging.info(f"Segment end time: {segment_end_time}")
 
-        # Create a figure and a set of subplots
-        fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(20, 10))
+        # Calculate segment duration
+        segment_duration = segment_end_time - segment_start_time
+        logging.info(f"Segment duration: {segment_duration} seconds")
+        
+        # Extract data for the segment
+        start_index = int(block_start_onset * sampling_rate) + run_info['start_index']
+        logging.info(f"Start index: {start_index}")
+        end_index = int(block_end_time * sampling_rate) + run_info['start_index']
+        logging.info(f"End index: {end_index}")
+        segment_data = data[start_index:end_index]
 
-        # Time axis for the original data
-        time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60
+        # Append segment info
+        segments.append((segment_data, trial_type, segment_start_time, segment_duration))
+        logging.info(f"Segmented '{trial_type}' block for {run_id}: Start time {segment_start_time} s, Duration {segment_duration} s")
 
-        # Plot the entire original data as background
-        for i, label in enumerate(bids_labels_list):
-            unit = units_dict.get(label, 'Unknown unit')
-            axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background' if i == 0 else "")
-            axes[i].set_ylabel(f'{label}\n({unit})')
+    logging.info(f"Data segmentation completed for {run_id}. Total number of segments: {len(segments)}")
+    return segments
 
-        # Overlay each segmented run on the background
-        for run_id, event_segments in event_segments_by_run.items():
-            for segment_data, trial_type in event_segments:
-                time_axis_segment = np.arange(segment_data.shape[0]) / sampling_rate / 60
-                color = 'red' if trial_type == 'sequence' else 'blue'
-                for i, label in enumerate(bids_labels_list):
-                    axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'{trial_type} Block - Run {run_id}' if i == 0 else "")
-    
-        # Set the x-axis label for the bottom subplot
-        axes[-1].set_xlabel('Time (min)')
+# Plots segmented data over the original data for visual comparison.
+def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampling_rate, plot_events_file_path, units_dict, bids_labels_list, run_info_dict):
+    """
+    Plots segmented data for each run, overlaying it on the background of the original data.
 
-        # Collect handles and labels for the legend from all axes
-        handles, labels = [], []
-        for ax in axes.flat:
-            h, l = ax.get_legend_handles_labels()
-            # Add the handle/label if it's not already in the list
-            for hi, li in zip(h, l):
-                if li not in labels:
-                    handles.append(hi)
-                    labels.append(li)
+    Parameters:
+    - original_data (np.ndarray): The original full dataset.
+    - event_segments_by_run (dict): Segments of data for each run.
+    - events_df (DataFrame): DataFrame containing event information.
+    - sampling_rate (int): Data sampling rate.
+    - plot_events_file_path (str): Path to save the plot.
+    - units_dict (dict): Dictionary mapping data channels to their units.
+    - bids_labels_list (list): List of BIDS-compliant labels for data channels.
+    - run_info_dict (dict): Dictionary containing run-specific information.
+    """
+    # Define colors for different trial types
+    colors = {'sequence': 'red', 'random': 'blue'}
 
-        # Log the handles and labels
-        logging.info(f"Legend handles: {handles}")
-        logging.info(f"Legend labels: {labels}")
+    # Create figure and subplots
+    fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(20, 10))
+    logging.info("Created figure and subplots for event plotting.")
 
-        # Only create a legend if there are items to display
-        if handles and labels:
-            ncol = min(len(handles), len(labels))
-            fig.legend(handles, labels, loc='lower center', ncol=ncol)
-        else:
-            logging.info("No legend items to display.")
-        # Apply tight layout with padding to make room for the legend and axis labels
-        fig.tight_layout(rect=[0.05, 0.1, 0.95, 0.97])  # Adjust the left and bottom values as needed
+    # Plot the original data as a background reference
+    time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60  # Convert to minutes
+    for i, label in enumerate(bids_labels_list):
+        axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background')
+        axes[i].set_ylabel(f'{label} ({units_dict.get(label, "Unknown unit")})')
 
-        # Save and show the figure
-        plt.savefig(plot_events_file_path, dpi=600)
-        plt.show()
+    # Overlay segmented data on top of the original data
+    for run_id, segments in event_segments_by_run.items():
+        logging.info(f"Processing run ID for event plotting: {run_id}")
+        for segment_data, trial_type, segment_start_time, segment_duration in segments:
+            # Calculate the time axis for the segment
+            start_time = segment_start_time / 60  # Convert to minutes
+            end_time = start_time + segment_duration / 60
+            time_axis_segment = np.linspace(start_time, end_time, len(segment_data))
 
-    except Exception as e:
-        logging.error("Failed to plot runs: %s", e, exc_info=True)
-        raise
+            # Plot each segment
+            for i, label in enumerate(bids_labels_list):
+                axes[i].plot(time_axis_segment, segment_data[:, i], color=colors[trial_type], label=f'{trial_type.capitalize()} - {run_id}')
+            logging.info(f"Plotted {trial_type} segment for {run_id}")
+
+    # Set x-axis label and legend
+    axes[-1].set_xlabel('Time (min)')
+    handles, labels = axes[-1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=len(handles))
+
+    # Adjust layout to fit all elements
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.2)  # Adjust to accommodate the legend
+
+    # Save and display the plot
+    plt.savefig(plot_events_file_path, dpi=300)
+    plt.show()
+    logging.info(f"Plot saved to {plot_events_file_path}")
 
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
@@ -749,6 +984,10 @@ def main(physio_root_dir, bids_root_dir):
     try:
         # Extract subject and session IDs from the path
         subject_id, session_id = extract_subject_session(physio_root_dir)
+        
+        # Setup logging after extracting subject_id and session_id
+        #setup_logging(subject_id, session_id, bids_root_dir) # Uncomment this line and helper function to enable archived logging
+
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
         # Load physiological data
@@ -770,18 +1009,14 @@ def main(physio_root_dir, bids_root_dir):
             for original_label, unit in original_labels_to_units.items()
             if original_label in bids_labels_dictionary
         }
-
+        logging.info("Units dictionary: %s", units_dict)
+        logging.info("BIDS labels list: %s", bids_labels_list)
+        
         # Create a mapping of original labels to their indices in the data array
         original_label_indices = {label: idx for idx, label in enumerate(labels)}
 
         # Filter the data array to retain only the columns with BIDS labels
         segmented_data_bids_only = data[:, [original_label_indices[original] for original in bids_labels_dictionary.keys()]]
-
-        # Now, create the units_dict by using the bids_labels_dictionary to look up the original labels
-        units_dict = {bids_labels_dictionary[original_label]: unit 
-                    for original_label, unit in original_labels_to_units.items() if original_label in bids_labels_dictionary}
-        logging.info("Units dictionary: %s", units_dict)
-        logging.info("BIDS labels list: %s", bids_labels_list)
 
         # Process JSON files to extract metadata for each run
         json_file_paths = glob.glob(os.path.join(bids_root_dir, subject_id, session_id, 'func', '*_bold.json'))
@@ -856,15 +1091,9 @@ def main(physio_root_dir, bids_root_dir):
         output_files = []
         for run_id in sorted_run_ids:
             run_info = run_info_dict[run_id]
-            logging.info("Processing run info: %s", run_info)
-            logging.info("Run ID: %s", run_id)
-            logging.info("Processing run %s", run_id)
-            start_index, end_index = run_info['start_index'], run_info['end_index']
-            logging.info("start_index: %s", start_index)
-            logging.info("end_index: %s", end_index)
-            segmented_data = data[start_index:end_index]
-            logging.info("Segmented data shape: %s", segmented_data.shape)
-            output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
+            logging.info("Processing %s", run_id)
+            repetition_time = all_runs_metadata[run_id]['RepetitionTime']  # Retrieve repetition time from metadata
+            
             # Construct the events file path
             events_file_path = os.path.join(
                 bids_root_dir, 
@@ -873,18 +1102,76 @@ def main(physio_root_dir, bids_root_dir):
                 'func', 
                 f"{subject_id}_{session_id}_task-learn_{run_id}_events.tsv"
             )
+            logging.info(f" Events file path: {events_file_path}")
+            
+            # Read the events file into events_df
+            try:
+                events_df = pd.read_csv(events_file_path, sep='\t')
+            except Exception as e:
+                logging.error(f"Error reading events file for {run_id}: {e}", exc_info=True)
+                continue  # Skip this run if events file cannot be read
+            
+            # Log events DataFrame details
+            logging.info("Events DataFrame for %s:\n%s", run_id, events_df.head())
+
+            # Process each segment within the run
+            event_segments = segment_data_by_events(data, events_df, sampling_rate, run_info, run_id)
+            event_segments_by_run[run_id] = event_segments
+
+            start_index, end_index = run_info['start_index'], run_info['end_index']
+            logging.info("start_index: %s", start_index)
+            logging.info("end_index: %s", end_index)
+            segmented_data = data[start_index:end_index]
+ 
+            output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
+            
             # Create the metadata dictionary for the current run
             metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
-            logging.info("Metadata dictionary for run %s: %s", run_id, metadata_dict)
-
-            # Parse the events file
-            events_df = parse_events_file(events_file_path)
-
-            # Segment the data based on events
-            event_segments = segment_data_by_events(data, events_df, sampling_rate)
-
-            # Store the event segments for this run
+            logging.info("Metadata dictionary for %s: %s", run_id, metadata_dict)
+            
+            # Process each segment within the run
+            event_segments = segment_data_by_events(data, events_df, sampling_rate, run_info, run_id)
+            logging.info("Event segments for %s: %s", run_id, event_segments)
+            logging.info(f"Event Segmens Type: {type(event_segments)}")
             event_segments_by_run[run_id] = event_segments
+            #logging.info(f"Event segments for {run_id}: {event_segments}")
+
+            for segment in event_segments:
+                logging.info(f"Processing segment in {run_id}")
+                logging.info(f"Segment type: {type(segment)}")   
+                if len(segment) != 4:
+                    logging.error(f"Invalid segment format for {run_id}: {segment}")
+                    continue  # Skip malformed segments
+
+                segment_data, trial_type, segment_start_time, segment_duration = segment
+                logging.info(f"Processing segment for trial type {trial_type} in {run_id}")
+
+                segment_length = len(segment_data)
+                logging.info(f"Segment length: {segment_length}")
+
+                # Retrieve the onset time for the segment from events_df
+                event_onset = events_df[events_df['trial_type'] == trial_type]['onset'].iloc[0]
+                logging.info(f"Event onset: {event_onset}")
+
+                # Create event metadata for each segment
+                metadata_dict_events = create_event_metadata_dict(
+                    run_info, segment_length, sampling_rate, repetition_time, 
+                    bids_labels_list, units_dict, trial_type, 
+                    segment_start_time, event_onset, segment_duration
+                )
+
+                logging.info(f"Metadata event dictionary for {run_id}: {metadata_dict_events}")
+                
+                success = write_event_output_files(
+                    [segment], sorted_all_runs_metadata[run_id], metadata_dict_events, 
+                    bids_labels_list, output_dir, subject_id, session_id, run_id
+                )
+                if success:
+                    logging.info("Output files successfully written for run %s, segment of trial type '%s'", run_id, trial_type)
+                else:
+                    logging.error("Failed to write output files for run %s, segment of trial type '%s'", run_id, trial_type)
+
+                logging.info(f"Written output files for {run_id}, segment of trial type '{trial_type}'")
 
             # Call the write_output_files function with the correct parameters
             output_files.append(write_output_files(
@@ -896,12 +1183,12 @@ def main(physio_root_dir, bids_root_dir):
                 subject_id,
                 session_id,
                 run_id
-            ))       
+            ))  
 
         # Create a list of segmented data for plotting
         segmented_data_list = [segmented_data_bids_only[run_info['start_index']:run_info['end_index']] for run_info in runs_info]
         logging.info("Segmented data list length: %s", len(segmented_data_list))
-        logging.info("SEgmented data list shape: %s", segmented_data_list[0].shape)
+        #logging.info("SEgmented data list shape: %s", segmented_data_list[0].shape)
 
         # Filter the original data array to retain only the columns with BIDS labels
         data_bids_only = data[:, [original_label_indices[original] for original in bids_labels_dictionary.keys()]]
@@ -911,8 +1198,10 @@ def main(physio_root_dir, bids_root_dir):
             logging.info("Preparing to plot runs.")
             plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_runs_physio.png")
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
+
+            logging.info("Preparing to plot event blocks.")
             plot_events_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
-            plot_runs_with_events(data_bids_only, event_segments_by_run, runs_info, bids_labels_list, sampling_rate, plot_events_file_path, units_dict)
+            plot_runs_with_events(data_bids_only, event_segments_by_run, events_df, sampling_rate, plot_events_file_path, units_dict, bids_labels_list, run_info_dict)
         else:
             logging.error("No data available to plot.")
 
