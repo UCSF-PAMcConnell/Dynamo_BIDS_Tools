@@ -7,15 +7,6 @@ import sys
 # Configure logging.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Returns the name of the current conda environment.
-def get_conda_env():
-    try:
-        env_name = os.environ.get('CONDA_DEFAULT_ENV')
-        return env_name
-    except Exception as e:
-        logging.error(f"Error getting Conda environment: {e}")
-        return None
-
 # Executes a series of processing commands for MRI data.
 def execute_commands(sourcedata_root_dir, subject_id, session_id):
     """
@@ -58,9 +49,15 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
         except subprocess.CalledProcessError as e:
             logging.error(f"Command '{cmd}' failed with error: {e}")
 
-    # Change the working directory to bids_root_dir and execute the cubids-validate command
+    # Change the working directory to dataset_root_dir and execute the cubids-validate command
     try:
-        os.chdir(bids_root_dir)
+        # Assume bids_root_dir is already defined and contains the path to the parent of the dataset directory, e.g., bids_root_dir = "/path/to/dataset_root_dir/bids_root_dir"
+
+        # Navigate to the parent directory of bids_root_dir
+        parent_dir = os.path.dirname(bids_root_dir)
+        os.chdir(parent_dir)
+
+        # Now the current working directory is set to the parent of bids_root_dir
         logging.info(f"Changed working directory to: {os.getcwd()}")
 
         # Full paths of cubids commands
@@ -70,11 +67,11 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
         cubids_validate_command = f"python {cubids_validate_path} {bids_root_dir} cubids"
         
         # Execute cubids-add-nifti-info
-        logging.info(f"Executing: {cubids_add_nii_hdr_command}")
+        logging.info(f"Executing add nifti info: {cubids_add_nii_hdr_command}")
         subprocess.run(cubids_add_nii_hdr_command, shell=True, check=True)
 
         # Execute cubids-validate
-        logging.info(f"Executing: {cubids_validate_command}")
+        logging.info(f"Executing BIDS validate: {cubids_validate_command}")
         subprocess.run(cubids_validate_command, shell=True, check=True)
 
     except Exception as e:
@@ -82,18 +79,6 @@ def execute_commands(sourcedata_root_dir, subject_id, session_id):
 
 if __name__ == "__main__":
     
-    # Desired Conda environment name
-    desired_env = "datalad"
-
-    # Check if the correct Conda environment is activated
-    current_env = get_conda_env()
-    if current_env != desired_env:
-        logging.error(f"Script is not running in the '{desired_env}' Conda environment. Current environment: '{current_env}'")
-        logging.info(f"Please activate the correct Conda environment by running: conda activate {desired_env}")
-        sys.exit(1)
-    else:
-        logging.info(f"Running in the correct Conda environment: '{current_env}'")
-
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Execute processing commands for MRI data.')
     parser.add_argument('sourcedata_root_dir', type=str, help='Path to the sourcedata root directory.')
