@@ -411,7 +411,7 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
                 logging.info(f"RepetitionTime or NumVolumes missing in metadata for {run_id}")
                 continue
 
-            logging.info(f"Processing {run_id} with {num_volumes} volumes and TR={repetition_time}s")
+            logging.info(f"Searching for a valid {run_id} with {num_volumes} volumes and TR={repetition_time}s")
             samples_per_volume = int(sampling_rate * repetition_time)
 
             # Finding valid start and end indices for each run.
@@ -433,19 +433,19 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
                         'metadata': metadata
                     }
                     runs_info.append(run_info)
-                    logging.info(f"Valid run found for {run_id}: start at {start_idx}, end at {end_idx}")
+                    logging.info(f"Valid run found for {run_id}: start index at {start_idx} samples, end index at {end_idx} samples")
                     start_from_index = i + num_volumes  # Update the starting index for the next run.
                     break  # Exit loop after finding a valid start index for this run.
                 else:
-                    logging.info(f"{run_id} at index {i} does not match expected interval, skipping....")
+                    logging.info(f"{run_id} at index {i} does not match expected run length, skipping over...")
             
             if start_from_index >= len(trigger_starts) - num_volumes + 1:
-                logging.warning(f"No more valid segments for {run_id} after index {start_from_index}.")
+                logging.warning(f"No more valid run length matches for {run_id} after index {start_from_index}.")
 
         except Exception as e:
             logging.error(f"Error processing {run_id}: {e}")
 
-    logging.info(f"Total runs identified: {len(runs_info)}")
+    logging.info(f"Total valid runs identified: {len(runs_info)}")
     if not runs_info:
         logging.warning("No valid runs found. Check triggers and metadata accuracy.")
 
@@ -485,7 +485,7 @@ def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, sessi
         run_metadata = run['run_metadata']
         task_name = run_metadata['TaskName']  # Extract the TaskName from the metadata.
         
-        logging.info("Segmenting run %s from index %d to %d", run_id, start_index, end_index)
+        logging.info("Segmenting full run %s from index %d to %d", run_id, start_index, end_index)
 
         # Write the processed data to an output file.
         try:
@@ -497,10 +497,10 @@ def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, sessi
             #logging.info("Output file for run %s written to %s", run_id, output_file_path)
 
         except IOError as e:
-            logging.error("Failed to write output file for run %s: %s", run_id, e, exc_info=True)
+            logging.error("Failed to write output file for full run %s: %s", run_id, e, exc_info=True)
             raise # Propagate the exception for further handling.
     
-    logging.info(f"Completed writing output files for all segmented runs.")
+    logging.info(f"Completed writing output files for all segmented full runs.")
     return output_files
 
 # Creates a metadata dictionary for a run with channel-specific information.
@@ -810,11 +810,15 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
 
         # Loop through each segment and write to individual files.
         for i, segment_info in enumerate(event_segments):
+
+            # Adjust the segment index for logging and naming (starting from 1 instead of 0).
+            segment_index = i + 1
+
             # Unpack the segment_info tuple.
             if len(segment_info) == 4:  # Assuming there are four elements in the tuple.
                 segment_data, trial_type, segment_start_time, segment_duration = segment_info
             else:
-                logging.error(f"Unexpected segment format for {run_id}: {segment_info}")
+                logging.error(f"Unexpected event segment format for {run_id}: {segment_info}")
                 continue  # Skip this segment.
 
             # Define filenames based on the BIDS format.
@@ -828,7 +832,7 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
 
             # Check if segment data is not empty.
             if segment_data.size == 0:
-                logging.warning(f"No data found for segment {i} of trial type '{trial_type}' in run '{run_id}'. Skipping file writing.")
+                logging.warning(f"No data found for event segment {segment_index} of trial type '{trial_type}' in run '{run_id}'. Skipping file writing.")
                 continue
 
             # Create a DataFrame and save to a TSV file.
@@ -842,7 +846,7 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
                 #logging.info(f"JSON file written for segment {i}, trial type '{trial_type}'.")
 
             # Log the successful writing of files.
-            logging.info(f"Event output files for {run_id}, segment {i}, trial type '{trial_type}' written successfully to {output_dir}.")
+            logging.info(f"Event segment output files for {run_id}, segment {segment_index}, trial type '{trial_type}' written successfully to {output_dir}.")
 
     except Exception as e:
         # Log any exceptions during the file writing process.
@@ -965,55 +969,92 @@ def segment_data_by_events(data, events_df, sampling_rate, run_info, run_id):
     logging.info(f"Starting data segmentation by events for {run_id}.")
 
     # Special handling for 'random' block only runs (e.g., 'run-00', 'run-07').
-    if run_id in ["00", "07"]:
+    if run_id in ["run-00", "run-07"]:
         
-        # Determine end time of the last 'random' event.
+        # Determine end time of the last 'random' event, configure logging outputs.
         last_random_event = events_df[events_df['trial_type'] == 'random'].iloc[-1]
-        segment_end_time = last_random_event['onset'] + last_random_event['duration']
-        logging.info(f"Segment end time: {segment_end_time}")
-        end_index = int((run_info['start_index'] + segment_end_time) * sampling_rate)
-        logging.info(f"Start index: {run_info['start_index']}")
-        logging.info(f"End index: {end_index}")
+        segment_end_time = int(last_random_event['onset'] + last_random_event['duration']) # seconds relative to the start of the run
+        end_index = int((run_info['start_index'] + segment_end_time) * sampling_rate) # samples
+        block_end_time_fixed = int(segment_end_time + (run_info['start_index'] / sampling_rate)) # seconds relative to the start of the session
+        block_start_time_fixed = int(run_info['start_index'] / sampling_rate) # seconds relative to the start of the session
+        block_duration_fixed = int(block_end_time_fixed - block_start_time_fixed) # seconds relative to the start of the session
+        fixed_start_index = int(run_info['start_index']) # samples
+        fixed_end_index = int(run_info['start_index'] + (segment_end_time * sampling_rate)) # samples
+        fixed_index_length = fixed_end_index - fixed_start_index # samples
+
+        # Special handling for 'random' block only runs (e.g., 'run-00', 'run-07') - process logging. 
+        logging.info(f"Event fixed random segment Start Time: {block_start_time_fixed} seconds")
+        logging.info(f"Event fixed random segment End Time: {block_end_time_fixed} seconds")
+        logging.info(f"Event fixed random segment Duration: {block_duration_fixed} seconds")
+        logging.info(f"Event fixed random segment Start index: {run_info['start_index']} samples")
+        logging.info(f"Event fixed random segment End index: {fixed_end_index} samples")
+        logging.info(f"Event fixed random segment length: {fixed_index_length} samples")
+        logging.info(
+            f"Segment for this fixed random block starts at {block_start_time_fixed} seconds relative to the session start, " 
+            f"ends at {block_end_time_fixed} seconds, encompassing a total duration of {block_duration_fixed} seconds " 
+            f"and covering {fixed_index_length} data points, from start index {run_info['start_index']} to end index {fixed_end_index} in the data array.")
 
         # Extract segment for 'random' block.
-        segment_data = data[:end_index]
+        segment_data = data[fixed_start_index:fixed_end_index]
         segments.append((segment_data, 'random', run_info['start_index'] / sampling_rate, segment_end_time))
-        logging.info(f"Processed 'random' block for {run_id} with segment end time: {segment_end_time} seconds")
+        logging.info(f"Processed 'fixed random' block for {run_id} with random segment end time: {segment_end_time} seconds relative to the start of the run.")
         return segments
 
     # For other runs, handle both 'sequence' and 'random' events.
+    segment_counter = {'sequence': 0, 'random': 0}  # Initialize segment counter as a dictionary
+
     for trial_type in ['sequence', 'random']:
         block_events = events_df[events_df['trial_type'] == trial_type]
         if block_events.empty:
             #logging.warning(f"No events found for trial type '{trial_type}' in {run_id}.")
             continue
 
-        # Calculate segment start and end times in seconds.
-        block_start_onset = block_events.iloc[0]['onset']
-        logging.info(f"Block start onset: {block_start_onset}")
-        segment_start_time = (run_info['start_index'] + (block_start_onset * sampling_rate)) / sampling_rate
-        logging.info(f"Segment start time: {segment_start_time}")
-        last_event = block_events.iloc[-1]
-        # logging.info(f"Last event: {last_event}")
-        block_end_time = last_event['onset'] + last_event['duration']
-        logging.info(f"Block end time: {block_end_time}")
-        segment_end_time = (run_info['start_index'] + (block_end_time * sampling_rate)) / sampling_rate
-        logging.info(f"Segment end time: {segment_end_time}")
+        # Increment the segment counter for this trial type
+        segment_counter[trial_type] += 1
+        trial_index = segment_counter[trial_type]  # This will be either 1 or 2
 
-        # Calculate segment duration.
+        # Calculate start and end times of the block.
+        block_start_onset = block_events.iloc[0]['onset']
+        last_event = block_events.iloc[-1]
+        block_end_time = last_event['onset'] + last_event['duration']
+        
+        # Log start and end times of the block.
+        logging.info(f"'{trial_type}' segment {trial_index} start onset: {block_start_onset} seconds relative to start of the run.")
+        logging.info(f"'{trial_type}' segment {trial_index} last onset: {last_event} seconds relative to start of the run.")
+        logging.info(f"'{trial_type}' segment {trial_index} end time: {block_end_time} seconds relative to start of the session.")
+        
+        # Convert times to indices
+        start_index = int(block_start_onset * sampling_rate) + run_info['start_index']
+        end_index = int(block_end_time * sampling_rate) + run_info['start_index']
+        segment_data = data[start_index:end_index]
+        index_length = end_index - start_index
+        
+        # Log start and end indices of the block.
+        logging.info(f";{trial_type}' segment {trial_index} start index: {start_index} samples")
+        logging.info(f"'{trial_type}' segment {trial_index} end index: {end_index}")
+        logging.info(f"'{trial_type}' segment {trial_index} index length: {index_length} samples")
+        
+        # Log start and end times of the segment.
+        segment_start_time = start_index / sampling_rate  # Convert to seconds
+        segment_end_time = end_index / sampling_rate  # Convert to seconds
         segment_duration = segment_end_time - segment_start_time
-        logging.info(f"Segment duration: {segment_duration} seconds")
+
+        logging.info(f"'{trial_type}' segment {trial_index} start time: {segment_start_time} seconds realtive to start of the session.")
+        logging.info(f"'{trial_type} segment {trial_index} end time: {segment_end_time}")
+        logging.info(f"'{trial_type}' segment {trial_index} duration: {segment_duration} seconds")
         
         # Extract data for the segment.
-        start_index = int(block_start_onset * sampling_rate) + run_info['start_index']
-        logging.info(f"Start index: {start_index}")
-        end_index = int(block_end_time * sampling_rate) + run_info['start_index']
-        logging.info(f"End index: {end_index}")
         segment_data = data[start_index:end_index]
 
         # Append segment info.
         segments.append((segment_data, trial_type, segment_start_time, segment_duration))
-        logging.info(f"Segmented '{trial_type}' block for {run_id}: Start time {segment_start_time} s, Duration {segment_duration} s")
+        logging.info(f"Segmented '{trial_type}' block {trial_index} for {run_id}: Start time {segment_start_time} s, Duration {segment_duration} s")
+        logging.info(
+                    f"Segment for this '{trial_type}' starts at {segment_start_time} seconds relative to the session start," 
+                    f"ends at {block_end_time} seconds, encompassing a total duration of {segment_duration} seconds " 
+                    f"and covering {index_length} data points, from start index {start_index} to end index {end_index} in the data array.")
+        
+       #segment_counter += 1  # Increment segment counter
 
     logging.info(f"Data segmentation completed for {run_id}. Total number of segments: {len(segments)}")
     return segments
@@ -1255,7 +1296,7 @@ def main(physio_root_dir, bids_root_dir):
             # logging.info("Metadata dictionary for %s: %s", run_id, metadata_dict)
             
             for segment in event_segments:
-                logging.info(f"Processing segment in {run_id}") 
+                logging.info(f"Processing event segment in {run_id}") 
                 if len(segment) != 4:
                     logging.error(f"Invalid segment format for {run_id}: {segment}")
                     continue  # Skip malformed segments.
@@ -1264,7 +1305,7 @@ def main(physio_root_dir, bids_root_dir):
                 logging.info(f"Processing segment for trial type {trial_type} in {run_id}")
 
                 segment_length = len(segment_data)
-                logging.info(f"Segment length: {segment_length}")
+                #logging.info(f"Segment length: {segment_length}")
 
                 # Retrieve the onset time for the segment from events_df.
                 event_onset = events_df[events_df['trial_type'] == trial_type]['onset'].iloc[0]
@@ -1278,12 +1319,12 @@ def main(physio_root_dir, bids_root_dir):
                 )
 
                 # logging.info(f"Metadata event dictionary for {run_id}: {metadata_dict_events}")
-                
+                logging.info(f"Writing event output files for {run_id}")
                 write_event_output_files(
                     [segment], sorted_all_runs_metadata[run_id], metadata_dict_events, 
                     bids_labels_list, output_dir, subject_id, session_id, run_id
                 )
-                #logging.info("Event output files successfully written for run %s, segment of trial type '%s'", run_id, trial_type)
+                logging.info("Event output files successfully written for run %s, segment of trial type '%s'", run_id, trial_type)
 
             # Call the write_output_files function with the correct parameters.
             output_files.append(write_output_files(
