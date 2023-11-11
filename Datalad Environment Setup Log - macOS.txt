@@ -1,0 +1,7 @@
+Datalad Environment Setup Log - macOS
+
+ProductName:		macOS
+ProductVersion:		14.1
+BuildVersion:		23B74
+Darwin Kernel Version 23.1.0: Mon Oct  9 21:27:24 PDT 2023; root:xnu-10002.41.9~6/RELEASE_ARM64_T6000 arm64
+
