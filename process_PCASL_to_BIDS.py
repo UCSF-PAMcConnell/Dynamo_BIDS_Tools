@@ -22,7 +22,7 @@ Dependencies:
 - pydicom for reading DICOM files.
 - dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
 - CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- Standard Python libraries: datetime, tempfile, os, logging, subprocess, argparse, re, sys, json, glob.
+- Standard Python libraries: tempfile, os, logging, subprocess, argparse, re, sys, json, glob.
 
 Environment Setup:
 - Ensure Python 3.12, dcm2niix and cubids are installed in your environment.
@@ -55,7 +55,6 @@ import sys                    # Provides access to some variables used or mainta
 import json                   # JSON encoder and decoder.
 import glob                   # Unix style pathname pattern expansion.
 import pydicom                # Read, modify, and write DICOM files with Python.
-import datetime               # Manipulate dates and times.
 
 # Set up logging for individual archive logs.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -344,7 +343,7 @@ def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id):
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
 
     Usage Example:
-    run_dcm2niix('/path/to/dicom', '/bids_root_dir/sub-01/ses-01/perf', 'sub-01', 'ses-01')
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<perf_dicoms>', '/bids_root_dir/sub-01/ses-01/perf', 'sub-01', 'ses-01')
 
     """
     try:
@@ -399,7 +398,6 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
     try:
         verbose_cmd = [
         'dcm2niix',
-        '-v', 'y', # Print verbose output to logfile.
         '-f', f'{subject_id}_{session_id}_asl', # Naming convention. 
         '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
         '-b', 'y', # Save BIDS metadata to .json sidecar. 
@@ -409,6 +407,7 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
         '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
         '-i', 'n', # Do not ignore derived, localizer and 2D images. 
         '-m', '2', # Merge slices from same series automatically based on modality. 
+        '-v', 'y', # Print verbose output to logfile.
         '-o', temp_dir,
         input_dir
     ]
@@ -597,7 +596,7 @@ def main(dicom_root_dir, bids_root_dir):
 
     Dependencies:
     - dcm2niix, pydicom, and cubids for file processing and conversion.
-    - os, shutil, subprocess, argparse, re, and json for file and system operations.
+    - os, subprocess, argparse, re, and json for file and system operations.
     - logging for detailed logging of the process.
     """
 
@@ -654,6 +653,16 @@ def main(dicom_root_dir, bids_root_dir):
 
 # Entry point of the script when executed from the command line.
 if __name__ == "__main__":
+    """
+    Entry point of the script when executed from the command line.
+
+    Parses command-line arguments to determine the directories for DICOM files and BIDS dataset.
+
+    Usage:
+    process_PCASL_to_BIDS.py <dicom_root_dir> <bids_root>
+
+   """
+    
     # Set up an argument parser to handle command-line arguments.
     parser = argparse.ArgumentParser(description='Process DICOM files for ASL context and convert to NIfTI.')
 
