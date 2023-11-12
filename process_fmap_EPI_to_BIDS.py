@@ -1,43 +1,53 @@
 """
-process_fmap_gre_to_BIDS.py
+process_fmap_epi_to_BIDS.py
 
 Description:
-This script processes Gradient Recalled Echo (GRE) DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
-It includes functionalities for DICOM to NIfTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids. 
-The script checks for the installation of dcm2niix, pydeface, and cubids 
-before executing relevant commands. It also handles file renaming.
+This script processes Echo Planar Imaging (EPI) Reverse Phase Echo (RPE) Field Map DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+It automates the conversion using dcm2niix, applies BIDS-compliant metadata processing with cubids, and handles file renaming for fMRI data analysis. 
+This technique is essential for correcting distortions in EPI images by acquiring images with opposite phase-encoding polarities (e.g., anterior-posterior and posterior-anterior).
 
-Gradient Recalled Echo (GRE) field mapping is a magnetic resonance imaging (MRI) technique used to measure field inhomogeneities 
-in the MRI scanner's magnetic field. These inhomogeneities can cause distortions in the images, particularly in echo-planar 
-imaging (EPI) sequences commonly used in functional MRI (fMRI) and diffusion MRI (dMRI).
+Purpose: 
+The primary purpose of this script is to facilitate the correction of EPI-induced distortions in fMRI images. 
+It aids in comparing phase-encoded images to estimate and correct voxel displacement.
+
+Process Overview:
+1. Extracts subject and session IDs from DICOM file paths.
+2. Converts DICOM files to NIfTI format using dcm2niix.
+3. Adds and updates JSON metadata for BIDS compliance.
+4. Optionally removes specific files and unwanted metadata fields.
 
 Usage:
-python process_fmap_gre_to_BIDS.py <dicom_root_dir> <bids_root_dir>
-e.g.,
-python process_fmap_gre_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir 
+Run the script from the command line with the following format:
+python process_fmap_epi_to_BIDS.py <dicom_root_dir> <bids_root_dir>
+
+Example:
+python process_fmap_epi_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir
 
 Author: PAMcConnell
 Created on: 20231112
 Last Modified: 20231112
+Version: 1.0.0
 
 License: MIT License
 
 Dependencies:
 - Python 3.12
 - pydicom for reading DICOM files.
-- dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
-- CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- Standard Python libraries: tempfile, shutil, os, logging, subprocess, argparse, re, sys, json, glob.
+- dcm2niix (command-line tool) for DICOM to NIfTI conversion.
+- CuBIDS (command-line tool) for BIDS metadata processing.
+- Standard Python libraries: tempfile, os, logging, subprocess, argparse, re, sys, json, glob.
 
 Environment Setup:
-- Ensure Python 3.12, dcm2niix and cubids are installed in your environment.
-- You can install dcm2niix using conda: `conda install -c conda-forge dcm2niix pydicom`.
-- Install cubids following the instructions provided in its documentation.
-- Try 'pip install cubids'
-- To set up the required environment, you can use the provided environment.yml file with Conda. <datalad.yml>
+- Ensure Python 3.12, dcm2niix, and cubids are installed.
+- Use conda for installation: `conda install -c conda-forge dcm2niix pydicom`.
+- Install cubids with `pip install cubids` or follow the official documentation.
+- An environment.yml file (e.g., datalad.yml) is provided for setting up with Conda.
+
+Error Handling and Logging:
+- The script includes detailed error handling and logging mechanisms to provide insights into the processing steps and assist in troubleshooting.
 
 Change Log:
-- 20231112: Initial version
+- 20231112: Initial version. Implemented DICOM to NIfTI conversion and BIDS metadata processing.
 """
 
 import os                     # Used for operating system dependent functionalities like file path manipulation.
@@ -50,7 +60,6 @@ import sys                    # Provides access to some variables used or mainta
 import json                   # JSON encoder and decoder.
 import glob                   # Unix style pathname pattern expansion.
 import pydicom                # Read, modify, and write DICOM files with Python.
-import shutil                 # High-level file operations for Unix style pathname pattern expansion.
 
 # Set up logging for individual archive logs.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -107,20 +116,38 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if GRE FIELD MAP NIfTI files already exist in the specified BIDS output directory.
-def check_existing_nifti(output_dir_fmap, subject_id, session_id):
+# Checks if AP EPI FIELD MAP NIfTI files already exist in the specified BIDS output directory.
+def check_existing_nifti_AP(output_dir_AP, subject_id, session_id):
     """
     Parameters:
-    - output_dir_fmap (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_AP (str): The BIDS output directory where NIfTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if GRE FIELD MAP NIfTI files exist, False otherwise.
+    - bool: True if AP EPI FIELD MAP NIfTI files exist, False otherwise.
     """
-    expected_nifti_file = os.path.join(output_dir_fmap, f'{subject_id}_{session_id}_magnitude1.nii')
+    expected_nifti_file = os.path.join(output_dir_AP, f'{subject_id}_{session_id}_dir-AP_epi.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"GRE FIELD MAP NIfTI file already exists: {expected_nifti_file}")
+        logging.info(f"AP EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
+        return True
+    else:
+        return False
+
+# Checks if PA EPI FIELD MAP NIfTI files already exist in the specified BIDS output directory.
+def check_existing_nifti_PA(output_dir_PA, subject_id, session_id):
+    """
+    Parameters:
+    - output_dir_PA (str): The BIDS output directory where NIfTI files are stored.
+    - subject_id (str): The subject ID.
+    - session_id (str): The session ID.
+
+    Returns:
+    - bool: True if PA EPI FIELD MAP NIfTI files exist, False otherwise.
+    """
+    expected_nifti_file = os.path.join(output_dir_PA, f'{subject_id}_{session_id}_dir-PA_epi.nii')
+    if os.path.isfile(expected_nifti_file):
+        logging.info(f"PA EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -203,13 +230,13 @@ def read_dicom_headers(dicom_dir):
         logging.error(f"Error reading DICOM files from {dicom_dir}. Error: {e}")
         raise
 
-# Updates the JSON sidecar file with specific fields required for BIDS compliance in GRE FIELD MAP datasets.
-def update_json_file(json_filepath, intended_for=None):
+# Updates the JSON sidecar file with specific fields required for BIDS compliance in AP EPI FIELD MAP datasets.
+def update_json_file_AP(json_filepath_AP, session_id,intended_for=None):
     """
     Parameters:
     - json_filepath (str): Path to the JSON sidecar file.
 
-    This function updates the specified JSON file with fields relevant to GRE FIELD MAP imaging.
+    This function updates the specified JSON file with fields relevant to EPI FIELD MAP imaging.
 
     The function handles the reading and writing of the JSON file, ensuring that the file is properly updated
     and formatted.
@@ -224,16 +251,17 @@ def update_json_file(json_filepath, intended_for=None):
     *** Note: Refer to MR protocol documentation in /doc/MR_protocols for more information. ***
     """
     try:
-        with open(json_filepath, 'r+') as file:
+        with open(json_filepath_AP, 'r+') as file:
             data = json.load(file)
             
-            # Update with specific GRE FIELD MAP metadata
-            data['EchoTime1'] = 0.00492
-            logging.info(f"Updated EchoTime1 to {data['EchoTime1']}")
-            data['EchoTime2'] = 0.00738
-            logging.info(f"Updated EchoTime2 to {data['EchoTime2']}")
-            data['B0FieldIdentifier'] = "*fm2d2r"
-            logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
+            # Update with specific AP EPI FIELD MAP metadata
+            if session_id == 'ses-1':
+                data['B0FieldIdentifier'] = "*epse2d1_104"
+                logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
+            else: 
+                data['B0FieldIdentifier'] = "*epfid2d1_96"
+                logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
+            
             data['IntendedFor'] = intended_for
             logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
 
@@ -242,23 +270,78 @@ def update_json_file(json_filepath, intended_for=None):
             json.dump(data, file, indent=4)
             file.truncate()
 
-        logging.info(f"Updated JSON file at {json_filepath} with GRE FIELD MAP-specific metadata.")
+        logging.info(f"Updated JSON file at {json_filepath_AP} with AP EPI FIELD MAP-specific metadata.")
     
     # Catch issues with reading or writing to the JSON file.
     except IOError as e:
-        logging.error(f"Error reading or writing to JSON file at {json_filepath}. Error: {e}")
+        logging.error(f"Error reading or writing to JSON file at {json_filepath_AP}. Error: {e}")
         raise
 
     except json.JSONDecodeError as e:
-        logging.error(f"Error parsing JSON data in file at {json_filepath}. Error: {e}")
+        logging.error(f"Error parsing JSON data in file at {json_filepath_AP}. Error: {e}")
         raise
 
     except Exception as e:
-        logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath}. Error: {e}")
+        logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath_AP}. Error: {e}")
+        raise
+
+# Updates the JSON sidecar file with specific fields required for BIDS compliance in PA EPI FIELD MAP datasets.
+def update_json_file_PA(json_filepath_PA, session_id, intended_for=None):
+    """
+    Parameters:
+    - json_filepath (str): Path to the JSON sidecar file.
+
+    This function updates the specified JSON file with fields relevant to EPI FIELD MAP imaging.
+
+    The function handles the reading and writing of the JSON file, ensuring that the file is properly updated
+    and formatted.
+
+    Usage Example:
+    update_json_file('/path/to/sidecar.json')
+
+    Dependencies:
+    - json module for reading and writing JSON files.
+    - os and sys modules for file operations and system-level functionalities.
+
+    *** Note: Refer to MR protocol documentation in /doc/MR_protocols for more information. ***
+    """
+    try:
+        with open(json_filepath_PA, 'r+') as file:
+            data = json.load(file)
+            
+            # Update with specific AP EPI FIELD MAP metadata
+            if session_id == 'ses-1':
+                data['B0FieldIdentifier'] = "*epse2d1_104"
+                logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
+            else: 
+                data['B0FieldIdentifier'] = "*epfid2d1_96"
+                logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
+            
+            data['IntendedFor'] = intended_for
+            logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
+
+            # Write back the updated data and truncate the file to the new data length.
+            file.seek(0)
+            json.dump(data, file, indent=4)
+            file.truncate()
+
+        logging.info(f"Updated JSON file at {json_filepath_PA} with EPI FIELD MAP-specific metadata.")
+    
+    # Catch issues with reading or writing to the JSON file.
+    except IOError as e:
+        logging.error(f"Error reading or writing to JSON file at {json_filepath_PA}. Error: {e}")
+        raise
+
+    except json.JSONDecodeError as e:
+        logging.error(f"Error parsing JSON data in file at {json_filepath_PA}. Error: {e}")
+        raise
+
+    except Exception as e:
+        logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath_PA}. Error: {e}")
         raise
 
 # Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
-def run_dcm2niix(input_dir, temp_dir_fmap, subject_id, session_id):
+def run_dcm2niix_AP(input_dir_AP, output_dir_AP, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
@@ -279,10 +362,10 @@ def run_dcm2niix(input_dir, temp_dir_fmap, subject_id, session_id):
     """
     try:
         # Ensure the output directory for anatomical scans exists.
-        os.makedirs(temp_dir_fmap, exist_ok=True)
+        os.makedirs(output_dir_AP, exist_ok=True)
         base_cmd = [
             'dcm2niix',
-            '-f', f'{subject_id}_{session_id}_%p', # Naming convention. 
+            '-f', f'{subject_id}_{session_id}_dir-AP_epi', # Naming convention. 
             '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
             '-b', 'y', # Save BIDS metadata to .json sidecar. 
             '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
@@ -291,17 +374,14 @@ def run_dcm2niix(input_dir, temp_dir_fmap, subject_id, session_id):
             '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
             '-i', 'n', # Do not ignore derived, localizer and 2D images. 
             '-m', '2', # Merge slices from same series automatically based on modality. 
-            '-o', temp_dir_fmap,
-            input_dir
+            '-o', output_dir_AP,
+            input_dir_AP
         ]
     
-        # Create a temporary directory for the conversion files. 
-        with tempfile.TemporaryDirectory() as temp_dir_fmap:
-            subprocess.run(base_cmd) #capture_output=False, text=False)
-            logging.info(f"dcm2niix conversion completed successfully to {temp_dir_fmap}.")
-            return temp_dir_fmap
-  
-    
+        # Run the actual conversion without verbose output.
+        subprocess.run(base_cmd) #capture_output=False, text=False)
+        logging.info(f"dcm2niix conversion completed successfully to {output_dir_AP}.")
+
     # Log conversion errors.
     except subprocess.CalledProcessError as e:
         logging.error("dcm2niix conversion failed: %s", e)
@@ -313,7 +393,7 @@ def run_dcm2niix(input_dir, temp_dir_fmap, subject_id, session_id):
         raise
 
 # Runs the dcm2niix conversion tool to produce verbose output to logfile. 
-def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_path):
+def run_dcm2niix_verbose_AP(input_dir_AP, temp_dir, subject_id, session_id, log_file_path):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
@@ -332,7 +412,7 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
     try:
         verbose_cmd = [
         'dcm2niix',
-        '-f', f'{subject_id}_{session_id}_%p', # Naming convention. 
+        '-f', f'{subject_id}_{session_id}_dir-AP_epi', # Naming convention. 
         '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
         '-b', 'y', # Save BIDS metadata to .json sidecar. 
         '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
@@ -343,7 +423,111 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
         '-m', '2', # Merge slices from same series automatically based on modality. 
         '-v', 'y', # Print verbose output to logfile.
         '-o', temp_dir,
-        input_dir
+        input_dir_AP
+    ]
+        
+        # Create a temporary directory for the verbose output run.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(log_file_path, 'a') as log_file:
+                result = subprocess.run(verbose_cmd, check=True, stdout=log_file, stderr=log_file)
+                logging.info(result.stdout)
+                if result.stderr:
+                    logging.error(result.stderr)
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
+# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+def run_dcm2niix_PA(input_dir_PA, output_dir_PA, subject_id, session_id):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - output_dir_fmap (str): Directory where the converted NIfTI files will be saved.
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    It saves the output in the specified output directory, structuring the filenames
+    according to BIDS conventions. 
+    The function assumes that dcm2niix is installed and accessible in the system's PATH.
+
+    Usage Example:
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<fmap_dicoms>', '/bids_root_dir/sub-01/ses-01/fmap', 'sub-01', 'ses-01')
+
+    """
+    try:
+        # Ensure the output directory for anatomical scans exists.
+        os.makedirs(output_dir_PA, exist_ok=True)
+        base_cmd = [
+            'dcm2niix',
+            '-f', f'{subject_id}_{session_id}_dir-PA_epi', # Naming convention. 
+            '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+            '-b', 'y', # Save BIDS metadata to .json sidecar. 
+            '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+            '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
+            '-z', 'n', # Do not compress files.
+            '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+            '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+            '-m', '2', # Merge slices from same series automatically based on modality. 
+            '-o', output_dir_PA,
+            input_dir_PA
+        ]
+    
+        # Run the actual conversion without verbose output.
+        subprocess.run(base_cmd) #capture_output=False, text=False)
+        logging.info(f"dcm2niix conversion completed successfully to {output_dir_PA}.")
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
+# Runs the dcm2niix conversion tool to produce verbose output to logfile. 
+def run_dcm2niix_verbose_PA(input_dir_PA, temp_dir, subject_id, session_id, log_file_path):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    The function logs verbose output to the specified log file. 
+
+    Usage Example:
+    run_dcm2niix('/path/to/dicom', 'temp_dir', 'sub-01', 'ses-01')
+
+    """
+    try:
+        verbose_cmd = [
+        'dcm2niix',
+        '-f', f'{subject_id}_{session_id}_dir-PA_epi', # Naming convention. 
+        '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+        '-b', 'y', # Save BIDS metadata to .json sidecar. 
+        '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+        '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
+        '-z', 'n', # Do not compress files.
+        '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+        '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+        '-m', '2', # Merge slices from same series automatically based on modality. 
+        '-v', 'y', # Print verbose output to logfile.
+        '-o', temp_dir,
+        input_dir_PA
     ]
         
         # Create a temporary directory for the verbose output run.
@@ -505,127 +689,52 @@ def check_cubids_installed():
         logging.warning("cubids is not installed.")
         return False
 
-# Renames the files in the BIDS dataset directory to match the expected naming convention.
-def rename_fmap_files(bids_root_dir, subject_id, session_id, temp_dir_fmap):
-    """
-    Renames and moves field map (fmap) files from a temporary directory to the BIDS dataset directory, 
-    following the BIDS naming convention. This function is designed for handling gradient echo (GRE) 
-    field mapping files in a BIDS dataset.
-
-    The function ensures that the file names are compatible with BIDS-compliant data processing tools 
-    by renaming them according to the standard BIDS naming convention. It handles potential file overwrites 
-    in the destination directory and logs detailed information about the renaming process. 
-
-    Parameters:
-    - bids_root_dir (str): Path to the BIDS dataset directory.
-    - subject_id (str): The subject identifier, e.g., 'sub-01'.
-    - session_id (str): The session identifier, e.g., 'ses-01'.
-    - temp_dir_fmap (str): Temporary directory containing the files to be renamed and moved.
-
-    Usage Example:
-    rename_fmap_files('/path/to/bids_root_dir', 'sub-01', 'ses-01', '/path/to/temp_dir_fmap')
-
-    Dependencies:
-    - Python standard libraries: glob, os, shutil, logging.
-    
-    Notes:
-    - The function logs the file names before and after the renaming process.
-    - If a file with the new name already exists in the destination, it will be overwritten.
-    - Files are copied from the temporary directory to the BIDS fmap directory.
-    - Original files in the temporary directory can optionally be removed after copying.
-    """
-    
-     # Specify filename mappings to correctly rename the output files.
-    filename_mappings = {
-        '_e2.': '_magnitude2',
-        '_e1': '_magnitude1',
-        '_e2_ph': '_phasediff'
-    }
-
-    # Define the directory where the fmap files are located.
-    fmap_dir = os.path.join(bids_root_dir, subject_id, session_id, 'fmap')
-        
-    # Check if the fmap directory exists, create if not.
-    os.makedirs(fmap_dir, exist_ok=True)
-
-    # Log the files before renaming.
-    files_before = os.listdir(temp_dir_fmap)
-    logging.info(f"Files before renaming: {files_before}")
-    
-    renamed_files = []  # List to keep track of renamed files
-
-    try:
-        # Iterate over the files in the temporary directory, renaming and moving them as necessary
-        for old_file in glob.glob(os.path.join(temp_dir_fmap, '*.*')):
-            for old_suffix, new_suffix in filename_mappings.items():
-                if old_suffix in old_file:
-                    new_filename = f"{subject_id}_{session_id}{new_suffix}"
-                    new_filename += '.nii' if old_file.endswith('.nii') else '.json'
-                    new_file_path = os.path.join(fmap_dir, new_filename)
-
-                    # Handle overwrites if file already exists in destination.
-                    if os.path.exists(new_file_path):
-                        logging.warning(f"File {new_file_path} already exists. Overwriting.")
-                    
-                    shutil.copy2(old_file, new_file_path)
-                    logging.info(f"Renamed and moved {old_file} to {new_file_path}")
-                    renamed_files.append(new_file_path)  # Add the new file path to the list
-
-                    # Optionally, remove the original file from temp_dir after copying
-                    os.remove(old_file)
-
-        # Log the files that were renamed and moved
-        logging.info("Files renamed and moved to fmap directory:")
-        for file in renamed_files:
-            logging.info(file)
-
-    # Catch any errors and log them.     
-    except Exception as e:
-        logging.error(f"Error renaming files: {e}")
-        return
-
-# Main function to process GRE Field Map DICOM files and convert them to NIfTI format following BIDS conventions.    
+# Main function to orchestrate the process of converting EPI Field Map DICOM files to BIDS-compliant NIfTI format.
 def main(dicom_root_dir, bids_root_dir):
     """
-    Orchestrates the process of converting GRE Field Map DICOM files to BIDS-compliant NIfTI format.
+    Orchestrate the process of converting EPI Field Map DICOM files to BIDS-compliant NIfTI format.
 
-    This function performs the following steps:
-    1. Extracts subject and session IDs from the DICOM directory path.
-    2. Sets up detailed logging for the process.
-    3. Checks for the existence of NIfTI files to prevent redundant processing.
-    4. Converts DICOM files to NIfTI format using dcm2niix.
-    5. Renames and moves converted files to the appropriate BIDS directory.
-    6. Uses cubids to add and update NIfTI metadata for BIDS compliance.
-    7. Optionally removes unwanted metadata fields using cubids.
+    This function handles the conversion of Anterior-Posterior (AP) and Posterior-Anterior (PA) 
+    EPI Field Map DICOM files. It ensures the converted NIfTI files are appropriately named and 
+    stored in the BIDS dataset, following the BIDS naming conventions and directory structure.
+
+    Steps:
+    1. Extracts subject and session IDs from DICOM directory paths.
+    2. Checks for the existence of converted NIfTI files to prevent redundant processing.
+    3. Converts AP and PA DICOM files to NIfTI format using dcm2niix.
+    4. Updates JSON metadata for the NIfTI files to adhere to BIDS specifications.
+    5. Removes unwanted metadata fields and specific files based on naming patterns.
     
     Parameters:
     - dicom_root_dir (str): Path to the directory containing the DICOM files.
     - bids_root_dir (str): Path to the BIDS dataset root directory.
 
-    The function relies on external tools dcm2niix and cubids, which must be installed and accessible.
-    It logs all operations, providing a detailed record of the conversion and renaming processes.
-    The function handles errors gracefully, logging them and exiting when necessary tools are not available.
+    The function requires the dcm2niix tool for DICOM to NIfTI conversion and cubids for BIDS 
+    metadata processing. It also handles specific file removals post-conversion.
 
     Usage Example:
     main('/path/to/dicom_root_dir', '/path/to/bids_root_dir')
 
     Dependencies:
     - External tools: dcm2niix, cubids.
-    - Python libraries: os, subprocess, glob, shutil, logging, tempfile.
-    - Assumes setup_logging, check_dcm2niix_installed, run_dcm2niix, check_cubids_installed,
-      run_cubids_add_nifti_info, update_json_file, run_cubids_remove_metadata_fields, 
-      run_dcm2niix_verbose, extract_subject_session, check_existing_nifti, rename_fmap_files functions are defined.
+    - Python libraries: os, logging, tempfile.
     """
 
     # Extract subject and session IDs from the DICOM directory path.
     subject_id, session_id = extract_subject_session(dicom_root_dir)
 
     # Specify the exact directory where the NIfTI files will be saved.
-    output_dir_fmap = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
+    output_dir_AP = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
+    output_dir_PA = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
 
-    # Check if GRE Field Map NIfTI files already exist.
-    if check_existing_nifti(output_dir_fmap, subject_id, session_id):
-        print(f"GRE Field Map NIfTI files already exist for subject: {subject_id}, session: {session_id}")
+    # Check if AP EPI Field Map NIfTI files already exist.
+    if check_existing_nifti_AP(output_dir_AP, subject_id, session_id):
+        print(f"AP EPI Field Map NIfTI files already exist for subject: {subject_id}, session: {session_id}")
+        return # Exit the function if NIfTI files already exist.
+
+    # Check if PA EPI Field Map NIfTI files already exist.
+    if check_existing_nifti_AP(output_dir_PA, subject_id, session_id):
+        print(f"PA EPI Field Map NIfTI files already exist for subject: {subject_id}, session: {session_id}")
         return # Exit the function if NIfTI files already exist.
 
     # Otherwise:
@@ -635,35 +744,23 @@ def main(dicom_root_dir, bids_root_dir):
         logging.info(f"Processing GRE Field Map data for subject: {subject_id}, session: {session_id}")
 
         # Specify the exact directory where the DICOM files are located.
-        dicom_dir = os.path.join(dicom_root_dir, 'fmap_gre_siemens')
+        if session_id == 'ses-1':
+            dicom_dir_AP = os.path.join(dicom_root_dir, 'SpinEchoFieldMap_AP')
+            dicom_dir_PA = os.path.join(dicom_root_dir, 'SpinEchoFieldMap_PA')
+        else:
+            dicom_dir_AP = os.path.join(dicom_root_dir, 'sms3_distortionmap_AP')
+            dicom_dir_PA = os.path.join(dicom_root_dir, 'sms3_distortionmap_PA')
 
         # Check if dcm2niix is installed and accessible in the system's PATH.
         if check_dcm2niix_installed():
             
-            # Create a temporary directory for the conversion files. 
-            with tempfile.TemporaryDirectory() as temp_dir_fmap:
-            
-            # Run dcm2niix for DICOM to NIfTI conversion.
-                run_dcm2niix(dicom_dir, temp_dir_fmap, subject_id, session_id)
-
-                # Rename the files in the BIDS dataset directory to match the expected naming convention
-                rename_fmap_files(bids_root_dir, subject_id, session_id, temp_dir_fmap)
+            # Run dcm2niix for AP DICOM to NIfTI conversion.
+            run_dcm2niix_AP(dicom_dir_AP, output_dir_AP, subject_id, session_id)
 
             # Check if cubids is installed
             if check_cubids_installed():
                 
-                # Run cubids commands to add NIfTI metadata.
-                logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}")
-                run_cubids_add_nifti_info(bids_root_dir)
-
                 # Update JSON file with necessary BIDS metadata
-
-                # List of suffixes for the JSON files
-                suffixes = ['magnitude1', 'magnitude2', 'phasediff']
-
-                # Base filename construction
-                base_filename = f'{subject_id}_{session_id}'
-
                 # Intended to correct magnetic field distortion in functional MRI images.
                 if session_id == 'ses-1':
                     intended_for = [
@@ -689,24 +786,52 @@ def main(dicom_root_dir, bids_root_dir):
                     f"{session_id}/func/{subject_id}_{session_id}_task-learn_run-07_bold.nii",
                     ]
 
-                # Loop through each suffix to update the respective JSON file
-                for suffix in suffixes:
-                    
-                    # Construct the JSON file name
-                    json_filename = f"{base_filename}_{suffix}.json"
-                    json_filepath = os.path.join(output_dir_fmap, json_filename)
+                # Run cubids commands to add NIfTI metadata.
+                logging.info(f"Adding BIDS metadata for subject: {subject_id}, session: {session_id}")
+                run_cubids_add_nifti_info(bids_root_dir)
 
-                    # Call the function to update the JSON file
-                    update_json_file(json_filepath, intended_for)
+                # Construct the JSON file name
+                json_filepath_AP = os.path.join(output_dir_AP, f'{subject_id}_{session_id}_dir-AP_epi.json')
+
+                # Call the function to update the JSON file
+                update_json_file_AP(json_filepath_AP, session_id, intended_for)
 
                 # Run cubids commands to remove metadata fields.
                 logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
                 run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
             
+                # Run dcm2niix for PA DICOM to NIfTI conversion.    
+                run_dcm2niix_PA(dicom_dir_PA, output_dir_PA, subject_id, session_id)
+            
+                # Run cubids commands to add NIfTI metadata.
+                logging.info(f"Adding BIDS metadata for subject: {subject_id}, session: {session_id}")
+                run_cubids_add_nifti_info(bids_root_dir)
+
+                # Construct the JSON file name
+                json_filepath_PA = os.path.join(output_dir_PA, f'{subject_id}_{session_id}_dir-PA_epi.json')
+
+                # Call the function to update the JSON file
+                update_json_file_PA(json_filepath_PA, session_id, intended_for)
+                
+                # Run cubids commands to remove BIDS metadata from top up files.
+                logging.info(f"Removing BIDS metadata from {subject_id}_{session_id}_acq-topup_dir-PA_epi.nii")
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+
                 # Run dcm2niix for verbose output.
                 with tempfile.TemporaryDirectory() as temp_dir:
-                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
- 
+                    run_dcm2niix_verbose_AP(dicom_dir_AP, temp_dir, subject_id, session_id, log_file_path)
+                    run_dcm2niix_verbose_PA(dicom_dir_PA, temp_dir, subject_id, session_id, log_file_path)
+                
+                # Loop through all files in the specified directory to remove EPI_phase images.
+                for filename in os.listdir(output_dir_PA):
+                    # Check if 'epi_ph' is in the filename
+                    if 'epi_ph' in filename:
+                        # Construct full file path
+                        file_path = os.path.join(output_dir_PA, filename)
+                        # Remove the file
+                        os.remove(file_path)
+                        print(f"Removed file: {file_path}")
+
             # Catch error if cubids is not installed.
             else:
                 logging.error("cubids is not installed. Skipping cubids commands.")
@@ -722,11 +847,6 @@ def main(dicom_root_dir, bids_root_dir):
         logging.error(f"An error occurred in the main function: {e}")
         raise
 
-    # If you want to explicitly remove temp_dir_fmap, you can do it here
-    if os.path.exists(temp_dir_fmap):
-        shutil.rmtree(temp_dir_fmap)
-        logging.info(f"Temporary directory {temp_dir_fmap} removed successfully.")
-
 # Main code execution starts here when the script is run
 if __name__ == "__main__":
     """
@@ -735,7 +855,7 @@ if __name__ == "__main__":
     Parses command-line arguments to determine the directories for DICOM files and BIDS dataset.
 
     Usage:
-    process_fmap_gre_to_BIDS.py <dicom_root_dir> <bids_root_dir>
+    process_fmap_EPI_to_BIDS.py <dicom_root_dir> <bids_root_dir>
    
    """  
     
@@ -755,3 +875,5 @@ if __name__ == "__main__":
 
     # Call the main function with the parsed arguments.
     main(args.dicom_root_dir, args.bids_root_dir)
+    
+    
