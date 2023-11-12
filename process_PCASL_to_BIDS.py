@@ -601,52 +601,65 @@ def main(dicom_root_dir, bids_root_dir):
     - logging for detailed logging of the process.
     """
 
+    # Extract subject and session IDs from the DICOM directory path.
+    subject_id, session_id = extract_subject_session(dicom_root_dir)
+
+    # Specify the exact directory where the NIfTI files will be saved.
+    output_dir_perf = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'perf')
+
+    # Check if PCASL NIfTI files already exist.
+    if check_existing_nifti(output_dir_perf, subject_id, session_id):
+        print(f"PCASL NIfTI files already exist for subject: {subject_id}, session: {session_id}")
+        return # Exit the function if NIfTI files already exist.
+    
+    # Otherwise:
     try:
-        # Setup logging after extracting subject_id and session_id
-        subject_id, session_id = extract_subject_session(dicom_root_dir)
+        # Setup logging after extracting subject_id and session_id.
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info(f"Processing PCASL data for subject: {subject_id}, session: {session_id}")
 
-        # Specify the exact directory where the DICOM files are located
+        # Specify the exact directory where the DICOM files are located.
         dicom_dir = os.path.join(dicom_root_dir, 'tgse_pcasl_ve11c_from_USC')
 
-        # Specify the exact directory where the NIfTI files will be saved
-        output_dir_perf = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'perf')
-
-        # Check if PCASL NIfTI files already exist
-        if not check_existing_nifti(output_dir_perf, subject_id, session_id):
-            if check_dcm2niix_installed():
-                # Run dcm2niix for DICOM to NIfTI conversion.
-                run_dcm2niix(dicom_dir, output_dir_perf, subject_id, session_id)
-            else:
-                logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-                return  # Exit the function if dcm2niix is not installed
+        # Check if dcm2niix is installed and accessible in the system's PATH.
+        if check_dcm2niix_installed():
             
-        # Check if cubids is installed
-        if check_cubids_installed():
-            # Run cubids commands
-            run_cubids_add_nifti_info(bids_root_dir)
+            # Run dcm2niix for DICOM to NIfTI conversion.
+            run_dcm2niix(dicom_dir, output_dir_perf, subject_id, session_id)
+        
+            # Check if cubids is installed
+            if check_cubids_installed():
+                
+                # Run cubids commands to add NIfTI metadata.
+                logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}")
+                run_cubids_add_nifti_info(bids_root_dir)
 
-            run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+                # Update JSON file with necessary BIDS metadata
+                json_filepath = os.path.join(output_dir_perf, f'{subject_id}_{session_id}_asl.json')
+                update_json_file(json_filepath)
+                
+                # Run cubids commands to remove metadata fields.
+                logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+            
+                # Run dcm2niix for verbose output.
+                with tempfile.TemporaryDirectory() as temp_dir:
+                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
+ 
+            # Catch error if cubids is not installed.
+            else:
+                logging.error("cubids is not installed. Skipping cubids commands.")
+                return  # Exit the function if cubids is not installed.
+        
+        # Catch error if dcm2niix is not installed.
         else:
-            logging.warning("cubids is not installed. Skipping cubids commands.")
-    
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            return  # Exit the function if dcm2niix is not installed.
+        
         # Process DICOM headers and create aslcontext.tsv.
         dicom_headers = read_dicom_headers(dicom_dir)
         create_aslcontext_file(len(dicom_headers), output_dir_perf, subject_id, session_id)
 
-        # Update JSON file with necessary BIDS metadata
-        json_filepath = os.path.join(output_dir_perf, f'{subject_id}_{session_id}_asl.json')
-        update_json_file(json_filepath)
-        
-        if check_dcm2niix_installed():
-                # Run dcm2niix for verbose output.
-                with tempfile.TemporaryDirectory() as temp_dir:
-                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
-        else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-            return  # Exit the function if dcm2niix is not installed
-        
     # Log other errors. 
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
