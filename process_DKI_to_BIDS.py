@@ -838,11 +838,16 @@ def main(dicom_root_dir,bids_root_dir):
                     with tempfile.TemporaryDirectory() as temp_dir:
                         run_dcm2niix_verbose_dwi(dicom_dir_dwi, temp_dir, subject_id, session_id, log_file_path)
                         run_dcm2niix_verbose_topup(dicom_dir_topup, temp_dir, subject_id, session_id, log_file_path)
+                
+                # Catch error if cubids is not installed.
                 else:
-                    logging.warning("cubids is not installed. Skipping cubids commands.")
-        else:
-                logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-                return  # Exit the function if dcm2niix is not installed
+                    logging.error("cubids is not installed. Skipping cubids commands.")
+                    return # Exit the function if cubids is not installed.
+        
+        # Catch error if dcm2niix is not installed.
+        else:       
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            return  # Exit the function if dcm2niix is not installed.
         
     # Log other errors. 
     except Exception as e:

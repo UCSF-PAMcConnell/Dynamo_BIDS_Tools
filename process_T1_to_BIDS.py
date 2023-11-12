@@ -224,7 +224,7 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
     The function logs verbose output to the specified log file. 
 
     Usage Example:
-    run_dcm2niix('/dicom_root_dir/dicom_sorted/<perf_dicoms>, 'temp_dir', 'sub-01', 'ses-01')
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<anat_dicoms>, 'temp_dir', 'sub-01', 'ses-01')
 
     """
     try:
@@ -505,48 +505,84 @@ def check_cubids_installed():
 # The main function to convert T1w DICOM files to NIfTI format within a BIDS compliant structure.
 def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
     """
-    This function sets up logging, executes the DICOM to NIfTI conversion using dcm2niix, renames any cropped files, 
-    and optionally runs pydeface for anonymization.
+    The main function orchestrates the conversion of T1-weighted (T1w) DICOM files to NIfTI format 
+    within a BIDS-compliant structure. It sets up logging, performs the conversion using dcm2niix,
+    handles file renaming, and optionally runs pydeface for anonymization.
 
     Parameters:
-    - dicom_root_dir (str): The root directory containing the DICOM files.
+    - dicom_root_dir (str): The root directory containing the T1w DICOM files.
     - bids_root_dir (str): The root directory for the BIDS dataset where the NIfTI files will be saved.
+    - run_pydeface_func (bool, optional): Flag to determine whether to run pydeface for anonymization. Default is False.
 
-    The function assumes that 'pydeface' and 'dcm2niix' are installed and accessible in the system's PATH.
+    The function assumes the installation and accessibility of 'pydeface' and 'dcm2niix' in the system's PATH. 
+    It checks the existence of T1w NIfTI files to avoid redundant processing and logs each step for auditability.
 
     Usage Example:
-    main('/path/to/dicom_root_dir', '/path/to/bids_root_dir')
+    main('/path/to/dicom_root_dir', '/path/to/bids_root_dir', run_pydeface_func=True)
 
     Dependencies:
     - dcm2niix for DICOM to NIfTI conversion.
-    - pydeface for defacing NIfTI images.
+    - pydeface for defacing NIfTI images (optional).
+    - Additional dependencies include cubids for metadata processing and standard Python libraries such as os, tempfile, and logging.
+
+    Note: 
+    - Ensure dcm2niix and pydeface are installed and properly set up in the system's PATH.
+    - The function logs detailed information about each processing step and any encountered errors.
     """
+    
+    # Extract subject and session IDs from the DICOM directory path.
+    subject_id, session_id = extract_subject_session(dicom_root_dir)
+
+    # Specify the exact directory where the NIfTI files will be saved.
+    output_dir_anat = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'anat')
+
+    # Check if T1w NIfTI files already exist.
+    if check_existing_nifti(output_dir_anat, subject_id, session_id):
+        print(f"T1-weighted NIfTI files already exist: {output_dir_anat}")
+        return
+
+    # Otherwise:
     try:
         # Setup logging after extracting subject_id and session_id.
-        subject_id, session_id = extract_subject_session(dicom_root_dir)
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info(f"Processing subject: {subject_id}, session: {session_id}")
 
         # Specify the exact directory where the DICOM files are located.
         dicom_dir = os.path.join(dicom_root_dir, 't1_mprage_sag_p2_iso')
 
-        # Specify the exact directory where the NIfTI files will be saved.
-        output_dir_anat = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'anat')
-
-        # Check if T1w NIfTI files already exist.
-        if not check_existing_nifti(output_dir_anat, subject_id, session_id):
-            if check_dcm2niix_installed():
-                # Run dcm2niix for DICOM to NIfTI conversion.
-                run_dcm2niix(dicom_dir, output_dir_anat, subject_id, session_id, log_file_path)
-            else:
-                logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-                return  # Exit the function if dcm2niix is not installed.
+        # Check if dcm2niix is installed and accessible in the system's PATH.
+        if check_dcm2niix_installed():
+            
+            # Run dcm2niix for DICOM to NIfTI conversion.
+            run_dcm2niix(dicom_dir, output_dir_anat, subject_id, session_id, log_file_path)
             
             # Rename any cropped files if they exist and overwrite the original T1-weighted NIfTI file.
             rename_cropped_file(output_dir_anat, subject_id, session_id)
-        else:
-            logging.info("Skipping DICOM to NIfTI conversion as T1-weighted NIfTI file already exists.")
+        
+            # Check if cubids is installed.
+            if check_cubids_installed():
 
+                # Run cubids commands to add necessary metadata fields.
+                logging.info(f"Adding BIDS metadata to {subject_id}_{session_id}_T1w.nii")
+                run_cubids_add_nifti_info(bids_root_dir)
+                
+                # Run cubids commands to remove unnecessary metadata fields.
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+            
+                # Run dcm2niix for verbose output.
+                with tempfile.TemporaryDirectory() as temp_dir:
+                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
+            
+            # Catch error if cubids is not installed.
+            else:
+                logging.error("cubids is not installed. Skipping cubids commands.")
+                return # Exit the function if cubids is not installed.
+        
+        # Catch error if dcm2niix is not installed.
+        else:
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            return  # Exit the function if dcm2niix is not installed.
+        
         # Optional pydeface execution.
         if run_pydeface_func and check_pydeface_installed():
             run_pydeface(output_dir_anat, subject_id, session_id)
@@ -557,22 +593,6 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
         else:
             logging.info("Pydeface execution is not enabled.")
 
-        # Check if cubids is installed.
-        if check_cubids_installed():
-            # Run cubids commands.
-            run_cubids_add_nifti_info(bids_root_dir)
-            run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
-        else:
-            logging.warning("cubids is not installed. Skipping cubids commands.")
-        
-        if check_dcm2niix_installed():
-                # Run dcm2niix for verbose output.
-                with tempfile.TemporaryDirectory() as temp_dir:
-                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
-        else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-            return  # Exit the function if dcm2niix is not installed.
-     
     # Log other errors. 
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
