@@ -23,7 +23,7 @@ Dependencies:
 - dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
 - pydeface (command-line tool) https://github.com/poldracklab/pydeface
 - CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- os, shutil, subprocess, argparse, re (standard Python libraries)
+- os, logging, subprocess, glob, argparse, re (standard Python libraries)
 
 Environment Setup:
 - Ensure Python 3.12 is installed in your environment.
@@ -39,7 +39,6 @@ Change Log:
 """
 
 import os                     # Used for operating system dependent functionalities like file path manipulation.
-import shutil                 # Provides high-level file operations like file copying and removal.
 import logging                # Logging library, for tracking events that happen when running the software.
 import argparse               # Parser for command-line options, arguments, and sub-commands.
 import re                     # Regular expressions, useful for text matching and manipulation.

@@ -23,7 +23,7 @@ Dependencies:
 - dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
 - pydeface (command-line tool) https://github.com/poldracklab/pydeface
 - CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- os, shutil, subprocess, argparse, re (standard Python libraries)
+- logging, os, shutil, glob, subprocess, argparse, re (standard Python libraries)
 
 Environment Setup:
 - Ensure Python 3.12 is installed in your environment.
