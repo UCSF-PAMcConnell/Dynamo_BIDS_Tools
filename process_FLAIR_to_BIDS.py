@@ -1,16 +1,16 @@
 """
-process_T1_to_BIDS.py
+process_FLAIR_to_BIDS.py
 
 Description:
-This script processes T1-weighted DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+This script processes T2-weighted FLAIR DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
 It includes functionalities for DICOM to NIfTI conversion using dcm2niix, defacing NIfTI images with pydeface for enhanced privacy, 
 and additional BIDS-compliant metadata processing with cubids. The script checks for the installation of dcm2niix, pydeface, and cubids 
 before executing relevant commands. It also handles file renaming and applies defacing for anonymization.
 
 Usage:
-python process_T1_to_BIDS.py <dicom_root_dir> <bids_root_dir> [--pydeface]
+python process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root_dir> [--pydeface]
 e.g.,
-python process_T1_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir --pydeface
+python process_FLAIR_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir --pydeface
 
 Author: PAMcConnell
 Created on: 20231111
@@ -108,7 +108,7 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if T1-weighted NIfTI files already exist in the specified BIDS output directory.
+# Checks if T2-weighted FLAIR NIfTI files already exist in the specified BIDS output directory.
 def check_existing_nifti(output_dir, subject_id, session_id):
     """
     Parameters:
@@ -117,11 +117,11 @@ def check_existing_nifti(output_dir, subject_id, session_id):
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if T1w NIfTI files exist, False otherwise.
+    - bool: True if FLAIR NIfTI files exist, False otherwise.
     """
-    expected_nifti_file = os.path.join(output_dir, 'anat', f'{subject_id}_{session_id}_T1w.nii')
+    expected_nifti_file = os.path.join(output_dir, 'anat', f'{subject_id}_{session_id}_FLAIR.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"T1-weighted NIfTI file already exists: {expected_nifti_file}")
+        logging.info(f"T2-weighted FLAIR NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -188,11 +188,11 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id, log_file_path):
         cmd = [
             'dcm2niix',
             '-v', 'y', # Print verbose output.
-            '-f', f'{subject_id}_{session_id}_T1w', # Naming convention. 
+            '-f', f'{subject_id}_{session_id}_FLAIR', # Naming convention. 
             '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
             '-b', 'y', # Save BIDS metadata to .json sidecar. 
             '-p', 'n', # D not use Use Philips precise float (rather than display) scaling.
-            '-x', 'y', # Crop images. This will attempt to remove excess neck from 3D acquisitions.
+            '-x', 'n', # Do not Crop images. This will attempt to remove excess neck from 3D acquisitions.
             '-z', 'n', # Do not compress files.
             '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
             '-i', 'n', # Do not ignore derived, localizer and 2D images. 
@@ -292,14 +292,14 @@ def run_cubids_remove_metadata_fields(bids_root_dir, fields):
         raise
 
 # Executes the pydeface command to anonymize NIfTI images by removing facial features.
-def run_pydeface(output_dir, subject_id, session_id):
+def run_pydeface_func(output_dir, subject_id, session_id):
     """
     Parameters:
     - output_dir (str): Directory where the NIfTI files are stored.
     - subject_id (str): Subject ID used in the BIDS file naming.
     - session_id (str): Session ID used in the BIDS file naming.
 
-    The function constructs a pydeface command to deface the anatomical MRI images (T1-weighted images)
+    The function constructs a pydeface command to deface the anatomical MRI images (T2-weighted FLAIR images)
     for the specified subject and session. The defaced image is saved with the same filename, 
     overwriting the original by using the '--force' flag.
 
@@ -315,12 +315,12 @@ def run_pydeface(output_dir, subject_id, session_id):
 
     """
     try:
-        # Construct the pydeface command to overwrite the original T1w image.
+        # Construct the pydeface command.
         pydeface_command = [
             'pydeface',
-            f"{output_dir}/anat/{subject_id}_{session_id}_T1w.nii",
+            f"{output_dir}/anat/{subject_id}_{session_id}_FLAIR.nii",
             '--outfile',
-            f"{output_dir}/anat/{subject_id}_{session_id}_T1w.nii",
+            f"{output_dir}/anat/{subject_id}_{session_id}_FLAIR.nii",
             '--force'
         ]
         logging.info(f"Executing pydeface: {' '.join(pydeface_command)}")
@@ -339,40 +339,6 @@ def run_pydeface(output_dir, subject_id, session_id):
         logging.error("An error occurred during pydeface execution: %s", e)
         raise
 
-# Renames the cropped NIfTI file to overwrite the original T1w file in BIDS format.
-def rename_cropped_file(output_dir, subject_id, session_id):
-    """
-    This function is particularly useful in workflows where post-processing steps 
-    (like cropping) generate new files that should replace the original ones.
-
-    Parameters:
-    - output_dir (str): Directory where the conversion results are saved.
-    - subject_id (str): Subject ID, typically in the format 'sub-XX'.
-    - session_id (str): Session ID, typically in the format 'ses-XX'.
-
-    The function assumes the presence of a cropped file named 'sub-XX_ses-XX_T1w_Crop_1.nii'.
-    If this file exists, it is renamed to overwrite 'sub-XX_ses-XX_T1w.nii', ensuring 
-    consistency with BIDS naming conventions.
-
-    Usage Example:
-    rename_cropped_file('/path/to/nifti/output', 'sub-01', 'ses-01')
-    """
-    
-    try:
-        cropped_file_path = os.path.join(output_dir, 'anat', f'{subject_id}_{session_id}_T1w_Crop_1.nii')
-        original_file_path = os.path.join(output_dir, 'anat', f'{subject_id}_{session_id}_T1w.nii')
-        
-        if os.path.exists(cropped_file_path):
-            shutil.move(cropped_file_path, original_file_path)
-            logging.info(f"Cropped file renamed to overwrite the original T1w file: {original_file_path}")
-        else:
-            logging.warning(f"No cropped file found to rename: {cropped_file_path}")
-    
-    # Log errors.
-    except Exception as e:
-            logging.error(f"Error occurred while renaming cropped file: {e}")
-            raise
-    
 # Checks if pydeface is installed and accessible in the system's PATH.
 def check_pydeface_installed():
     """
@@ -463,10 +429,10 @@ def check_cubids_installed():
         logging.warning("cubids is not installed.")
         return False
     
-# The main function to convert T1w DICOM files to NIfTI format within a BIDS compliant structure.
-def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
+# The main function to convert FLAIR DICOM files to NIfTI format within a BIDS compliant structure.
+def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
     """
-    This function sets up logging, executes the DICOM to NIfTI conversion using dcm2niix, renames any cropped files, 
+    This function sets up logging, executes the DICOM to NIfTI conversion using dcm2niix, 
     and optionally runs pydeface for anonymization.
 
     Parameters:
@@ -489,12 +455,12 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
         logging.info(f"Processing subject: {subject_id}, session: {session_id}")
 
         # Specify the exact directory where the DICOM files are located
-        dicom_dir = os.path.join(dicom_root_dir, 't1_mprage_sag_p2_iso')
+        dicom_dir = os.path.join(dicom_root_dir, 't2_tse_dark-fluid_tra_3mm')
 
         # Specify the exact directory where the NIfTI files will be saved
         output_dir = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}')
 
-        # Check if T1w NIfTI files already exist
+        # Check if FLAIR NIfTI files already exist
         if not check_existing_nifti(output_dir, subject_id, session_id):
             if check_dcm2niix_installed():
                 # Run dcm2niix for DICOM to NIfTI conversion.
@@ -503,14 +469,9 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
                 logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
                 return  # Exit the function if dcm2niix is not installed
             
-            # Rename any cropped files if they exist and overwrite the original T1-weighted NIfTI file.
-            rename_cropped_file(output_dir, subject_id, session_id)
-        else:
-            logging.info("Skipping DICOM to NIfTI conversion as T1-weighted NIfTI file already exists.")
-
         # Optional pydeface execution
-        if run_pydeface_func and check_pydeface_installed():
-            run_pydeface(output_dir, subject_id, session_id)
+        if run_pydeface and check_pydeface_installed():
+            run_pydeface_func(output_dir, subject_id, session_id)
 
         # Log pydeface execution errors.
         elif run_pydeface:
@@ -540,10 +501,10 @@ if __name__ == "__main__":
     and an optional flag to run pydeface for defacing the images.
 
     Usage:
-    process_T1_to_BIDS.py <dicom_root_dir> <bids_root> [--pydeface]
+    process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root> [--pydeface]
 
     Example:
-    process_T1_to_BIDS.py /path/to/dicom_root /path/to/bids_root --pydeface
+    process_FLAIR_to_BIDS.py /path/to/dicom_root /path/to/bids_root --pydeface
     """
     
     # Configure the argument parser
