@@ -30,14 +30,9 @@ Environment Setup:
 - Install dcm2niix and pydeface command-line tools. For dcm2niix, use `conda install -c conda-forge dcm2niix`.
 - Pydeface installation may vary depending on your system. Refer to the official pydeface documentation for instructions.
 - try `conda install -c conda-forge pydeface`
-- To set up the required environment, use the provided environment.yml file with Conda. <datalad.yml>
-
-Environment Setup:
-- Ensure Python 3.12, dcm2niix, pydeface, and cubids are installed in your environment.
-- You can install dcm2niix and pydeface using conda: `conda install -c conda-forge dcm2niix pydeface`.
 - Install cubids following the instructions provided in its documentation.
 - Try 'pip install cubids'
-- To set up the required environment, you can use the provided environment.yml file with Conda. <datalad.yml>
+- To set up the required environment, use the provided environment.yml file with Conda. <datalad.yml>
 
 Change Log:
 - 20231111: Initial version
@@ -191,7 +186,7 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id, log_file_path):
             '-f', f'{subject_id}_{session_id}_T1w', # Naming convention. 
             '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
             '-b', 'y', # Save BIDS metadata to .json sidecar. 
-            '-p', 'n', # D not use Use Philips precise float (rather than display) scaling.
+            '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
             '-x', 'y', # Crop images. This will attempt to remove excess neck from 3D acquisitions.
             '-z', 'n', # Do not compress files.
             '-ba', 'n', # Do not anonymize files (anonymized at MR console). 

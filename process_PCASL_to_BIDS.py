@@ -1,41 +1,46 @@
 """
-process_FLAIR_to_BIDS.py
+process_PCASL_to_BIDS.py
 
 Description:
-This script processes T2-weighted FLAIR DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
-It includes functionalities for DICOM to NIfTI conversion using dcm2niix, defacing NIfTI images with pydeface for enhanced privacy, 
-and additional BIDS-compliant metadata processing with cubids. The script checks for the installation of dcm2niix, pydeface, and cubids 
-before executing relevant commands. It also handles file renaming and applies defacing for anonymization.
+This script processes Pseudocontinuous Arterial Spin Labeling (PCASL) DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+It includes functionalities for DICOM to NIfTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids. The script checks for the installation of dcm2niix, pydeface, and cubids 
+before executing relevant commands. It also handles file renaming.
 
 Usage:
-python process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root_dir> [--pydeface]
+python process_PCASL_to_BIDS.py <dicom_root_dir> <bids_root_dir>
 e.g.,
-python process_FLAIR_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir --pydeface
+python process_PCASL_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir 
 
 Author: PAMcConnell
-Created on: 20231111
-Last Modified: 20231111
+Created on: 20231112
+Last Modified: 20231112
 
 License: MIT License
 
 Dependencies:
 - Python 3.12
 - dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
-- pydeface (command-line tool) https://github.com/poldracklab/pydeface
 - CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
 - os, shutil, subprocess, argparse, re (standard Python libraries)
 
 Environment Setup:
-- Ensure Python 3.12 is installed in your environment.
-- Install dcm2niix and pydeface command-line tools. For dcm2niix, use `conda install -c conda-forge dcm2niix`.
-- Pydeface installation may vary depending on your system. Refer to the official pydeface documentation for instructions.
-- try `conda install -c conda-forge pydeface`
+- Ensure Python 3.12, dcm2niix and cubids are installed in your environment.
+- You can install dcm2niix using conda: `conda install -c conda-forge dcm2niix`.
 - Install cubids following the instructions provided in its documentation.
 - Try 'pip install cubids'
-- To set up the required environment, use the provided environment.yml file with Conda. <datalad.yml>
+- To set up the required environment, you can use the provided environment.yml file with Conda. <datalad.yml>
 
 Change Log:
 - 20231111: Initial version
+
+*** NOTE: This script is still in development and may not work as expected regarding perfusion metadata.
+# I'm not 100% on the ASL metadata defined below, needs verification - PAMcConnell 20231020
+# https://github.com/npnl/ASL-Processing-Tips - updating accordingly based on this analysis - PAMcConnell20231026
+# see also https://crnl.readthedocs.io/asl/index.html
+# https://neuroimaging-core-docs.readthedocs.io/en/latest/pages/glossary.html#term-Dwell-Time
+#
+
+
 """
 
 import os                     # Used for operating system dependent functionalities like file path manipulation.
@@ -47,6 +52,7 @@ import subprocess             # Spawn new processes, connect to their input/outp
 import sys                    # Provides access to some variables used or maintained by the interpreter.
 import json                   # JSON encoder and decoder.
 import glob                   # Unix style pathname pattern expansion.
+import pydicom                # Read, modify, and write DICOM files with Python.
 
 # Set up logging for individual archive logs.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -103,7 +109,7 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if T2-weighted FLAIR NIfTI files already exist in the specified BIDS output directory.
+# Checks if PCASL NIfTI files already exist in the specified BIDS output directory.
 def check_existing_nifti(output_dir, subject_id, session_id):
     """
     Parameters:
@@ -112,11 +118,11 @@ def check_existing_nifti(output_dir, subject_id, session_id):
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if FLAIR NIfTI files exist, False otherwise.
+    - bool: True if T1w NIfTI files exist, False otherwise.
     """
-    expected_nifti_file = os.path.join(output_dir, 'anat', f'{subject_id}_{session_id}_FLAIR.nii')
+    expected_nifti_file = os.path.join(output_dir, 'perf', f'{subject_id}_{session_id}_asl.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"T2-weighted FLAIR NIfTI file already exists: {expected_nifti_file}")
+        logging.info(f"T1-weighted NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -156,6 +162,54 @@ def extract_subject_session(dicom_root_dir):
 
     return subject_id, session_id
 
+# Reads and returns DICOM headers from the specified directory.
+def read_dicom_headers(dicom_dir):
+    dicom_files = [os.path.join(dicom_dir, f) for f in os.listdir(dicom_dir)
+                   if os.path.isfile(os.path.join(dicom_dir, f)) and f.startswith('MR.')]
+    dicom_headers = [pydicom.dcmread(df, force=True) for df in dicom_files]
+    return dicom_headers
+
+# Calculates the number of volumes based on the DICOM headers.
+def get_num_volumes(dicom_headers):
+    return len(dicom_headers)
+
+# Creates aslcontext.tsv file necessary for BIDS specification.
+def create_aslcontext_file(num_volumes, output_dirs, subject_id, session_id):
+    for output_dir in output_dirs:
+        output_dir_perf = os.path.join(output_dir, 'perf')
+        os.makedirs(output_dir_perf, exist_ok=True)
+
+    asl_context_filepath = os.path.join(output_dir_perf, f'{subject_id}_{session_id}_aslcontext.tsv')
+    with open(asl_context_filepath, 'w') as file:
+        file.write('volume_type\n')
+        for i in range(num_volumes):
+            if i == 0:
+                file.write('m0scan\n')
+            else:
+                file.write('control\n' if (i-1) % 2 == 0 else 'label\n')
+
+# Updates the JSON sidecar file with necessary fields for BIDS compliance.
+def update_json_file(json_filepath):
+    with open(json_filepath, 'r+') as file:
+        data = json.load(file)
+        data['LabelingDuration'] = 0.7 # Bolus Duration
+        # 82 RF blocks * 0.0185s RF Block Duration = 1.517 second "LabelTime"
+        data['PostLabelingDelay'] = 1.000
+        data['BackgroundSuppression'] = False
+        data['M0Type'] = "Included"
+        data['TotalAcquiredPairs'] = 6
+        data['VascularCrushing'] = False
+        # EffectiveEchoSpacing set to equal DwellTime 
+        # (https://neuroimaging-core-docs.readthedocs.io/en/latest/pages/glossary.html#term-Dwell-Time)
+        # Need to verify if this needs to be adjusted based on SENSE parallel imaging parameters
+        data['EffectiveEchoSpacing'] = 0.0000104
+        data['B0FieldSource'] = "*fm2d2r"
+        # Change Source 1 -> Source 2 to use spin-echo reverse phase field maps instead of default gre. 
+        data['B0FieldSource2']=	"*epse2d1_104"
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        file.truncate()
+
 # Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
 def run_dcm2niix(input_dir, output_dir, subject_id, session_id, log_file_path):
     """
@@ -178,16 +232,16 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id, log_file_path):
     """
     try:
         # Ensure the output directory for anatomical scans exists.
-        output_dir_anat = os.path.join(output_dir, 'anat')
+        output_dir_anat = os.path.join(output_dir, 'perf')
         os.makedirs(output_dir_anat, exist_ok=True)
         cmd = [
             'dcm2niix',
             '-v', 'y', # Print verbose output.
-            '-f', f'{subject_id}_{session_id}_FLAIR', # Naming convention. 
+            '-f', f'{subject_id}_{session_id}_asl', # Naming convention. 
             '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
             '-b', 'y', # Save BIDS metadata to .json sidecar. 
-            '-p', 'n', # D not use Use Philips precise float (rather than display) scaling.
-            '-x', 'n', # Do not Crop images. This will attempt to remove excess neck from 3D acquisitions.
+            '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+            '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
             '-z', 'n', # Do not compress files.
             '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
             '-i', 'n', # Do not ignore derived, localizer and 2D images. 
@@ -286,70 +340,6 @@ def run_cubids_remove_metadata_fields(bids_root_dir, fields):
         logging.error(f"cubids-remove-metadata-fields execution failed: {e}")
         raise
 
-# Executes the pydeface command to anonymize NIfTI images by removing facial features.
-def run_pydeface_func(output_dir, subject_id, session_id):
-    """
-    Parameters:
-    - output_dir (str): Directory where the NIfTI files are stored.
-    - subject_id (str): Subject ID used in the BIDS file naming.
-    - session_id (str): Session ID used in the BIDS file naming.
-
-    The function constructs a pydeface command to deface the anatomical MRI images (T2-weighted FLAIR images)
-    for the specified subject and session. The defaced image is saved with the same filename, 
-    overwriting the original by using the '--force' flag.
-
-    Pydeface is used to enhance the privacy and anonymity of the MRI data by removing facial characteristics 
-    that could potentially identify subjects. This is especially important in shared datasets.
-
-    Usage Example:
-    run_pydeface('/path/to/nifti/output', 'sub-01', 'ses-01')
-
-    Dependencies:
-    - subprocess module for executing shell commands.
-    - logging module for logging operations.
-
-    """
-    try:
-        # Construct the pydeface command.
-        pydeface_command = [
-            'pydeface',
-            f"{output_dir}/anat/{subject_id}_{session_id}_FLAIR.nii",
-            '--outfile',
-            f"{output_dir}/anat/{subject_id}_{session_id}_FLAIR.nii",
-            '--force'
-        ]
-        logging.info(f"Executing pydeface: {' '.join(pydeface_command)}")
-        result = subprocess.run(pydeface_command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        # Log the standard output and error
-        logging.info("pydeface output:\n%s", result.stdout)
-        if result.stderr:
-            logging.error("pydeface error output:\n%s", result.stderr)
-        logging.info("pydeface executed successfully.")
-
-    except subprocess.CalledProcessError as e:
-        logging.error("pydeface execution failed: %s", e)
-        raise
-    except Exception as e:
-        logging.error("An error occurred during pydeface execution: %s", e)
-        raise
-
-# Checks if pydeface is installed and accessible in the system's PATH.
-def check_pydeface_installed():
-    """
-    Checks if pydeface is installed and accessible in the system's PATH.
-
-    Returns:
-    bool: True if pydeface is installed, False otherwise.
-    """
-    pydeface_version_output = subprocess.getoutput('pydeface --version')
-    if 'pydeface 2.0.2' in pydeface_version_output: # change version number as needed.
-        logging.info(f"pydeface is installed: {pydeface_version_output.splitlines()[0]}")
-        return True
-    else:
-        logging.warning("pydeface version 2.02 is not installed.")
-        return False
-    
 # Check if dcm2niix is installed and accessible in the system's PATH.
 def check_dcm2niix_installed():
     """
@@ -423,25 +413,20 @@ def check_cubids_installed():
     else:
         logging.warning("cubids is not installed.")
         return False
-    
-# The main function to convert FLAIR DICOM files to NIfTI format within a BIDS compliant structure.
-def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
+   
+# Main function for orchestrating the conversion process.
+def main(dicom_root_dir, bids_root_dir):
     """
-    This function sets up logging, executes the DICOM to NIfTI conversion using dcm2niix, 
-    and optionally runs pydeface for anonymization.
+    Process DICOM files for ASL context and convert to NIfTI.
 
     Parameters:
-    - dicom_root_dir (str): The root directory containing the DICOM files.
-    - bids_root_dir (str): The root directory for the BIDS dataset where the NIfTI files will be saved.
+    - dicom_root_dir (str): Root directory containing the DICOM directories.
+    - bids_root (str): Root directory of the BIDS dataset.
 
-    The function assumes that 'pydeface' and 'dcm2niix' are installed and accessible in the system's PATH.
-
-    Usage Example:
-    main('/path/to/dicom_root_dir', '/path/to/bids_root_dir')
-
-    Dependencies:
-    - dcm2niix for DICOM to NIfTI conversion.
-    - pydeface for defacing NIfTI images.
+    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    It saves the output in the specified output directory, structuring the filenames
+    according to BIDS conventions. The function assumes that dcm2niix is installed
+    and accessible in the system's PATH.
     """
     try:
         # Setup logging after extracting subject_id and session_id
@@ -450,12 +435,12 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
         logging.info(f"Processing subject: {subject_id}, session: {session_id}")
 
         # Specify the exact directory where the DICOM files are located
-        dicom_dir = os.path.join(dicom_root_dir, 't2_tse_dark-fluid_tra_3mm')
+        dicom_dir = os.path.join(dicom_root_dir, 'tgse_pcasl_ve11c_from_USC')
 
         # Specify the exact directory where the NIfTI files will be saved
         output_dir = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}')
 
-        # Check if FLAIR NIfTI files already exist
+        # Check if PCASL NIfTI files already exist
         if not check_existing_nifti(output_dir, subject_id, session_id):
             if check_dcm2niix_installed():
                 # Run dcm2niix for DICOM to NIfTI conversion.
@@ -464,16 +449,6 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
                 logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
                 return  # Exit the function if dcm2niix is not installed
             
-        # Optional pydeface execution
-        if run_pydeface and check_pydeface_installed():
-            run_pydeface_func(output_dir, subject_id, session_id)
-
-        # Log pydeface execution errors.
-        elif run_pydeface:
-            logging.warning("Skipping pydeface execution as it is not installed.")
-        else:
-            logging.info("Pydeface execution is not enabled.")
-
         # Check if cubids is installed
         if check_cubids_installed():
             # Run cubids commands
@@ -482,32 +457,28 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
         else:
             logging.warning("cubids is not installed. Skipping cubids commands.")
     
+        # Reading DICOM headers
+        dicom_headers = read_dicom_headers(dicom_dir)
+        num_volumes = get_num_volumes(dicom_headers)
+
+        # Check if the number of volumes is as expected
+        if num_volumes != 12:
+            logging.warning(f"Warning: Expected 12 volumes but found {num_volumes} volumes.")
+
+        # Creating aslcontext.tsv, converting DICOM to NIfTI, and updating JSON files
+        create_aslcontext_file(num_volumes, output_dir, subject_id, session_id)
+
     # Log other errors. 
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
         raise
 
-# Main code execution starts here
+# Executes the main function.
 if __name__ == "__main__":
-    """
-    Entry point of the script when executed from the command line.
-
-    Parses command-line arguments to determine the directories for DICOM files and BIDS dataset,
-    and an optional flag to run pydeface for defacing the images.
-
-    Usage:
-    process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root> [--pydeface]
-
-    Example:
-    process_FLAIR_to_BIDS.py /path/to/dicom_root /path/to/bids_root --pydeface
-    """
-    
-    # Configure the argument parser
-    parser = argparse.ArgumentParser(description='Process DICOM files and convert them to NIfTI format following BIDS conventions.')
+    parser = argparse.ArgumentParser(description='Process DICOM files for ASL context and convert to NIfTI.')
     parser.add_argument('dicom_root_dir', type=str, help='Root directory containing the DICOM directories.')
-    parser.add_argument('bids_root', type=str, help='Root directory of the BIDS dataset.')
-    parser.add_argument('--pydeface', action='store_true', help='Optionally run pydeface for defacing the images.')
+    parser.add_argument('bids_root_dir', type=str, help='Root directory of the BIDS dataset.')
+
     args = parser.parse_args()
-    
-    # Run the main function with the parsed arguments
-    main(args.dicom_root_dir, args.bids_root, args.pydeface)
+
+    main(args.dicom_root_dir, args.bids_root_dir)
