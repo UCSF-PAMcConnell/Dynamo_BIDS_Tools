@@ -537,7 +537,7 @@ def rename_fmap_files(bids_root_dir, subject_id, session_id, temp_dir_fmap):
     
      # Specify filename mappings to correctly rename the output files.
     filename_mappings = {
-        '_e2': '_magnitude2',
+        '_e2.': '_magnitude2',
         '_e1': '_magnitude1',
         '_e2_ph': '_phasediff'
     }
@@ -627,7 +627,7 @@ def main(dicom_root_dir, bids_root_dir):
     if check_existing_nifti(output_dir_fmap, subject_id, session_id):
         print(f"GRE Field Map NIfTI files already exist for subject: {subject_id}, session: {session_id}")
         return # Exit the function if NIfTI files already exist.
-    
+
     # Otherwise:
     try:
         # Setup logging after extracting subject_id and session_id.
@@ -721,7 +721,12 @@ def main(dicom_root_dir, bids_root_dir):
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
         raise
-   
+
+    # If you want to explicitly remove temp_dir_fmap, you can do it here
+    if os.path.exists(temp_dir_fmap):
+        shutil.rmtree(temp_dir_fmap)
+        logging.info(f"Temporary directory {temp_dir_fmap} removed successfully.")
+
 # Main code execution starts here when the script is run
 if __name__ == "__main__":
     """
