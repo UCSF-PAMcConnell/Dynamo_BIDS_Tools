@@ -539,7 +539,7 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
     # Check if T1w NIfTI files already exist.
     if check_existing_nifti(output_dir_anat, subject_id, session_id):
         print(f"T1-weighted NIfTI files already exist: {output_dir_anat}")
-        return
+        return # Skip processing if T1w NIfTI files already exist.
 
     # Otherwise:
     try:

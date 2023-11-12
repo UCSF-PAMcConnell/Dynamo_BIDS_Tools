@@ -783,7 +783,7 @@ def main(dicom_root_dir,bids_root_dir):
     # Check if DKI NIfTI files already exist.
     if check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
         print(f"DWI NIfTI files already exist for subject: {subject_id}, session: {session_id}")
-        return
+        return # Exit the function if DWI NIfTI files already exist.
     
     # Check if TOP-UP NIfTI files already exist.
     if check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
