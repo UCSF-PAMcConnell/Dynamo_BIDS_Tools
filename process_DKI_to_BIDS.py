@@ -1,16 +1,16 @@
 """
-process_PCASL_to_BIDS.py
+process_DKI_to_BIDS.py
 
 Description:
-This script processes Pseudocontinuous Arterial Spin Labeling (PCASL) DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
-It includes functionalities for DICOM to NIfTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids. 
+This script processes Diffusion Kurtosis Imaging (DKI) DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+It includes functionalities for DICOM to NIfTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids.
 The script checks for the installation of dcm2niix, pydeface, and cubids 
 before executing relevant commands. It also handles file renaming.
 
 Usage:
-python process_PCASL_to_BIDS.py <dicom_root_dir> <bids_root_dir>
+python process_DKI_to_BIDS.py <dicom_root_dir> <bids_root_dir>
 e.g.,
-python process_PCASL_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir 
+python process_DKI_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir 
 
 Author: PAMcConnell
 Created on: 20231112
@@ -35,17 +35,7 @@ Environment Setup:
 Change Log:
 - 20231112: Initial version
 
-*** NOTE: This script is still in development and may not work as expected regarding perfusion metadata.
-Note:
-- This script is currently under development. Specific attention is needed for verifying ASL metadata.
-- Refer to https://github.com/npnl/ASL-Processing-Tips and https://crnl.readthedocs.io/asl/index.html for updates on ASL metadata handling.
-- Dwell time and other perfusion metadata are being continuously reviewed and updated.
-# https://github.com/npnl/ASL-Processing-Tips 
-# see also https://neuroimaging-core-docs.readthedocs.io/en/latest/pages/glossary.html#term-Dwell-Time
-
-
 """
-
 import os                     # Used for operating system dependent functionalities like file path manipulation.
 import logging                # Logging library, for tracking events that happen when running the software.
 import tempfile               # Generate temporary files and directories.
@@ -56,6 +46,31 @@ import sys                    # Provides access to some variables used or mainta
 import json                   # JSON encoder and decoder.
 import glob                   # Unix style pathname pattern expansion.
 import pydicom                # Read, modify, and write DICOM files with Python.
+
+# Extracts the B0FieldIdentifier from DICOM tags in the first file of a directory.
+def extract_b0_field_identifier(dicom_dir_topup):
+    """
+    Parameters:
+    dicom_dir_topup (str): Path to the directory containing DICOM files.
+    
+    Returns:
+    str: The SequenceName from the first DICOM file in the directory.
+
+    # Example usage
+    b0_field_identifier = extract_b0_field_identifier('/path/to/dicom/dir')
+    print(b0_field_identifier)
+    """
+
+    # Iterate over files in the directory
+    for filename in os.listdir(dicom_dir_topup):
+        file_path = os.path.join(dicom_dir_topup, filename)
+        # Check if the file is a DICOM file
+        if pydicom.misc.is_dicom(file_path):
+            dicom_data = pydicom.dcmread(file_path)
+            # Assuming 'SequenceName' is the tag you want to extract
+            return dicom_data.SequenceName
+
+    return "No DICOM files found in the directory."
 
 # Set up logging for individual archive logs.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -112,24 +127,41 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if PCASL NIfTI files already exist in the specified BIDS output directory.
-def check_existing_nifti(output_dir_perf, subject_id, session_id):
+# Checks if DKI NIfTI files already exist in the specified BIDS output directory.
+def check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
     """
     Parameters:
-    - output_dir_perf (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_dwi (str): The BIDS output directory where NIfTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if PCASL NIfTI files exist, False otherwise.
+    - bool: True if T1w NIfTI files exist, False otherwise.
     """
-    expected_nifti_file = os.path.join(output_dir_perf, f'{subject_id}_{session_id}_asl.nii')
+    expected_nifti_file = os.path.join(output_dir_dwi, f'{subject_id}_{session_id}_dir-AP_dwi.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"PCASL NIfTI file already exists: {expected_nifti_file}")
+        logging.info(f"DKI NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
 
+# Checks if Top Up NIfTI files already exist in the specified BIDS output directory.
+def check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
+    """
+    Parameters:
+    - output_dir_dwi (str): The BIDS output directory where NIfTI files are stored.
+    - subject_id (str): The subject ID.
+    - session_id (str): The session ID.
+
+    Returns:
+    - bool: True if T1w NIfTI files exist, False otherwise.
+    """
+    expected_nifti_file = os.path.join(output_dir_topup, f'{subject_id}_{session_id}_acq-topup_dir-PA_epi.nii')
+    if os.path.isfile(expected_nifti_file):
+        logging.info(f"DKI NIfTI file already exists: {expected_nifti_file}")
+        return True
+    else:
+        return False
 # Extract the subject and session IDs from the provided physio root directory path.
 def extract_subject_session(dicom_root_dir):
     """
@@ -208,63 +240,15 @@ def read_dicom_headers(dicom_dir):
         logging.error(f"Error reading DICOM files from {dicom_dir}. Error: {e}")
         raise
 
-# Creates aslcontext.tsv file necessary for BIDS specification.
-def create_aslcontext_file(num_volumes, output_dir_perf, subject_id, session_id):
-    """
-    Creates an aslcontext.tsv file for each specified output directory to fulfill the BIDS specification for PCASL data.
-
-    Parameters:
-    - num_volumes (int): Number of volumes in the ASL sequence.
-    - output_dir_perf (str): Output directory where the aslcontext.tsv file will be created.
-    - subject_id (str): Subject ID used in the BIDS file naming.
-    - session_id (str): Session ID used in the BIDS file naming.
-
-    This function generates an aslcontext.tsv file containing the type of each volume (m0scan, control, or label)
-    in the ASL sequence, in accordance with the BIDS standard. The file is created in each specified output directory.
-
-    The function handles directory creation and ensures proper formatting of the aslcontext.tsv file.
-
-    Usage Example:
-    create_aslcontext_file(50, ['/path/to/bids_root_dir/sub-01/ses-01/perf', 'sub-01', 'ses-01')
-
-    Dependencies:
-    - os module for directory and file operations.
-    """
-    try:
-        # Ensure the perfusion directory exists.
-        os.makedirs(output_dir_perf, exist_ok=True)
-
-        # Current labeling order logic based on script accessed here: https://github.com/npnl/ASL-Processing-Tips.
-        asl_context_filepath = os.path.join(output_dir_perf, f'{subject_id}_{session_id}_aslcontext.tsv')
-        with open(asl_context_filepath, 'w') as file:
-            file.write('volume_type\n')
-            for i in range(num_volumes):
-                if i == 0:
-                    file.write('m0scan\n')
-                else:
-                    file.write('control\n' if (i-1) % 2 == 0 else 'label\n')
-        
-        # Log the creation of the aslcontext.tsv file.
-        logging.info(f"Created aslcontext.tsv file at {asl_context_filepath}")
-
-    # Catch issues with creating aslcontext.tsv file.
-    except IOError as e:
-        logging.error(f"Error writing to aslcontext.tsv file at {asl_context_filepath}. Error: {e}")
-        raise
-    except Exception as e:
-        logging.error(f"Error creating aslcontext.tsv file for {subject_id}, {session_id}. Error: {e}")
-        raise
-
-# Updates the JSON sidecar file with specific fields required for BIDS compliance in PCASL datasets.
-def update_json_file(json_filepath):
+# Updates the DKI JSON sidecar file with specific fields required for BIDS compliance in DKI datasets.
+def update_json_file_dwi(json_filepath_dwi, subject_id, session_id, dicom_dir_topup):
     """
     Parameters:
     - json_filepath (str): Path to the JSON sidecar file.
 
-    This function updates the specified JSON file with fields relevant to PCASL imaging, such as LabelingDuration, 
-    PostLabelingDelay, BackgroundSuppression, M0Type, TotalAcquiredPairs, VascularCrushing, EffectiveEchoSpacing,
-    B0FieldSource, and B0FieldSource2. These updates ensure that the dataset conforms to the BIDS standard for 
-    PCASL data.
+    This function updates the specified JSON file with fields relevant to DKI imaging
+    These updates ensure that the dataset conforms to the BIDS standard for 
+    DKI/DWI data.
 
     The function handles the reading and writing of the JSON file, ensuring that the file is properly updated
     and formatted.
@@ -279,62 +263,90 @@ def update_json_file(json_filepath):
     *** Note: Refer to MR protocol documentation in /doc/MR_protocols for more information. ***
     """
     try:
-        with open(json_filepath, 'r+') as file:
+        with open(json_filepath_dwi, 'r+') as file:
             data = json.load(file)
             
-            # Update with specific PCASL metadata
-            data['LabelingDuration'] = 0.7 # Bolus Duration
-            # 82 RF blocks * 0.0185s RF Block Duration = 1.517 second "LabelTime"
-            logging.info(f"Labeling Duration: {data['LabelingDuration']}")
-            data['PostLabelingDelay'] = 1.000
-            logging.info(f"Post Labeling Delay: {data['PostLabelingDelay']}")
-            data['BackgroundSuppression'] = False
-            logging.info(f"Background Suppression: {data['BackgroundSuppression']}")
-            data['M0Type'] = "Included"
-            logging.info(f"M0 Type: {data['M0Type']}")
-            data['TotalAcquiredPairs'] = 6
-            logging.info(f"Total Acquired Pairs: {data['TotalAcquiredPairs']}")
-            data['VascularCrushing'] = False
-            logging.info(f"Vascular Crushing: {data['VascularCrushing']}")
-            # EffectiveEchoSpacing set to equal DwellTime 
-            # (https://neuroimaging-core-docs.readthedocs.io/en/latest/pages/glossary.html#term-Dwell-Time)
-            # Need to verify if this needs to be adjusted based on SENSE parallel imaging parameters
-            data['EffectiveEchoSpacing'] = 0.0000104
-            logging.info(f"Effective Echo Spacing: {data['EffectiveEchoSpacing']}")
-            data['B0FieldSource'] = "*fm2d2r"
-            logging.info(f"B0 Field Source: {data['B0FieldSource']}")
-            # Change Source 1 -> Source 2 to use spin-echo reverse phase field maps instead of default gre. 
-            data['B0FieldSource2']=	"*epse2d1_104"
-            logging.info(f"B0 Field Source 2: {data['B0FieldSource2']}; change Source 1 -> Source 2 to use spin-echo reverse phase field maps instead of default gre.")
-            
+            # Updated DKI specific metadata for topup field map correction.
+            data['B0FieldSource'] = extract_b0_field_identifier(dicom_dir_topup)
+
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)
             json.dump(data, file, indent=4)
             file.truncate()
 
-        logging.info(f"Updated JSON file at {json_filepath} with PCASL-specific metadata.")
+        logging.info(f"Updated JSON file at {json_filepath_dwi} with DKI-specific metadata.")
     
     # Catch issues with reading or writing to the JSON file.
     except IOError as e:
-        logging.error(f"Error reading or writing to JSON file at {json_filepath}. Error: {e}")
+        logging.error(f"Error reading or writing to JSON file at {json_filepath_dwi}. Error: {e}")
         raise
 
     except json.JSONDecodeError as e:
-        logging.error(f"Error parsing JSON data in file at {json_filepath}. Error: {e}")
+        logging.error(f"Error parsing JSON data in file at {json_filepath_dwi}. Error: {e}")
         raise
 
     except Exception as e:
-        logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath}. Error: {e}")
+        logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath_dwi}. Error: {e}")
+        raise
+
+# Updates the DKI JSON sidecar file with specific fields required for BIDS compliance in DKI datasets.
+def update_json_file_topup(json_filepath_topup, subject_id, session_id, dicom_dir_topup):
+    """
+    Parameters:
+    - json_filepath (str): Path to the JSON sidecar file.
+
+    This function updates the specified JSON file with fields relevant to DKI imaging
+    These updates ensure that the dataset conforms to the BIDS standard for 
+    DKI/DWI data.
+
+    The function handles the reading and writing of the JSON file, ensuring that the file is properly updated
+    and formatted.
+
+    Usage Example:
+    update_json_file('/path/to/sidecar.json')
+
+    Dependencies:
+    - json module for reading and writing JSON files.
+    - os and sys modules for file operations and system-level functionalities.
+
+    *** Note: Refer to MR protocol documentation in /doc/MR_protocols for more information. ***
+    """
+    try:
+        with open(json_filepath_topup, 'r+') as file:
+            data = json.load(file)
+            
+            # Updated DKI specific metadata for topup field map correction.
+            data['B0FieldIdentifier'] = extract_b0_field_identifier(dicom_dir_topup)
+            data['IntendedFor'] = (f"{session_id}/dwi/{subject_id}_{session_id}_dir-AP_dwi.nii")
+
+            # Write back the updated data and truncate the file to the new data length.
+            file.seek(0)
+            json.dump(data, file, indent=4)
+            file.truncate()
+
+        logging.info(f"Updated JSON file at {json_filepath_topup} with DKI-specific metadata.")
+    
+    # Catch issues with reading or writing to the JSON file.
+    except IOError as e:
+        logging.error(f"Error reading or writing to JSON file at {json_filepath_topup}. Error: {e}")
+        raise
+
+    except json.JSONDecodeError as e:
+        logging.error(f"Error parsing JSON data in file at {json_filepath_topup}. Error: {e}")
+        raise
+
+    except Exception as e:
+        logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath_topup}. Error: {e}")
         raise
 
 # Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
-def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id):
+def run_dcm2niix_dwi(input_dir, output_dir_dwi, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_perf (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_dwi (str): Directory where the converted NIfTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -344,15 +356,15 @@ def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id):
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
 
     Usage Example:
-    run_dcm2niix('/dicom_root_dir/dicom_sorted/<perf_dicoms>', '/bids_root_dir/sub-01/ses-01/perf', 'sub-01', 'ses-01')
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<dwi_dicoms>', '/bids_root_dir/sub-01/ses-01/dwi', 'sub-01', 'ses-01')
 
     """
     try:
         # Ensure the output directory for anatomical scans exists.
-        os.makedirs(output_dir_perf, exist_ok=True)
+        os.makedirs(output_dir_dwi, exist_ok=True)
         base_cmd = [
             'dcm2niix',
-            '-f', f'{subject_id}_{session_id}_asl', # Naming convention. 
+            '-f', f'{subject_id}_{session_id}_dir-AP_dwi', # Naming convention. 
             '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
             '-b', 'y', # Save BIDS metadata to .json sidecar. 
             '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
@@ -361,13 +373,13 @@ def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id):
             '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
             '-i', 'n', # Do not ignore derived, localizer and 2D images. 
             '-m', '2', # Merge slices from same series automatically based on modality. 
-            '-o', output_dir_perf,
+            '-o', output_dir_dwi,
             input_dir
         ]
 
         # Run the actual conversion without verbose output.
         subprocess.run(base_cmd) #capture_output=False, text=False)
-        logging.info(f"dcm2niix conversion completed successfully to {output_dir_perf}.")
+        logging.info(f"dcm2niix conversion completed successfully to {output_dir_dwi}.")
 
     # Log conversion errors.
     except subprocess.CalledProcessError as e:
@@ -380,7 +392,7 @@ def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id):
         raise
 
 # Runs the dcm2niix conversion tool to produce verbose output to logfile. 
-def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_path):
+def run_dcm2niix_verbose_dwi(input_dir, temp_dir, subject_id, session_id, log_file_path):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
@@ -399,7 +411,111 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
     try:
         verbose_cmd = [
         'dcm2niix',
-        '-f', f'{subject_id}_{session_id}_asl', # Naming convention. 
+        '-f', f'{subject_id}_{session_id}_dir-AP_dwi', # Naming convention. 
+        '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+        '-b', 'y', # Save BIDS metadata to .json sidecar. 
+        '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+        '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
+        '-z', 'n', # Do not compress files.
+        '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+        '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+        '-m', '2', # Merge slices from same series automatically based on modality. 
+        '-v', 'y', # Print verbose output to logfile.
+        '-o', temp_dir,
+        input_dir
+    ]
+        
+        # Create a temporary directory for the verbose output run.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(log_file_path, 'a') as log_file:
+                result = subprocess.run(verbose_cmd, check=True, stdout=log_file, stderr=log_file)
+                logging.info(result.stdout)
+                if result.stderr:
+                    logging.error(result.stderr)
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
+# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+def run_dcm2niix_topup(input_dir, output_dir_topup, subject_id, session_id):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - output_dir_dwi (str): Directory where the converted NIfTI files will be saved.
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    It saves the output in the specified output directory, structuring the filenames
+    according to BIDS conventions. 
+    The function assumes that dcm2niix is installed and accessible in the system's PATH.
+
+    Usage Example:
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<dwi_dicoms>', '/bids_root_dir/sub-01/ses-01/dwi', 'sub-01', 'ses-01')
+
+    """
+    try:
+        # Ensure the output directory for anatomical scans exists.
+        os.makedirs(output_dir_topup, exist_ok=True)
+        base_cmd = [
+            'dcm2niix',
+            '-f', f'{subject_id}_{session_id}_acq-topup_dir-PA_epi', # Naming convention. 
+            '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+            '-b', 'y', # Save BIDS metadata to .json sidecar. 
+            '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+            '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
+            '-z', 'n', # Do not compress files.
+            '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+            '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+            '-m', '2', # Merge slices from same series automatically based on modality. 
+            '-o', output_dir_topup,
+            input_dir
+        ]
+
+        # Run the actual conversion without verbose output.
+        subprocess.run(base_cmd) #capture_output=False, text=False)
+        logging.info(f"dcm2niix conversion completed successfully to {output_dir_topup}.")
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
+# Runs the dcm2niix conversion tool to produce verbose output to logfile. 
+def run_dcm2niix_verbose_topup(input_dir, temp_dir, subject_id, session_id, log_file_path):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    The function logs verbose output to the specified log file. 
+
+    Usage Example:
+    run_dcm2niix('/path/to/dicom', 'temp_dir', 'sub-01', 'ses-01')
+
+    """
+    try:
+        verbose_cmd = [
+        'dcm2niix',
+        '-f', f'{subject_id}_{session_id}_acq-topup_dir-PA_epi', # Naming convention. 
         '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
         '-b', 'y', # Save BIDS metadata to .json sidecar. 
         '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
@@ -571,14 +687,14 @@ def check_cubids_installed():
     else:
         logging.warning("cubids is not installed.")
         return False
-   
+
 # Main function for orchestrating the conversion process.
-def main(dicom_root_dir, bids_root_dir):
+def main(dicom_root_dir,bids_root_dir):
     """
-    Main function to process PCASL DICOM files and convert them to NIfTI format following BIDS conventions.
+    Main function to process DKI DICOM files and convert them to NIfTI format following BIDS conventions.
 
     Parameters:
-    - dicom_root_dir (str): Path to the root directory containing the PCASL DICOM files.
+    - dicom_root_dir (str): Path to the root directory containing the DKI DICOM files.
     - bids_root_dir (str): Path to the BIDS dataset root directory.
 
     This function orchestrates several steps:
@@ -587,10 +703,10 @@ def main(dicom_root_dir, bids_root_dir):
     3. Checks if NIfTI files already exist to avoid redundant processing.
     4. Runs dcm2niix for DICOM to NIfTI conversion if necessary.
     5. Executes cubids commands for BIDS-compliant metadata processing.
-    6. Creates an aslcontext.tsv file necessary for BIDS ASL data.
+    6. Creates an dwicontext.tsv file necessary for BIDS ASL data.
 
     The function assumes the availability of dcm2niix and cubids command-line tools. It also 
-    handles the potential discrepancy in the expected number of volumes in the PCASL series.
+    handles the potential discrepancy in the expected number of volumes in the DKI series.
 
     Usage Example:
     main('/path/to/dicom_root_dir', '/path/to/bids_root_dir')
@@ -601,51 +717,76 @@ def main(dicom_root_dir, bids_root_dir):
     - logging for detailed logging of the process.
     """
 
+    # Extract subject and session IDs from the DICOM directory path.
+    subject_id, session_id = extract_subject_session(dicom_root_dir)
+    
+    # Specify the exact directory where the NIfTI files will be saved.
+    output_dir_dwi = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'dwi')
+    output_dir_topup = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
+
+    # Check if DKI NIfTI files already exist.
+    if check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
+        print(f"DWI NIfTI files already exist for subject: {subject_id}, session: {session_id}")
+        return
+    
+    # Check if TOP-UP NIfTI files already exist.
+    if check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
+        print(f"Topup NIfTI files already exist for subject: {subject_id}, session: {session_id}")
+        return   
+    
+    # Otherwise:   
     try:
-        # Setup logging after extracting subject_id and session_id
-        subject_id, session_id = extract_subject_session(dicom_root_dir)
+        # Setup logging after extracting subject_id and session_id.
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
-        logging.info(f"Processing PCASL data for subject: {subject_id}, session: {session_id}")
+        logging.info(f"Processing DKI data for subject: {subject_id}, session: {session_id}")
 
         # Specify the exact directory where the DICOM files are located
-        dicom_dir = os.path.join(dicom_root_dir, 'tgse_pcasl_ve11c_from_USC')
+        dicom_dir_dwi = os.path.join(dicom_root_dir, 'DKI_BIPOLAR_2.5mm_64dir_58slices')
+        dicom_dir_topup = os.path.join(dicom_root_dir, 'DKI_BIPOLAR_2.5mm_64dir_58slices_TOP_UP_PA')
 
-        # Specify the exact directory where the NIfTI files will be saved
-        output_dir_perf = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'perf')
+        # Check if dcm2niix is installed and accessible in the system's PATH.
+        if check_dcm2niix_installed():
+                
+                # Run dcm2niix for DKI DICOM to NIfTI conversion.
+                run_dcm2niix_dwi(dicom_dir_dwi, output_dir_dwi, subject_id, session_id)
+                
+                # Check if cubids is installed.
+                if check_cubids_installed():
+                
+                    # Run cubids commands to add necessary BIDS metadata to DKI files.
+                    logging.info(f"Adding BIDS metadata to {subject_id}_{session_id}_dir-AP_dwi.nii")
+                    run_cubids_add_nifti_info(bids_root_dir)
+                
+                    # Update JSON files with necessary BIDS metadata
+                    json_filepath_dwi = os.path.join(output_dir_dwi, f'{subject_id}_{session_id}_dir-AP_dwi.json')
+                    update_json_file_dwi(json_filepath_dwi, subject_id, session_id, dicom_dir_topup)
+                    
+                    # Run cubids commands to remove BIDS metadata from DKI files.
+                    logging.info(f"Removing BIDS metadata from {subject_id}_{session_id}_dir-AP_dwi.nii")
+                    run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+                
+                    # Run dcm2niix for top up DICOM to NIfTI conversion.    
+                    run_dcm2niix_topup(dicom_dir_topup, output_dir_topup, subject_id, session_id)
+                
+                    # Run cubids commands to add necessary BIDS metadata to top up files.
+                    logging.info(f"Adding BIDS metadata to {subject_id}_{session_id}_acq-topup_dir-PA_epi.nii")
+                    run_cubids_add_nifti_info(bids_root_dir)
+                    json_filepath_topup = os.path.join(output_dir_topup, f'{subject_id}_{session_id}_acq-topup_dir-PA_epi.json')
+                    update_json_file_topup(json_filepath_topup, subject_id, session_id, dicom_dir_topup)
+                    
+                    # Run cubids commands to remove BIDS metadata from top up files.
+                    logging.info(f"Removing BIDS metadata from {subject_id}_{session_id}_acq-topup_dir-PA_epi.nii")
+                    run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
 
-        # Check if PCASL NIfTI files already exist
-        if not check_existing_nifti(output_dir_perf, subject_id, session_id):
-            if check_dcm2niix_installed():
-                # Run dcm2niix for DICOM to NIfTI conversion.
-                run_dcm2niix(dicom_dir, output_dir_perf, subject_id, session_id)
-            else:
+                    # Run dcm2niix for verbose output.
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        run_dcm2niix_verbose_dwi(dicom_dir_dwi, temp_dir, subject_id, session_id, log_file_path)
+                        run_dcm2niix_verbose_topup(dicom_dir_topup, temp_dir, subject_id, session_id, log_file_path)
+                else:
+                    logging.warning("cubids is not installed. Skipping cubids commands.")
+        else:
                 logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
                 return  # Exit the function if dcm2niix is not installed
-            
-        # Check if cubids is installed
-        if check_cubids_installed():
-            # Run cubids commands
-            run_cubids_add_nifti_info(bids_root_dir)
-
-            run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
-        else:
-            logging.warning("cubids is not installed. Skipping cubids commands.")
-    
-        # Process DICOM headers and create aslcontext.tsv.
-        dicom_headers = read_dicom_headers(dicom_dir)
-        create_aslcontext_file(len(dicom_headers), output_dir_perf, subject_id, session_id)
-
-        # Update JSON file with necessary BIDS metadata
-        json_filepath = os.path.join(output_dir_perf, f'{subject_id}_{session_id}_asl.json')
-        update_json_file(json_filepath)
-        
-        if check_dcm2niix_installed():
-                # Run dcm2niix for verbose output.
-                with tempfile.TemporaryDirectory() as temp_dir:
-                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
-        else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-            return  # Exit the function if dcm2niix is not installed
         
     # Log other errors. 
     except Exception as e:
@@ -660,12 +801,11 @@ if __name__ == "__main__":
     Parses command-line arguments to determine the directories for DICOM files and BIDS dataset.
 
     Usage:
-    process_PCASL_to_BIDS.py <dicom_root_dir> <bids_root>
-
+    process_DKI_to_BIDS.py <dicom_root_dir> <bids_root>
    """
     
     # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files for PCASL and convert to NIfTI.')
+    parser = argparse.ArgumentParser(description='Process DICOM files for DKI and convert to NIfTI.')
 
     # Add arguments to the parser.
 
