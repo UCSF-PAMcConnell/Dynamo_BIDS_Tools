@@ -14,7 +14,7 @@ python process_T1_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir --py
 
 Author: PAMcConnell
 Created on: 20231111
-Last Modified: 20231111
+Last Modified: 20231112
 
 License: MIT License
 
@@ -230,7 +230,7 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
     try:
         verbose_cmd = [
         'dcm2niix',
-        '-f', f'{subject_id}_{session_id}_asl', # Naming convention. 
+        '-f', f'{subject_id}_{session_id}_T1w', # Naming convention. 
         '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
         '-b', 'y', # Save BIDS metadata to .json sidecar. 
         '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
@@ -594,6 +594,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process DICOM files and convert them to NIfTI format following BIDS conventions.')
     
     # Add arguments to the parser.
+    
     # The first argument is the root directory containing the DICOM directories.
     parser.add_argument('dicom_root_dir', type=str, help='Root directory containing the DICOM directories.')
     

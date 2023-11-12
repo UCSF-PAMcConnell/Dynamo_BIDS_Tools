@@ -14,7 +14,7 @@ python process_FLAIR_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir -
 
 Author: PAMcConnell
 Created on: 20231111
-Last Modified: 20231111
+Last Modified: 20231112
 
 License: MIT License
 
@@ -23,7 +23,7 @@ Dependencies:
 - dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
 - pydeface (command-line tool) https://github.com/poldracklab/pydeface
 - CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- os, tempfile, logging, subprocess, glob, argparse, re (standard Python libraries)
+- os, tempfile, logging, subprocess, glob, argparse, sys, re (standard Python libraries)
 
 Environment Setup:
 - Ensure Python 3.12 is installed in your environment.
@@ -36,6 +36,7 @@ Environment Setup:
 
 Change Log:
 - 20231111: Initial version
+- 20231112: updated output directory convention and added verbose dcm2niix output logging. 
 """
 
 import os                     # Used for operating system dependent functionalities like file path manipulation.
@@ -194,23 +195,62 @@ def run_dcm2niix(input_dir, output_dir_anat, subject_id, session_id, log_file_pa
             input_dir
         ]
         
+        # Run the actual conversion without verbose output.
+        subprocess.run(base_cmd) #capture_output=False, text=False)
+        logging.info(f"dcm2niix conversion completed successfully to {output_dir_anat}.")
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
+# Runs the dcm2niix conversion tool to produce verbose output to logfile. 
+def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_path):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    The function logs verbose output to the specified log file. 
+
+    Usage Example:
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<perf_dicoms>, 'temp_dir', 'sub-01', 'ses-01')
+
+    """
+    try:
+        verbose_cmd = [
+        'dcm2niix',
+        '-f', f'{subject_id}_{session_id}_FLAIR', # Naming convention. 
+        '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+        '-b', 'y', # Save BIDS metadata to .json sidecar. 
+        '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+        '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
+        '-z', 'n', # Do not compress files.
+        '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+        '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+        '-m', '2', # Merge slices from same series automatically based on modality. 
+        '-v', 'y', # Print verbose output to logfile.
+        '-o', temp_dir,
+        input_dir
+    ]
+        
         # Create a temporary directory for the verbose output run.
         with tempfile.TemporaryDirectory() as temp_dir:
-            verbose_cmd = base_cmd + ['-v', 'y', '-o', temp_dir] # Print verbose output to logfile.
             with open(log_file_path, 'a') as log_file:
-                subprocess.run(verbose_cmd, stdout=log_file, stderr=log_file)
-                logging.info("Verbose output saved to %s", log_file_path)
+                result = subprocess.run(verbose_cmd, check=True, stdout=log_file, stderr=log_file)
+                logging.info(result.stdout)
+                if result.stderr:
+                    logging.error(result.stderr)
 
-        # Run the actual conversion without verbose output.
-        regular_cmd = base_cmd # ['-v', 'n']
-        result = subprocess.run(regular_cmd, capture_output=True, text=True)
-        logging.info(result.stdout)
-        if result.stderr:
-            logging.error(result.stderr)
-
-        # Log conversion success.
-        logging.info("dcm2niix conversion completed successfully.")
-    
     # Log conversion errors.
     except subprocess.CalledProcessError as e:
         logging.error("dcm2niix conversion failed: %s", e)
@@ -324,7 +364,7 @@ def run_pydeface_func(output_dir_anat, subject_id, session_id):
         logging.info(f"Executing pydeface: {' '.join(pydeface_command)}")
         result = subprocess.run(pydeface_command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        # Log the standard output and error
+        # Log the standard output and error.
         logging.info("pydeface output:\n%s", result.stdout)
         if result.stderr:
             logging.error("pydeface error output:\n%s", result.stderr)
@@ -447,27 +487,27 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
     - pydeface for defacing NIfTI images.
     """
     try:
-        # Setup logging after extracting subject_id and session_id
+        # Setup logging after extracting subject_id and session_id.
         subject_id, session_id = extract_subject_session(dicom_root_dir)
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info(f"Processing subject: {subject_id}, session: {session_id}")
 
-        # Specify the exact directory where the DICOM files are located
-        dicom_dir = os.path.join(dicom_root_dir, 't2_tse_dark-fluid_tra_3mm')
+        # Specify the exact directory where the DICOM files are located.
+        dicom_dir = os.path.join(dicom_root_dir, 't2_tse_dark-fluid_tra_3mm') # Change to match sequence name as needed.
 
-        # Specify the exact directory where the NIfTI files will be saved
+        # Specify the exact directory where the NIfTI files will be saved.
         output_dir_anat = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'anat')
 
-        # Check if FLAIR NIfTI files already exist
+        # Check if FLAIR NIfTI files already exist.
         if not check_existing_nifti(output_dir_anat, subject_id, session_id):
             if check_dcm2niix_installed():
                 # Run dcm2niix for DICOM to NIfTI conversion.
                 run_dcm2niix(dicom_dir, output_dir_anat, subject_id, session_id, log_file_path)
             else:
                 logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-                return  # Exit the function if dcm2niix is not installed
+                return  # Exit the function if dcm2niix is not installed.
             
-        # Optional pydeface execution
+        # Optional pydeface execution.
         if run_pydeface and check_pydeface_installed():
             run_pydeface_func(output_dir_anat, subject_id, session_id)
 
@@ -477,20 +517,28 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
         else:
             logging.info("Pydeface execution is not enabled.")
 
-        # Check if cubids is installed
+        # Check if cubids is installed.
         if check_cubids_installed():
-            # Run cubids commands
+            # Run cubids commands.
             run_cubids_add_nifti_info(bids_root_dir)
             run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
         else:
             logging.warning("cubids is not installed. Skipping cubids commands.")
-    
+        
+        if check_dcm2niix_installed():
+                # Run dcm2niix for verbose output.
+                with tempfile.TemporaryDirectory() as temp_dir:
+                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
+        else:
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            return  # Exit the function if dcm2niix is not installed.
+        
     # Log other errors. 
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
         raise
 
-# Main code execution starts here
+# Main code execution starts here.
 if __name__ == "__main__":
     """
     Entry point of the script when executed from the command line.
@@ -505,12 +553,22 @@ if __name__ == "__main__":
     process_FLAIR_to_BIDS.py /path/to/dicom_root /path/to/bids_root --pydeface
     """
     
-    # Configure the argument parser
+   # Set up an argument parser to handle command-line arguments.
     parser = argparse.ArgumentParser(description='Process DICOM files and convert them to NIfTI format following BIDS conventions.')
+    
+    # Add arguments to the parser.
+    
+    # The first argument is the root directory containing the DICOM directories.
     parser.add_argument('dicom_root_dir', type=str, help='Root directory containing the DICOM directories.')
+    
+    # The second argument is the root directory of the BIDS dataset.
     parser.add_argument('bids_root', type=str, help='Root directory of the BIDS dataset.')
+    
+    # The third (optional) argument specifies whether to run pydeface for defacing the images.
     parser.add_argument('--pydeface', action='store_true', help='Optionally run pydeface for defacing the images.')
+    
+    # Parse the arguments provided by the user.
     args = parser.parse_args()
     
-    # Run the main function with the parsed arguments
+    # Run the main function with the parsed arguments.
     main(args.dicom_root_dir, args.bids_root, args.pydeface)
