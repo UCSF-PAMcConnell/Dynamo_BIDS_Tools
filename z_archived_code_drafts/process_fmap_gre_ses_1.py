@@ -1,3 +1,41 @@
+"""
+process_PCASL_to_BIDS.py
+
+Description:
+This script processes Pseudocontinuous Arterial Spin Labeling (PCASL) DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+It includes functionalities for DICOM to NIfTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids. 
+The script checks for the installation of dcm2niix, pydeface, and cubids 
+before executing relevant commands. It also handles file renaming.
+
+Usage:
+python process_PCASL_to_BIDS.py <dicom_root_dir> <bids_root_dir>
+e.g.,
+python process_PCASL_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir 
+
+Author: PAMcConnell
+Created on: 20231112
+Last Modified: 20231112
+
+License: MIT License
+
+Dependencies:
+- Python 3.12
+- pydicom for reading DICOM files.
+- dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
+- CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
+- Standard Python libraries: tempfile, os, logging, subprocess, argparse, re, sys, json, glob.
+
+Environment Setup:
+- Ensure Python 3.12, dcm2niix and cubids are installed in your environment.
+- You can install dcm2niix using conda: `conda install -c conda-forge dcm2niix pydicom`.
+- Install cubids following the instructions provided in its documentation.
+- Try 'pip install cubids'
+- To set up the required environment, you can use the provided environment.yml file with Conda. <datalad.yml>
+
+Change Log:
+- 20231112: Initial version
+"""
+
 import os
 import argparse
 import subprocess
@@ -6,8 +44,6 @@ import glob
 import json
 import shutil
 import tempfile
-
-# input arguments: <dicom_root_dir> <bids_root>
 
 def update_json_file(json_filepath, intended_for=None):
     """
