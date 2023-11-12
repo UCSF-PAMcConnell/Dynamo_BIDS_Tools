@@ -23,7 +23,7 @@ Dependencies:
 - dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
 - pydeface (command-line tool) https://github.com/poldracklab/pydeface
 - CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- os, logging, subprocess, glob, argparse, re (standard Python libraries)
+- os, tempfile, logging, subprocess, glob, argparse, re (standard Python libraries)
 
 Environment Setup:
 - Ensure Python 3.12 is installed in your environment.
@@ -46,6 +46,7 @@ import subprocess             # Spawn new processes, connect to their input/outp
 import sys                    # Provides access to some variables used or maintained by the interpreter.
 import json                   # JSON encoder and decoder.
 import glob                   # Unix style pathname pattern expansion.
+import tempfile               # Generate temporary files and directories.
 
 # Set up logging for individual archive logs.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -103,17 +104,17 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     return log_file_path
 
 # Checks if T2-weighted FLAIR NIfTI files already exist in the specified BIDS output directory.
-def check_existing_nifti(output_dir, subject_id, session_id):
+def check_existing_nifti(output_dir_anat, subject_id, session_id):
     """
     Parameters:
-    - output_dir (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_anat (str): The BIDS output directory where NIfTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
     - bool: True if FLAIR NIfTI files exist, False otherwise.
     """
-    expected_nifti_file = os.path.join(output_dir, 'anat', f'{subject_id}_{session_id}_FLAIR.nii')
+    expected_nifti_file = os.path.join(output_dir_anat, f'{subject_id}_{session_id}_FLAIR.nii')
     if os.path.isfile(expected_nifti_file):
         logging.info(f"T2-weighted FLAIR NIfTI file already exists: {expected_nifti_file}")
         return True
@@ -156,13 +157,13 @@ def extract_subject_session(dicom_root_dir):
     return subject_id, session_id
 
 # Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
-def run_dcm2niix(input_dir, output_dir, subject_id, session_id, log_file_path):
+def run_dcm2niix(input_dir, output_dir_anat, subject_id, session_id, log_file_path):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_anat (str): Directory where the converted NIfTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -177,11 +178,9 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id, log_file_path):
     """
     try:
         # Ensure the output directory for anatomical scans exists.
-        output_dir_anat = os.path.join(output_dir, 'anat')
         os.makedirs(output_dir_anat, exist_ok=True)
-        cmd = [
+        base_cmd = [
             'dcm2niix',
-            '-v', 'y', # Print verbose output.
             '-f', f'{subject_id}_{session_id}_FLAIR', # Naming convention. 
             '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
             '-b', 'y', # Save BIDS metadata to .json sidecar. 
@@ -195,14 +194,19 @@ def run_dcm2niix(input_dir, output_dir, subject_id, session_id, log_file_path):
             input_dir
         ]
         
-        # Execute dcm2niix with verbose output
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        # Write verbose output to log file
-        with open(log_file_path, 'a') as log_file:
-            log_file.write("dcm2niix verbose output:\n")
-            log_file.write(result.stdout if result.stdout else "")
-            log_file.write(result.stderr if result.stderr else "")
+        # Create a temporary directory for the verbose output run.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            verbose_cmd = base_cmd + ['-v', 'y', '-o', temp_dir] # Print verbose output to logfile.
+            with open(log_file_path, 'a') as log_file:
+                subprocess.run(verbose_cmd, stdout=log_file, stderr=log_file)
+                logging.info("Verbose output saved to %s", log_file_path)
+
+        # Run the actual conversion without verbose output.
+        regular_cmd = base_cmd # ['-v', 'n']
+        result = subprocess.run(regular_cmd, capture_output=True, text=True)
+        logging.info(result.stdout)
+        if result.stderr:
+            logging.error(result.stderr)
 
         # Log conversion success.
         logging.info("dcm2niix conversion completed successfully.")
@@ -286,10 +290,10 @@ def run_cubids_remove_metadata_fields(bids_root_dir, fields):
         raise
 
 # Executes the pydeface command to anonymize NIfTI images by removing facial features.
-def run_pydeface_func(output_dir, subject_id, session_id):
+def run_pydeface_func(output_dir_anat, subject_id, session_id):
     """
     Parameters:
-    - output_dir (str): Directory where the NIfTI files are stored.
+    - output_dir_anat (str): Directory where the NIfTI files are stored.
     - subject_id (str): Subject ID used in the BIDS file naming.
     - session_id (str): Session ID used in the BIDS file naming.
 
@@ -312,9 +316,9 @@ def run_pydeface_func(output_dir, subject_id, session_id):
         # Construct the pydeface command.
         pydeface_command = [
             'pydeface',
-            f"{output_dir}/anat/{subject_id}_{session_id}_FLAIR.nii",
+            f"{output_dir}/{subject_id}_{session_id}_FLAIR.nii",
             '--outfile',
-            f"{output_dir}/anat/{subject_id}_{session_id}_FLAIR.nii",
+            f"{output_dir}/{subject_id}_{session_id}_FLAIR.nii",
             '--force'
         ]
         logging.info(f"Executing pydeface: {' '.join(pydeface_command)}")
@@ -452,20 +456,20 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
         dicom_dir = os.path.join(dicom_root_dir, 't2_tse_dark-fluid_tra_3mm')
 
         # Specify the exact directory where the NIfTI files will be saved
-        output_dir = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}')
+        output_dir_anat = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'anat')
 
         # Check if FLAIR NIfTI files already exist
-        if not check_existing_nifti(output_dir, subject_id, session_id):
+        if not check_existing_nifti(output_dir_anat, subject_id, session_id):
             if check_dcm2niix_installed():
                 # Run dcm2niix for DICOM to NIfTI conversion.
-                run_dcm2niix(dicom_dir, output_dir, subject_id, session_id, log_file_path)
+                run_dcm2niix(dicom_dir, output_dir_anat, subject_id, session_id, log_file_path)
             else:
                 logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
                 return  # Exit the function if dcm2niix is not installed
             
         # Optional pydeface execution
         if run_pydeface and check_pydeface_installed():
-            run_pydeface_func(output_dir, subject_id, session_id)
+            run_pydeface_func(output_dir_anat, subject_id, session_id)
 
         # Log pydeface execution errors.
         elif run_pydeface:

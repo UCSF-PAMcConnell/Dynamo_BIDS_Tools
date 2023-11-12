@@ -22,7 +22,7 @@ Dependencies:
 - pydicom for reading DICOM files.
 - dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
 - CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- Standard Python libraries: tempfile, os, logging, subprocess, argparse, re, sys, json, glob.
+- Standard Python libraries: datetime, tempfile, os, logging, subprocess, argparse, re, sys, json, glob.
 
 Environment Setup:
 - Ensure Python 3.12, dcm2niix and cubids are installed in your environment.
@@ -55,6 +55,7 @@ import sys                    # Provides access to some variables used or mainta
 import json                   # JSON encoder and decoder.
 import glob                   # Unix style pathname pattern expansion.
 import pydicom                # Read, modify, and write DICOM files with Python.
+import datetime               # Manipulate dates and times.
 
 # Set up logging for individual archive logs.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -327,7 +328,7 @@ def update_json_file(json_filepath):
         raise
 
 # Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
-def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id, log_file_path):
+def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
@@ -339,7 +340,7 @@ def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id, log_file_pa
 
     This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
     It saves the output in the specified output directory, structuring the filenames
-    according to BIDS conventions. The function logs verbose output to the specified log file. 
+    according to BIDS conventions. 
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
 
     Usage Example:
@@ -364,23 +365,62 @@ def run_dcm2niix(input_dir, output_dir_perf, subject_id, session_id, log_file_pa
             input_dir
         ]
 
+        # Run the actual conversion without verbose output.
+        subprocess.run(base_cmd) #capture_output=False, text=False)
+        logging.info(f"dcm2niix conversion completed successfully to {output_dir_perf}.")
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
+# Runs the dcm2niix conversion tool to produce verbose output to logfile. 
+def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_path):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    The function logs verbose output to the specified log file. 
+
+    Usage Example:
+    run_dcm2niix('/path/to/dicom', 'temp_dir', 'sub-01', 'ses-01')
+
+    """
+    try:
+        verbose_cmd = [
+        'dcm2niix',
+        '-v', 'y', # Print verbose output to logfile.
+        '-f', f'{subject_id}_{session_id}_asl', # Naming convention. 
+        '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+        '-b', 'y', # Save BIDS metadata to .json sidecar. 
+        '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+        '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
+        '-z', 'n', # Do not compress files.
+        '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+        '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+        '-m', '2', # Merge slices from same series automatically based on modality. 
+        '-o', temp_dir,
+        input_dir
+    ]
+        
         # Create a temporary directory for the verbose output run.
         with tempfile.TemporaryDirectory() as temp_dir:
-            verbose_cmd = base_cmd + ['-v', 'y', '-o', temp_dir] # Print verbose output to logfile.
             with open(log_file_path, 'a') as log_file:
-                subprocess.run(verbose_cmd, stdout=log_file, stderr=log_file)
-                logging.info("Verbose output saved to %s", log_file_path)
+                result = subprocess.run(verbose_cmd, check=True, stdout=log_file, stderr=log_file)
+                logging.info(result.stdout)
+                if result.stderr:
+                    logging.error(result.stderr)
 
-        # Run the actual conversion without verbose output.
-        regular_cmd = base_cmd # ['-v', 'n']
-        result = subprocess.run(regular_cmd, capture_output=True, text=True)
-        logging.info(result.stdout)
-        if result.stderr:
-            logging.error(result.stderr)
-
-        # Log conversion success.
-        logging.info("dcm2niix conversion completed successfully.")
-    
     # Log conversion errors.
     except subprocess.CalledProcessError as e:
         logging.error("dcm2niix conversion failed: %s", e)
@@ -577,7 +617,7 @@ def main(dicom_root_dir, bids_root_dir):
         if not check_existing_nifti(output_dir_perf, subject_id, session_id):
             if check_dcm2niix_installed():
                 # Run dcm2niix for DICOM to NIfTI conversion.
-                run_dcm2niix(dicom_dir, output_dir_perf, subject_id, session_id, log_file_path)
+                run_dcm2niix(dicom_dir, output_dir_perf, subject_id, session_id)
             else:
                 logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
                 return  # Exit the function if dcm2niix is not installed
@@ -598,6 +638,14 @@ def main(dicom_root_dir, bids_root_dir):
         # Update JSON file with necessary BIDS metadata
         json_filepath = os.path.join(output_dir_perf, f'{subject_id}_{session_id}_asl.json')
         update_json_file(json_filepath)
+        
+        if check_dcm2niix_installed():
+                # Run dcm2niix for verbose output.
+                with tempfile.TemporaryDirectory() as temp_dir:
+                   run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
+        else:
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            return  # Exit the function if dcm2niix is not installed
         
     # Log other errors. 
     except Exception as e:
