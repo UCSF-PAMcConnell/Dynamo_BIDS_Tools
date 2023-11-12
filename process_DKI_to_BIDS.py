@@ -35,6 +35,8 @@ Environment Setup:
 Change Log:
 - 20231112: Initial version
 
+*** NOTE: Verify correct "IntendedFor" Path ***
+
 """
 import os                     # Used for operating system dependent functionalities like file path manipulation.
 import logging                # Logging library, for tracking events that happen when running the software.
@@ -50,27 +52,46 @@ import pydicom                # Read, modify, and write DICOM files with Python.
 # Extracts the B0FieldIdentifier from DICOM tags in the first file of a directory.
 def extract_b0_field_identifier(dicom_dir_topup):
     """
+    Extracts the B0FieldIdentifier (assumed as 'SequenceName') from DICOM tags 
+    in the first DICOM file found in a specified directory.
+
+    This function iterates over files in the given directory and reads the first 
+    DICOM file it finds to extract the specified tag.
+
     Parameters:
     dicom_dir_topup (str): Path to the directory containing DICOM files.
     
     Returns:
-    str: The SequenceName from the first DICOM file in the directory.
+    str: The value of 'SequenceName' from the first DICOM file in the directory,
+         or a message indicating that no DICOM files were found.
 
-    # Example usage
+    Usage example:
     b0_field_identifier = extract_b0_field_identifier('/path/to/dicom/dir')
     print(b0_field_identifier)
-    """
 
-    # Iterate over files in the directory
-    for filename in os.listdir(dicom_dir_topup):
-        file_path = os.path.join(dicom_dir_topup, filename)
+    """
+    try:
+        # Iterate over files in the directory
+        for filename in os.listdir(dicom_dir_topup):
+            file_path = os.path.join(dicom_dir_topup, filename)
+        
         # Check if the file is a DICOM file
         if pydicom.misc.is_dicom(file_path):
             dicom_data = pydicom.dcmread(file_path)
-            # Assuming 'SequenceName' is the tag you want to extract
-            return dicom_data.SequenceName
-
-    return "No DICOM files found in the directory."
+            
+            # Extract 'SequenceName' from the DICOM file
+            sequence_name = dicom_data.get("SequenceName", "Tag not found")
+            logging.info(f"Extracted SequenceName: {sequence_name}")
+            return sequence_name
+        
+        # Log if no DICOM files are found in the directory
+        logging.warning("No DICOM files found in the directory: " + dicom_dir_topup)
+        return "No DICOM files found in the directory."
+    
+    # Catch any errors and log them.
+    except Exception as e:
+        logging.error("Error occurred while extracting B0FieldIdentifier: " + str(e))
+        raise
 
 # Set up logging for individual archive logs.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -130,38 +151,79 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 # Checks if DKI NIfTI files already exist in the specified BIDS output directory.
 def check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
     """
+    Checks if Diffusion Kurtosis Imaging (DKI) NIfTI files already exist in the 
+    specified BIDS (Brain Imaging Data Structure) output directory. This function 
+    is designed to prevent redundant data processing by verifying the presence of 
+    expected NIfTI files.
+
     Parameters:
     - output_dir_dwi (str): The BIDS output directory where NIfTI files are stored.
-    - subject_id (str): The subject ID.
-    - session_id (str): The session ID.
+    - subject_id (str): The subject ID, used in the naming convention of the files.
+    - session_id (str): The session ID, used in the naming convention of the files.
 
     Returns:
-    - bool: True if T1w NIfTI files exist, False otherwise.
+    - bool: True if the DKI NIfTI file exists, False otherwise.
+
+    Usage example:
+    file_exists = check_existing_nifti_dwi('/path/to/output/dir', 'sub-01', 'ses-01')
+    if file_exists:
+        print("NIfTI file already exists.")
     """
-    expected_nifti_file = os.path.join(output_dir_dwi, f'{subject_id}_{session_id}_dir-AP_dwi.nii')
-    if os.path.isfile(expected_nifti_file):
-        logging.info(f"DKI NIfTI file already exists: {expected_nifti_file}")
-        return True
-    else:
-        return False
+    try:
+        # Construct the expected file path based on BIDS naming convention
+        expected_nifti_file = os.path.join(output_dir_dwi, f'{subject_id}_{session_id}_dir-AP_dwi.nii')
+        
+        # Check if the expected NIfTI file exists
+        if os.path.isfile(expected_nifti_file):
+            logging.info(f"DKI NIfTI file already exists: {expected_nifti_file}")
+            return True
+        else:
+            logging.info(f"DKI NIfTI file not found: {expected_nifti_file}")
+            return False
+        
+    # Catch and log any exceptions.
+    except Exception as e:
+        logging.error(f"Error occurred while checking for existing DKI NIfTI file: {str(e)}")
+        raise
 
 # Checks if Top Up NIfTI files already exist in the specified BIDS output directory.
 def check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
     """
+    Checks if Top Up NIfTI files already exist in the specified BIDS (Brain Imaging Data Structure) 
+    output directory. The function is designed to avoid redundant data processing by ensuring that 
+    the necessary NIfTI files for a given subject and session have not been previously generated.
+
     Parameters:
-    - output_dir_dwi (str): The BIDS output directory where NIfTI files are stored.
-    - subject_id (str): The subject ID.
-    - session_id (str): The session ID.
+    - output_dir_topup (str): The BIDS output directory where NIfTI files are stored.
+    - subject_id (str): The subject ID, used in the naming convention of the files.
+    - session_id (str): The session ID, used in the naming convention of the files.
 
     Returns:
-    - bool: True if T1w NIfTI files exist, False otherwise.
+    - bool: True if the Top Up NIfTI file exists, False otherwise.
+
+    Usage example:
+    file_exists = check_existing_nifti_topup('/path/to/output/dir', 'sub-01', 'ses-01')
+    if file_exists:
+        print("Top Up NIfTI file already exists.")
     """
-    expected_nifti_file = os.path.join(output_dir_topup, f'{subject_id}_{session_id}_acq-topup_dir-PA_epi.nii')
-    if os.path.isfile(expected_nifti_file):
-        logging.info(f"DKI NIfTI file already exists: {expected_nifti_file}")
-        return True
-    else:
-        return False
+
+    try:
+        # Construct the expected file path based on BIDS naming convention
+        expected_nifti_file = os.path.join(output_dir_topup, f'{subject_id}_{session_id}_acq-topup_dir-PA_epi.nii')
+        
+        # Check if the expected NIfTI file exists
+        if os.path.isfile(expected_nifti_file):
+            logging.info(f"Top Up NIfTI file already exists: {expected_nifti_file}")
+            return True
+        else:
+            logging.info(f"Top Up NIfTI file not found: {expected_nifti_file}")
+            return False
+        
+    # Catch and log any exceptions.
+    except Exception as e:
+        logging.error(f"Error occurred while checking for existing Top Up NIfTI file: {str(e)}")
+        raise
+    
 # Extract the subject and session IDs from the provided physio root directory path.
 def extract_subject_session(dicom_root_dir):
     """
@@ -243,25 +305,25 @@ def read_dicom_headers(dicom_dir):
 # Updates the DKI JSON sidecar file with specific fields required for BIDS compliance in DKI datasets.
 def update_json_file_dwi(json_filepath_dwi, subject_id, session_id, dicom_dir_topup):
     """
+    Updates the specified JSON sidecar file with fields relevant to Diffusion Kurtosis Imaging (DKI).
+    This function reads the existing JSON file, adds or updates specific metadata fields, and then 
+    writes the changes back to the file. The updates ensure compliance with the BIDS standard for DKI/DWI data.
+
     Parameters:
     - json_filepath (str): Path to the JSON sidecar file.
-
-    This function updates the specified JSON file with fields relevant to DKI imaging
-    These updates ensure that the dataset conforms to the BIDS standard for 
-    DKI/DWI data.
-
-    The function handles the reading and writing of the JSON file, ensuring that the file is properly updated
-    and formatted.
+    - dicom_dir_topup (str): Directory containing DICOM files used for extracting B0 field information.
 
     Usage Example:
-    update_json_file('/path/to/sidecar.json')
+    update_json_file('/path/to/sidecar.json', '/path/to/dicom/dir')
 
     Dependencies:
     - json module for reading and writing JSON files.
-    - os and sys modules for file operations and system-level functionalities.
+    - Logging for logging information and errors.
+    - Function 'extract_b0_field_identifier' for extracting B0 field information from DICOM files.
 
-    *** Note: Refer to MR protocol documentation in /doc/MR_protocols for more information. ***
+    Note: Refer to MR protocol documentation in /doc/MR_protocols for more information about metadata fields.
     """
+
     try:
         with open(json_filepath_dwi, 'r+') as file:
             data = json.load(file)
@@ -292,24 +354,25 @@ def update_json_file_dwi(json_filepath_dwi, subject_id, session_id, dicom_dir_to
 # Updates the DKI JSON sidecar file with specific fields required for BIDS compliance in DKI datasets.
 def update_json_file_topup(json_filepath_topup, subject_id, session_id, dicom_dir_topup):
     """
+    Updates the specified JSON sidecar file with fields relevant to Diffusion Kurtosis Imaging (DKI)
+    and field map correction (Top Up). The function adds or updates the 'B0FieldIdentifier' and 'IntendedFor'
+    fields in the JSON file, ensuring compliance with the BIDS standard for DKI/DWI data.
+
     Parameters:
-    - json_filepath (str): Path to the JSON sidecar file.
-
-    This function updates the specified JSON file with fields relevant to DKI imaging
-    These updates ensure that the dataset conforms to the BIDS standard for 
-    DKI/DWI data.
-
-    The function handles the reading and writing of the JSON file, ensuring that the file is properly updated
-    and formatted.
+    - json_filepath_topup (str): Path to the JSON sidecar file for Top Up correction.
+    - dicom_dir_topup (str): Directory containing DICOM files used for extracting B0 field information.
+    - subject_id (str): Subject ID, used to construct the 'IntendedFor' field.
+    - session_id (str): Session ID, used to construct the 'IntendedFor' field.
 
     Usage Example:
-    update_json_file('/path/to/sidecar.json')
+    update_json_file('/path/to/topup/sidecar.json', '/path/to/dicom/dir/topup', 'sub-01', 'ses-01')
 
     Dependencies:
     - json module for reading and writing JSON files.
-    - os and sys modules for file operations and system-level functionalities.
+    - Logging for logging information and errors.
+    - Function 'extract_b0_field_identifier' for extracting B0 field information from DICOM files.
 
-    *** Note: Refer to MR protocol documentation in /doc/MR_protocols for more information. ***
+    Note: Refer to MR protocol documentation in /doc/MR_protocols for additional metadata field information.
     """
     try:
         with open(json_filepath_topup, 'r+') as file:
@@ -691,30 +754,23 @@ def check_cubids_installed():
 # Main function for orchestrating the conversion process.
 def main(dicom_root_dir,bids_root_dir):
     """
-    Main function to process DKI DICOM files and convert them to NIfTI format following BIDS conventions.
+    Main function for orchestrating the conversion of DKI DICOM files to NIfTI format following BIDS conventions.
+    This function manages the entire conversion workflow, from checking pre-existing files to executing conversion
+    and metadata handling tasks.
 
     Parameters:
     - dicom_root_dir (str): Path to the root directory containing the DKI DICOM files.
     - bids_root_dir (str): Path to the BIDS dataset root directory.
 
-    This function orchestrates several steps:
+    The function performs the following steps:
     1. Extracts subject and session IDs from the DICOM directory path.
     2. Sets up logging for detailed record-keeping of the process.
     3. Checks if NIfTI files already exist to avoid redundant processing.
     4. Runs dcm2niix for DICOM to NIfTI conversion if necessary.
     5. Executes cubids commands for BIDS-compliant metadata processing.
-    6. Creates an dwicontext.tsv file necessary for BIDS ASL data.
-
-    The function assumes the availability of dcm2niix and cubids command-line tools. It also 
-    handles the potential discrepancy in the expected number of volumes in the DKI series.
 
     Usage Example:
     main('/path/to/dicom_root_dir', '/path/to/bids_root_dir')
-
-    Dependencies:
-    - dcm2niix, pydicom, and cubids for file processing and conversion.
-    - os, subprocess, argparse, re, and json for file and system operations.
-    - logging for detailed logging of the process.
     """
 
     # Extract subject and session IDs from the DICOM directory path.
