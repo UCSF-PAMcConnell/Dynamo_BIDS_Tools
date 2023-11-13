@@ -175,7 +175,7 @@ def check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
         
         # Check if the expected NIfTI file exists
         if os.path.isfile(expected_nifti_file):
-            logging.info(f"DKI NIfTI file already exists: {expected_nifti_file}")
+            print(f"DKI NIfTI file already exists: {expected_nifti_file}")
             return True
         else:
             logging.info(f"DKI NIfTI file not found: {expected_nifti_file}")
@@ -216,7 +216,7 @@ def check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
             logging.info(f"Top Up NIfTI file already exists: {expected_nifti_file}")
             return True
         else:
-            logging.info(f"Top Up NIfTI file not found: {expected_nifti_file}")
+            print(f"Top Up NIfTI file not found: {expected_nifti_file}")
             return False
         
     # Catch and log any exceptions.

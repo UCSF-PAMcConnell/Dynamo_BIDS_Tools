@@ -101,62 +101,200 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
+# Extract the subject and session IDs from the physio_root_dir path
+def extract_subject_session(physio_root_dir):
+    """
+    Parameters:
+    - physio_root_dir: str, the directory path that includes subject and session information.
+    Returns:
+    - subject_id: str, the extracted subject ID
+    - session_id: str, the extracted session ID
+    """
+    # Normalize the path to remove any trailing slashes for consistency
+    physio_root_dir = os.path.normpath(physio_root_dir)
+
+    # The pattern looks for 'sub-' followed by any characters until a slash, and similar for 'ses-'
+    match = re.search(r'(sub-[^/]+)/(ses-[^/]+)', physio_root_dir)
+    if not match:
+        raise ValueError("Unable to extract subject_id and session_id from path: %s", physio_root_dir)
+    
+    subject_id, session_id = match.groups()
+
+    # Set up log to print the extracted IDs
+    return subject_id, session_id
+
+# Check the MATLAB files and TSV files in the specified directories.
+def check_files(matlab_root_dir, output_path, expected_mat_file_size_range_mb):
+    """
+    Check the MATLAB files and TSV files in the specified directories.
+
+    Parameters:
+    - matlab_root_dir (str): Directory containing the MATLAB files.
+    - output_path (str): Directory where the TSV event files are expected to be saved.
+    - expected_mat_file_size_range_mb (tuple): A tuple containing the minimum and maximum expected size of MATLAB files in megabytes.
+
+    Returns:
+    - bool: True if all checks pass, False otherwise.
+    """
+
+    # Convert MB to bytes for file size comparison
+    min_size_bytes, max_size_bytes = [size * 1024 * 1024 for size in expected_mat_file_size_range_mb]
+
+    # Check for exactly 8 MATLAB files
+    mat_files = [f for f in os.listdir(matlab_root_dir) if f.endswith('.mat') and "processedData" not in f]
+    if len(mat_files) != 8:
+        logging.error(f"Incorrect number of MATLAB files in {matlab_root_dir}. Expected 8, found {len(mat_files)}.")
+        return False
+
+    # Check each MATLAB file size
+    for file in mat_files:
+        file_path = os.path.join(matlab_root_dir, file)
+        file_size = os.path.getsize(file_path)
+        if not (min_size_bytes <= file_size <= max_size_bytes):
+            logging.error(f"MATLAB file {file} size is not within the expected range.")
+            return False
+
+    # Check that there are not already 8 TSV files in the output directory
+    tsv_files = [f for f in os.listdir(output_path) if f.endswith('.tsv')]
+    if len(tsv_files) >= 8:
+        logging.error(f"Found 8 or more TSV files in {output_path}, indicating processing may already be complete.")
+        return False
+
+    return True
+
 # Load MATLAB data from the provided file path and extract relevant fields.
 def load_matlab_data(matlab_file_path):
     """
+    Load MATLAB data from the specified file path and extract relevant task event and block data.
+
+    This function reads a MATLAB file and extracts the 'trialEvents' and 'blockData' arrays, 
+    which are expected to be present in the file. 'trialEvents' typically contain timing 
+    and type information about different trials in a task, while 'blockData' may include 
+    more detailed information about each block or condition in the task.
+
     Parameters:
-    matlab_file_path (str): Path to the MATLAB file.
+    - matlab_file_path (str): Path to the MATLAB file.
+
     Returns:
-    tuple: A tuple containing trial events and block data, or (None, None) if an error occurs.
+    - tuple: A tuple containing 'trialEvents' and 'blockData'. Returns (None, None) if an error occurs.
+
+    Raises:
+    - KeyError: If the required keys ('trialEvents', 'blockData') are not found in the MATLAB file.
+    - IOError: If there is an issue reading the file.
+    - Exception: For any other exceptions during file loading.
+
+    Example Usage:
+    trial_events, block_data = load_matlab_data('/path/to/matlab_file.mat')
     """
+
     try:
+        # Attempt to load the MATLAB file using scipy.io
         mat_data = scipy.io.loadmat(matlab_file_path)
+        
+        # Extract 'trialEvents' and 'blockData' from the loaded data
         trial_events = mat_data['trialEvents']
         block_data = mat_data['blockData'][0, 0]
+
+        logging.info(f"Successfully loaded data from {matlab_file_path}")
         return trial_events, block_data
+
     except KeyError as e:
+        # Log and handle missing key errors
         logging.error(f"Missing necessary key in MATLAB file {matlab_file_path}: {e}")
         return None, None
+
+    except IOError as e:
+        # Log and handle input/output errors
+        logging.error(f"IOError encountered while loading MATLAB file {matlab_file_path}: {e}")
+        return None, None
+
     except Exception as e:
-        logging.error(f"Error loading MATLAB file {matlab_file_path}: {e}")
+        # Log and handle any other exceptions
+        logging.error(f"Unexpected error while loading MATLAB file {matlab_file_path}: {e}")
         return None, None
 
 # Format the MATLAB data into a pandas DataFrame suitable for BIDS .tsv.
 def format_data_for_bids(trial_events, block_data):
     """
+    Format the MATLAB data into a pandas DataFrame suitable for BIDS-compliant TSV files.
+
+    This function takes trial events and block data from MATLAB file structures and formats them 
+    into a pandas DataFrame. The DataFrame includes onset times, durations, and trial types, 
+    making it suitable for conversion to a BIDS-compliant TSV file.
+
     Parameters:
-    trial_events: Trial events data extracted from the MATLAB file.
-    block_data: Block data extracted from the MATLAB file.
+    - trial_events: A structured array containing trial events data extracted from the MATLAB file.
+    - block_data: A structured array containing block data extracted from the MATLAB file.
+
     Returns:
-    DataFrame: Formatted data as a pandas DataFrame, or None if an error occurs.
+    - DataFrame: A pandas DataFrame formatted for BIDS, or None if an error occurs.
+
+    Raises:
+    - KeyError: If the required keys are not found in the input data structures.
+    - Exception: For any other exceptions during data formatting.
+
+    Example Usage:
+    formatted_data = format_data_for_bids(trial_events, block_data)
     """
+
     try:
+        # Extract onset times, convert from milliseconds to seconds
         onset_times_ms = trial_events['trialStart'][0, 0].flatten()
         onset_times_sec = onset_times_ms / 1000
+
+        # Extract trial durations
         durations_sec = block_data['trialDuration'][0, 0].flatten()
+
+        # Extract trial types and map them to descriptive labels
         trial_types_ind = block_data['isSequenceTrial'][0, 0].flatten()
         trial_types = ['sequence' if ind == 1 else 'random' for ind in trial_types_ind]
-      
+
+        # Create a pandas DataFrame with the formatted data
         data = pd.DataFrame({
             'onset': onset_times_sec,
             'duration': durations_sec,
             'trial_type': trial_types
         })
+
+        logging.info("Data successfully formatted for BIDS")
         return data
+
     except KeyError as e:
-        logging.error(f"Missing necessary key in data structure: {e}")
-        return None
-    except Exception as e:
-        logging.error(f"Error formatting data for BIDS: {e}")
+        # Log and handle missing key errors
+        logging.error(f"Missing necessary key in data structure for BIDS formatting: {e}")
         return None
 
-# Create a JSON sidecar file for a given BIDS .tsv file.    
+    except Exception as e:
+        # Log and handle any other exceptions
+        logging.error(f"Unexpected error while formatting data for BIDS: {e}")
+        return None
+
+# Create a JSON sidecar file for a given BIDS-compliant TSV file.
 def create_json_sidecar(tsv_file_path, data_frame):
     """
+    Create a JSON sidecar file for a given BIDS-compliant TSV file.
+
+    This function generates a JSON sidecar file containing metadata descriptions
+    for each column in the provided TSV file. The metadata includes details such as 
+    the name, description, and units for each column. This sidecar file is essential
+    for BIDS compliance, as it provides contextual information about the data in the TSV file.
+
     Parameters:
-    tsv_file_path (str): Path to the .tsv file.
-    data_frame (DataFrame): The DataFrame containing the data.
+    - tsv_file_path (str): Path to the .tsv file.
+    - data_frame (DataFrame): The DataFrame containing the data. This is used to validate 
+                              the presence of expected columns.
+
+    The function assumes the presence of 'onset', 'duration', and 'trial_type' columns 
+    in the DataFrame and describes these columns in the JSON file.
+
+    Raises:
+    - IOError: If there's an issue writing the JSON file.
+    - Exception: For any other exceptions during the JSON file creation.
+
+    Example Usage:
+    create_json_sidecar('/path/to/data.tsv', data_frame)
     """
+
     json_file_path = tsv_file_path.replace('.tsv', '.json')
     description = {
         "onset": {
@@ -171,7 +309,7 @@ def create_json_sidecar(tsv_file_path, data_frame):
         },
         "trial_type": {
             "LongName": "Event category",
-            "Description": "Blue circle fills one of four target levels, correct response precisely hits target with yellow circle, holds for the duration of the trial, and releases when blue circle returns to base position.",
+            "Description": "Type of the trial, categorized as 'sequence' or 'random'.",
             "Levels": {
                 "sequence": "A sequence trial",
                 "random": "A random trial"
@@ -180,84 +318,160 @@ def create_json_sidecar(tsv_file_path, data_frame):
     }
 
     try:
-            with open(json_file_path, 'w') as json_file:
-                json.dump(description, json_file, indent=4)
-            logging.info(f"JSON sidecar file created at {json_file_path}")
+        # Write the description dictionary to a JSON file
+        with open(json_file_path, 'w') as json_file:
+            json.dump(description, json_file, indent=4)
+        logging.info(f"JSON sidecar file created at {json_file_path}")
+
+    except IOError as e:
+        # Log and handle input/output errors
+        logging.error(f"IOError while creating JSON sidecar file {json_file_path}: {e}")
+
     except Exception as e:
-        logging.error(f"Error creating JSON sidecar file: {e}")
+        # Log and handle any other exceptions
+        logging.error(f"Unexpected error while creating JSON sidecar file {json_file_path}: {e}")
 
 # Save the formatted DataFrame as a .tsv file and create a corresponding JSON sidecar file.
 def save_as_tsv(data, output_path):
     """
-    Parameters:
-    data (DataFrame): The data to be saved.
-    output_path (str): Path where the .tsv file will be saved.
-    """
-    if data is not None:
-        try:
-            directory = os.path.dirname(output_path)
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            data.to_csv(output_path, sep='\t', index=False)
-            create_json_sidecar(output_path, data)
-        except Exception as e:
-            logging.error(f"Error saving data to {output_path}: {e}")
+    Save the formatted DataFrame as a .tsv (Tab-Separated Values) file and create a corresponding JSON sidecar file.
 
+    This function writes a provided pandas DataFrame to a TSV file at the specified output path.
+    It also creates a JSON sidecar file that includes metadata descriptions for each column in the TSV file.
+    The creation of both the TSV and JSON files is essential for compliance with BIDS (Brain Imaging Data Structure) standards.
+
+    Parameters:
+    - data (DataFrame): The pandas DataFrame containing formatted data to be saved.
+    - output_path (str): The file path where the .tsv file will be saved. The function automatically 
+                         determines the path for the JSON sidecar file based on this path.
+
+    The function checks if the output directory exists and creates it if necessary. It then writes the DataFrame to
+    a TSV file and calls the `create_json_sidecar` function to generate the corresponding JSON file.
+
+    Raises:
+    - Exception: If any error occurs during the saving process or while creating the JSON sidecar file.
+
+    Example Usage:
+    save_as_tsv(formatted_data, '/path/to/output.tsv')
+    """
+
+    if data is None:
+        logging.error("No data provided to save as TSV.")
+        return
+
+    try:
+        # Ensure the directory for the output file exists
+        directory = os.path.dirname(output_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        # Save the DataFrame to a TSV file
+        data.to_csv(output_path, sep='\t', index=False)
+        logging.info(f"TSV file saved successfully at {output_path}")
+
+        # Create the corresponding JSON sidecar file
+        create_json_sidecar(output_path, data)
+
+    except Exception as e:
+        # Log any exceptions that occur during the saving process
+        logging.error(f"Error saving data to {output_path}: {e}")
+
+# Main function to process all MATLAB files in the specified directory and save them as .tsv files and JSON sidecar files.
 def main(matlab_root_dir, bids_root_dir):
     """
+    Process all MATLAB files in the specified directory and save them as BIDS-compliant .tsv files and JSON sidecar files.
+
+    This function iterates through all MATLAB files in the given directory, formats the extracted data for BIDS compliance,
+    and saves each as a .tsv file accompanied by a JSON sidecar file in the specified BIDS dataset directory. 
+    It handles localizer and learningSession runs separately and assigns appropriate BIDS run identifiers.
+
     Parameters:
     - matlab_root_dir (str): Directory containing the MATLAB files.
-    - bids_root_dir (str): Root directory of the BIDS dataset where .tsv files will be saved.
+    - bids_root_dir (str): Root directory of the BIDS dataset where .tsv files and JSON sidecar files will be saved.
+
+    The function assumes a specific naming convention for MATLAB files (LRN*_*.mat) and extracts run identifiers 
+    from filenames. It logs detailed information and errors encountered during processing.
+
+    Raises:
+    - Exception: For any errors that occur during the processing of each MATLAB file.
+
+    Example Usage:
+    main('/path/to/matlab_root_dir', '/path/to/bids_root_dir')
     """
-   # Define the order in which runs should appear
-    run_order = [
-        ("localizer_run1", "run-00"),
-        ("localizer_run2", "run-07")
-    ] + [("learningSession", f"run-{i:02d}") for i in range(1, 7)]
+    # Extract subject and session IDs from the path
+    subject_id, session_id = extract_subject_session(matlab_root_dir)
+    
+    # Example values for expected MATLAB file sizes in megabytes
+    expected_mat_file_size_range_mb = (8, 21)
 
-    # Defining specific run_ids for localizer runs
-    localizer_run_ids = ["run-00", "run-07"]
+    # Construct the output path based on subject_id and session_id
+    output_path = os.path.join(bids_root_dir, subject_id, session_id, 'func') 
 
-    # Get all MATLAB files from the specified directory
-    matlab_files = glob.glob(os.path.join(args.matlab_root_dir, "LRN*_*.mat"))
+    # Check MATLAB and TSV files before processing
+    if not check_files(matlab_root_dir, output_path, expected_mat_file_size_range_mb):
+        print(f"Initial file check failed. Exiting script.")
+        return # Exit the script if file check fails.
+    
+    # Setup logging after extracting subject_id and session_id.
+    setup_logging(subject_id, session_id, bids_root_dir)
+    logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
-    for matlab_file_path in sorted(matlab_files):  # Processing files in alphabetical order
-        try:
-            filename = os.path.basename(matlab_file_path).rstrip('.mat')
-            
-            # Differentiating between localizer and learningSession runs
-            if "localizer" in filename:
-                run_id = localizer_run_ids.pop(0) if localizer_run_ids else None
-            else:
-                match = re.search(r'run(\d+)', filename)
-                run_id = f"run-{int(match.group(1)):02d}" if match else None
-            
-            if run_id is None:
-                logging.warning(f"Could not extract run information from filename: {filename}")
-                continue
-            
-            # Load and format MATLAB data
-            trial_events, block_data = load_matlab_data(matlab_file_path)
-            if trial_events is None or block_data is None:
-                logging.error(f"Failed to load data from {matlab_file_path}")
-                continue
+    try: 
+        # Define the order and identifiers for different types of runs (multiple methods provided for debugging).
+        run_order = [
+        ("*localizer_run1*", "run-00"),
+        ("*localizer_run2*", "run-07"),
+        ("*run1*", "run-01"),
+        ("*run2*", "run-02"),
+        ("*run3*", "run-03"),
+        ("*run4*", "run-04"),
+        ("*run5*", "run-05"),
+        ("*run6*", "run-06")
+    ]
 
-            formatted_data = format_data_for_bids(trial_events, block_data)
-            if formatted_data is None:
-                logging.error(f"Failed to format data for BIDS from {matlab_file_path}")
-                continue
-            
-            # Construct output file path
-            filename_parts = filename.split('_')
-            subject_id = filename_parts[0]
-            output_path = os.path.join(args.bids_root_dir, f"sub-{subject_id}", 'ses-2', 'func',
-                                        f"sub-{subject_id}_ses-2_task-learn_{run_id}_events.tsv")
-            
-            # Save formatted data as .tsv with .json sidecar
-            save_as_tsv(formatted_data, output_path)
-            logging.info(f"Processed {matlab_file_path} and saved .tsv file to: {output_path}")
-        except Exception as e:
-            logging.error(f"An error occurred while processing {matlab_file_path}: {e}")
+        # Process each run in the defined order
+        for run_name, run_id in run_order:
+            matlab_file_pattern = f"{run_name}*.mat"
+            logging.info(f"Matlab file pattern: {matlab_file_pattern}")
+            logging.info(f"Run ID: {run_id}")
+            logging.info(f"Run name: {run_name}")
+            matlab_files = glob.glob(os.path.join(matlab_root_dir, matlab_file_pattern))
+            logging.info(f"Matlab files: {matlab_files}")
+            logging.info(f"Number of matlab files: {len(matlab_files)}")
+
+            # Process MATLAB file for the current run.
+            for matlab_file_path in sorted(matlab_files):
+                try:
+                    filename = os.path.basename(matlab_file_path).rstrip('.mat')
+                    logging.info(f"Processing file: {filename} for run: {run_id}")
+
+                    # Load and format MATLAB data
+                    trial_events, block_data = load_matlab_data(matlab_file_path)
+                    if trial_events is None or block_data is None:
+                        logging.error(f"Error processing {matlab_file_path}")
+                        continue # Skip this file if an error occurs
+
+                    formatted_data = format_data_for_bids(trial_events, block_data)
+                    logging.info(f"Formatted data: {formatted_data}")
+                    if formatted_data is None:
+                        logging.error(f"Error processing {matlab_file_path}")
+                        continue
+
+                    # Construct output file path
+                    output_path = os.path.join(bids_root_dir, f"{subject_id}", session_id, 'func',
+                                            f"{subject_id}_{session_id}_task-learn_{run_id}_events.tsv")
+
+                    # Save formatted data as .tsv with .json sidecar
+                    save_as_tsv(formatted_data, output_path)
+                    logging.info(f"Saved formatted data to: {output_path}")
+
+                except Exception as e:
+                    logging.error(f"Error processing {matlab_file_path}: {e}")
+                    raise
+
+    except Exception as e:
+        logging.error(f"Error processing MATLAB files: {e}")
+        raise
 
 # Main function executed when the script is run from the command line.
 if __name__ == "__main__":
@@ -277,4 +491,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Call the main function with the parsed arguments.
-    main(args.dicom_root_dir, args.bids_root_dir)
+    main(args.matlab_root_dir, args.bids_root_dir)

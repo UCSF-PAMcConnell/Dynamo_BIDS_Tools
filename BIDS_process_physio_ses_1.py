@@ -13,27 +13,62 @@ from matplotlib.backends.backend_pdf import PdfPages
 from collections import OrderedDict
 import sys
 
-# Configure logging
-logging.basicConfig(
-    filename='process_physio_ses_1.log',
-    filemode='w', # a to append, w to overwrite
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+# Set up logging for individual archive logs.
+def setup_logging(subject_id, session_id, bids_root_dir):
+    """
+    Sets up logging for the script, creating log files in a specified directory.
+
+    Parameters:
+    - subject_id (str): The identifier for the subject.
+    - session_id (str): The identifier for the session.
+    - bids_root_dir (str): The root directory of the BIDS dataset.
+
+    This function sets up a logging system that writes logs to both a file and the console. 
+    The log file is named based on the subject ID, session ID, and the script name. 
+    It's stored in a 'logs' directory within the 'doc' folder by subject ID, which is located at the same 
+    level as the BIDS root directory.
+
+    The logging level is set to INFO, meaning it captures all informational, warning, and error messages.
+
+    Usage Example:
+    setup_logging('sub-01', 'ses-1', '/path/to/bids_root_dir')
+    """
+
+    # Extract the base name of the script without the .py extension.
+    script_name = os.path.basename(__file__).replace('.py', '')
+
+    # Construct the log directory path within 'doc/logs'
+    log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name, subject_id)
+
+    # Create the log directory if it doesn't exist.
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    # Construct the log file name using subject ID, session ID, and script name.
+    log_file_name = f"{subject_id}_{session_id}_{script_name}.log"
+    log_file_path = os.path.join(log_dir, log_file_name)
+
+    # Configure file logging.
+    logging.basicConfig(
+        level=logging.INFO,
+        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        filename=log_file_path,
+        filemode='w' # 'w' mode overwrites existing log file.
+    )
+
+    # If you also want to log to console.
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+    logging.getLogger().addHandler(console_handler)
+
+    logging.info(f"Logging setup complete. Log file: {log_file_path}")
+
+    return log_file_path
 
 # Helper functions
-
-# Returns the name of the current conda environment.
-def get_conda_env():
-    try:
-        env_name = os.environ.get('CONDA_DEFAULT_ENV')
-        if env_name:
-            return env_name
-        else:
-            return None
-    except Exception as e:
-        logging.error(f"Error getting Conda environment: {e}")
-        return None
 
 # Extract the subject and session IDs from the physio_root_dir path
 def extract_subject_session(physio_root_dir):
@@ -653,14 +688,19 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
 
 # Main function to orchestrate the conversion process
 def main(physio_root_dir, bids_root_dir):
+
+    # Extract subject and session IDs from the path
+    subject_id, session_id = extract_subject_session(physio_root_dir)
+    
     # Define the known sampling rate
     sampling_rate = 5000  # Replace with the actual sampling rate if different
 
-    try:
-        # Extract subject and session IDs from the path
-        subject_id, session_id = extract_subject_session(physio_root_dir)
-        logging.info("Processing subject: %s, session: %s", subject_id, session_id)
+    # Setup logging after extracting subject_id and session_id.
+    log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
+    logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
+    try:
+ 
         # Load physiological data
         mat_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_physio.mat")
         labels, data, units = load_mat_file(mat_file_path)

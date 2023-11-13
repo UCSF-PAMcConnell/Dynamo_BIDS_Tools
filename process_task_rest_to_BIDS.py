@@ -122,7 +122,7 @@ def check_existing_nifti(output_dir_func, subject_id, session_id):
     """
     expected_nifti_file = os.path.join(output_dir_func, f'{subject_id}_{session_id}_task-rest_run-01_bold.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"RESTING-state fmri NIfTI file already exists: {expected_nifti_file}")
+        print(f"RESTING-state fmri NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False

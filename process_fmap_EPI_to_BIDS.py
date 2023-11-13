@@ -129,7 +129,7 @@ def check_existing_nifti_AP(output_dir_AP, subject_id, session_id):
     """
     expected_nifti_file = os.path.join(output_dir_AP, f'{subject_id}_{session_id}_dir-AP_epi.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"AP EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
+        print(f"AP EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -147,7 +147,7 @@ def check_existing_nifti_PA(output_dir_PA, subject_id, session_id):
     """
     expected_nifti_file = os.path.join(output_dir_PA, f'{subject_id}_{session_id}_dir-PA_epi.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"PA EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
+        print(f"PA EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False

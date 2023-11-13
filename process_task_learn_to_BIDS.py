@@ -122,7 +122,7 @@ def check_existing_nifti(output_dir_func, subject_id, session_id):
     """
     expected_nifti_file = os.path.join(output_dir_func, f'{subject_id}_{session_id}_task-learn_run-01_bold.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"Task fmri NIfTI file already exists: {expected_nifti_file}")
+        print(f"Task fmri NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -160,6 +160,7 @@ def extract_subject_session(dicom_root_dir):
     
     subject_id, session_id = match.groups()
 
+    print(f"Subject ID: %s, Session ID: %s", subject_id, session_id)
     return subject_id, session_id
 
 # Updates the JSON sidecar file with specific fields required for BIDS compliance in TASK FMRI datasets.

@@ -118,7 +118,7 @@ def check_existing_nifti(output_dir_anat, subject_id, session_id):
     """
     expected_nifti_file = os.path.join(output_dir_anat, f'{subject_id}_{session_id}_T1w.nii')
     if os.path.isfile(expected_nifti_file):
-        logging.info(f"T1-weighted NIfTI file already exists: {expected_nifti_file}")
+        print(f"T1-weighted NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
