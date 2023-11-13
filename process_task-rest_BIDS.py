@@ -2,40 +2,45 @@
 process_task_rest_to_BIDS.py
 
 Description:
-This script processes Resting-State fMRI DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
-It includes functionalities for DICOM to NIfTI conversion using dcm2niix, 
-and additional BIDS-compliant metadata processing with cubids. 
-The script checks for the installation of dcm2niix, and cubids 
-before executing relevant commands. 
+
+This script is designed to process Resting-State fMRI DICOM files into NIfTI format in 
+compliance with Brain Imaging Data Structure (BIDS) conventions. 
+It encompasses DICOM to NIfTI conversion using the dcm2niix tool, 
+along with the application of additional BIDS-compliant metadata processing using cubids. 
+Before executing, the script verifies the installation of dcm2niix and cubids. 
+It features robust error handling and detailed logging for each processing step, 
+ensuring reliability and transparency in data conversion.
 
 Usage:
-python process_task_rest_to_BIDS.py <dicom_root_dir> <bids_root_dir> [--pydeface]
-e.g.,
-python process_task_rest_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir --pydeface
+Invoke the script from the command line with the following format:
+python process_task_rest_to_BIDS.py <dicom_root_dir> <bids_root_dir> 
+
+Example usage:
+python process_task_rest_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir
 
 Author: PAMcConnell
-Created on: 20231111
+Created on: 20231112
 Last Modified: 20231112
-Version 1.0.0
+Version: 1.0.0
 
-License: MIT License
+License:
+This software is released under the MIT License.
 
 Dependencies:
 - Python 3.12
-- dcm2niix (command-line tool) https://github.com/rordenlab/dcm2niix
-- CuBIDS (command-line tool) https://cubids.readthedocs.io/en/latest/index.html
-- logging, os, tempfile, shutil, glob, subprocess, argparse, sys, re, json (standard Python libraries)
+- dcm2niix (command-line tool): Essential for converting DICOM to NIfTI format. (https://github.com/rordenlab/dcm2niix)
+- CuBIDS (command-line tool): Utilized for handling BIDS-compliant metadata. (https://cubids.readthedocs.io/en/latest/index.html)
+- Python standard libraries: logging, os, tempfile, shutil, glob, subprocess, argparse, sys, re, json.
 
 Environment Setup:
 - Ensure Python 3.12 is installed in your environment.
-- Install dcm2niix and pydeface command-line tools. For dcm2niix, use `conda install -c conda-forge dcm2niix`.
-- Install cubids following the instructions provided in its documentation.
-- Try 'pip install cubids'
-- To set up the required environment, use the provided environment.yml file with Conda. <datalad.yml>
+- Install dcm2niix and pydeface command-line tools. Use `conda install -c conda-forge dcm2niix` for dcm2niix installation.
+- Install cubids as per the instructions in its documentation. Try using 'pip install cubids'.
+- To establish the required environment, utilize the provided 'environment.yml' file with Conda.
 
 Change Log:
-- 20231111: Initial version.
-- 20231112: added verbose dcm2niix logging. Standardized output file path. 
+- 20231111: Initial release of the script with basic functionality for DICOM to NIfTI conversion.
+- 20231112: Enhanced functionality with verbose logging from dcm2niix, standardized output file paths, and improved error handling.
 """
 
 import os                     # Used for operating system dependent functionalities like file path manipulation.
@@ -157,7 +162,7 @@ def extract_subject_session(dicom_root_dir):
 
     return subject_id, session_id
 
-# Updates the JSON sidecar file with specific fields required for BIDS compliance in PCASL datasets.
+# Updates the JSON sidecar file with specific fields required for BIDS compliance in RESTING-STATE FMRI datasets.
 def update_json_file(json_filepath):
     """
     Parameters:
@@ -194,7 +199,7 @@ def update_json_file(json_filepath):
             json.dump(data, file, indent=4)
             file.truncate()
 
-        logging.info(f"Updated JSON file at {json_filepath} with PCASL-specific metadata.")
+        logging.info(f"Updated JSON file at {json_filepath} with RESTING-STATE FMRI-specific metadata.")
     
     # Catch issues with reading or writing to the JSON file.
     except IOError as e:
@@ -263,7 +268,7 @@ def run_dcm2niix(input_dir, temp_dir, subject_id, session_id):
         raise
 
 # Runs the dcm2niix conversion tool to produce verbose output to logfile. 
-def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_path):
+def run_dcm2niix_verbose(input_dir, temp_dir_verbose, subject_id, session_id, log_file_path):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
@@ -292,12 +297,12 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
         '-i', 'n', # Do not ignore derived, localizer and 2D images. 
         '-m', '2', # Merge slices from same series automatically based on modality. 
         '-v', 'y', # Print verbose output to logfile.
-        '-o', temp_dir,
+        '-o', temp_dir_verbose,
         input_dir
     ]
         
         # Create a temporary directory for the verbose output run.
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory() as temp_dir_verbose:
             with open(log_file_path, 'a') as log_file:
                 result = subprocess.run(verbose_cmd, check=True, stdout=log_file, stderr=log_file)
                 logging.info(result.stdout)
@@ -456,14 +461,38 @@ def check_cubids_installed():
         logging.warning("cubids is not installed.")
         return False
 
+# Processes DICOM files in the given root directory and converts them to NIfTI format in the BIDS dataset.
 def main(dicom_root_dir, bids_root_dir, num_runs):
     """
-    Processes DICOM files in the given root directory and converts them to NIfTI format in the BIDS dataset.
-    
+    Main function to process resting-state fMRI DICOM files into BIDS-compliant NIfTI format.
+
+    The function systematically processes each run of resting-state fMRI data. It uses dcm2niix for DICOM to NIfTI conversion, 
+    organizes the converted files into the BIDS format, and applies necessary metadata adjustments using cubids. 
+    The process includes checking for existing files, handling naming conventions, and organizing outputs in the 'func' 
+    directory of the BIDS dataset.
+
     Parameters:
-    dicom_root_dir (str): Root directory containing the DICOM directories.
-    bids_root (str): Root directory of the BIDS dataset.
-    num_runs (int): Number of runs.
+    - dicom_root_dir (str): Root directory containing the DICOM directories.
+    - bids_root_dir (str): Root directory of the BIDS dataset where the NIfTI files will be saved.
+    - num_runs (int): Number of fMRI runs to process.
+
+    Each run's data is expected to be in a separate directory following a consistent naming pattern.
+    The script assumes the presence of the necessary tools (dcm2niix, cubids) and handles errors gracefully,
+    logging issues and exiting if critical tools are missing.
+
+    Usage:
+    - Call this function with the paths to the DICOM root directory, BIDS root directory, and the number of runs.
+      Example: main('/path/to/dicom', '/path/to/bids', 4)
+
+    Dependencies:
+    - dcm2niix for DICOM to NIfTI conversion.
+    - cubids for BIDS metadata processing.
+    - Standard Python libraries: os, logging, tempfile, shutil.
+
+    Note: Ensure that dcm2niix and cubids are installed and properly configured in your environment before running this script.
+
+    Exceptions:
+    - The function raises an exception and logs an error message if there's an issue during the processing.
     """
     
     # Extract subject and session IDs from the DICOM directory path.
@@ -485,63 +514,60 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
 
         # Setup logging after extracting subject_id and session_id.
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
-        logging.info(f"Processing PCASL data for subject: {subject_id}, session: {session_id}")
+        logging.info(f"Processing RESTING-STATE FMRI data for subject: {subject_id}, session: {session_id}")
 
         # Check if dcm2niix is installed and accessible in the system's PATH.
         if check_dcm2niix_installed():
+                for run in range(1, args.num_runs+1):
+                    for suffix in ['', '_SBref']:
+                        dicom_dir = os.path.join(base_dicom_dir, f'Resting_{run}{suffix}')
+                        logging.info(f"Converting DICOM files in {dicom_dir}")
 
-            # Loop through each run, processing the DICOM files and organizing them in BIDS format
-            for run in range(1, args.num_runs+1):
-                for suffix in ['', '_SBref']:
-                    dicom_dir = os.path.join(base_dicom_dir, f'Resting_{run}{suffix}')
-                    
-                    # Create a temporary directory for the dcm2niix output
-                    with tempfile.TemporaryDirectory() as temp_dir:
-                        run_dcm2niix(dicom_dir, temp_dir, subject_id, session_id)
+                        with tempfile.TemporaryDirectory() as temp_dir:
+                            run_dcm2niix(dicom_dir, temp_dir, subject_id, session_id)
+                            logging.info(f"Files after conversion: {os.listdir(temp_dir)}")
+                            
+                            for old_file in os.listdir(temp_dir):
+                                try:
+                                    old_filepath = os.path.join(temp_dir, old_file)
+                                    new_file = f"{subject_id}_{session_id}_task-rest_run-{run:02d}{suffix}{os.path.splitext(old_file)[-1]}"
+                                    new_filepath = os.path.join(output_dir_func, new_file)
+                                    shutil.move(old_filepath, new_filepath)
+                                    logging.info(f"Moved {old_file} to {new_filepath}")
+                                except FileNotFoundError:
+                                    logging.error(f"File not found: {old_file}")
+                                except Exception as e:
+                                    logging.error(f"Error processing file {old_file}: {e}")
+
+                        # Check if cubids is installed
+                        if check_cubids_installed():
                         
-                        # Process and move each output file to the BIDS directory, applying naming conventions
-                        for old_file in os.listdir(temp_dir):
-                            old_filepath = os.path.join(temp_dir, old_file)
-                            
-                            new_file = f"{subject_id}_{session_id}_task-rest_run-{run:02d}"
-                            if suffix == '_SBref':
-                                new_file += '_sbref'
-                            else:
-                                new_file += '_bold'
-                            new_file += os.path.splitext(old_file)[-1]
-                            
-                            new_filepath = os.path.join(output_dir_func, new_file)
-                            shutil.move(old_filepath, new_filepath)
+                            # Run cubids commands to add NIfTI metadata.
+                            logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}")
+                            run_cubids_add_nifti_info(bids_root_dir)
+
+                            # Update JSON file with necessary BIDS metadata
+                            if new_filepath.endswith('.json'):
+                                update_json_file(new_filepath)
+
+                            # Run cubids commands to remove metadata fields.
+                            logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
+                            run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
                         
-                            # Check if cubids is installed
-                            if check_cubids_installed():
-                    
-                                # Run cubids commands to add NIfTI metadata.
-                                logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}")
-                                run_cubids_add_nifti_info(bids_root_dir)
-
-                                # Update JSON file with necessary BIDS metadata
-                                if new_filepath.endswith('.json'):
-                                    update_json_file(new_filepath)
-
-                                # Run cubids commands to remove metadata fields.
-                                logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
-                                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
-                            
-                                # Run dcm2niix for verbose output.
-                                with tempfile.TemporaryDirectory() as temp_dir:
-                                    run_dcm2niix_verbose(dicom_dir, temp_dir, subject_id, session_id, log_file_path)
-            
-            # Catch error if cubids is not installed.
-            else:
-                logging.error("cubids is not installed. Skipping cubids commands.")
-                return  # Exit the function if cubids is not installed.
-        
+                            # Run dcm2niix for verbose output.
+                            with tempfile.TemporaryDirectory() as temp_dir_verbose:
+                                run_dcm2niix_verbose(dicom_dir, temp_dir_verbose, subject_id, session_id, log_file_path)
+                
+                        # Catch error if cubids is not installed.
+                        else:
+                            logging.error("cubids is not installed. Skipping cubids commands.")
+                            return  # Exit the function if cubids is not installed.
+    
         # Catch error if dcm2niix is not installed.
         else:
             logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
             return  # Exit the function if dcm2niix is not installed.
-
+        
     # Log other errors. 
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
@@ -549,9 +575,26 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
 
 # Entry point of the script when executed from the command line.
 if __name__ == "__main__":
-    
+    """
+    Script's entry point when executed from the command line. 
+    This script processes resting-state fMRI DICOM files, converting them into NIfTI format following 
+    the Brain Imaging Data Structure (BIDS) conventions. It handles multiple runs of fMRI data 
+    and organizes the output into a BIDS-compliant dataset structure.
+
+    The script requires three command-line arguments:
+    - The root directory containing the DICOM directories.
+    - The root directory of the BIDS dataset where the converted NIfTI files will be stored.
+    - The number of runs (sessions) of fMRI data to process.
+
+    Usage:
+        python process_resting_state_fmri_to_BIDS.py <dicom_root_dir> <bids_root_dir> <num_runs>
+        Example: python process_resting_state_fmri_to_BIDS.py /path/to/dicom /path/to/bids 4
+
+    The script ensures that the necessary tools (dcm2niix and cubids) are installed and accessible. 
+    It performs detailed logging of each step and robust error handling for reliable processing.
+    """ 
     # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files for PCASL and convert to NIfTI.')
+    parser = argparse.ArgumentParser(description='Process DICOM files for RESTING-STATE FMRI and convert to NIfTI.')
 
     # Add arguments to the parser.
 
@@ -568,5 +611,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Call the main function with the parsed arguments.
-    main(args.dicom_root_dir, args.bids_root_dir)
+    main(args.dicom_root_dir, args.bids_root_dir, args.num_runs)
 
