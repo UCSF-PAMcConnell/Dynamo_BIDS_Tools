@@ -526,51 +526,56 @@ def main(dicom_root_dir, bids_root_dir):
         }
 
         # Check if dcm2niix is installed and accessible in the system's PATH.
-        if not check_dcm2niix_installed():
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-            return
+        if check_dcm2niix_installed():
+            logging.info("Starting DICOM to NIfTI conversion process.")
+            for suffix, run in run_mapping.items():
+                dicom_dir = os.path.join(base_dicom_dir, f'sms3_TASK{suffix}')
+                logging.info(f"Preparing to convert DICOM files in {dicom_dir}")
 
-        logging.info("Starting DICOM to NIfTI conversion process.")
-        for suffix, run in run_mapping.items():
-            dicom_dir = os.path.join(base_dicom_dir, f'sms3_TASK{suffix}')
-            logging.info(f"Preparing to convert DICOM files in {dicom_dir}")
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    logging.info(f"Running dcm2niix on {dicom_dir}")
+                    run_dcm2niix_output = run_dcm2niix(dicom_dir, temp_dir, subject_id, session_id)
+                    logging.info(f"dcm2niix output: {run_dcm2niix_output}")
 
-            with tempfile.TemporaryDirectory() as temp_dir:
-                logging.info(f"Running dcm2niix on {dicom_dir}")
-                run_dcm2niix_output = run_dcm2niix(dicom_dir, temp_dir, subject_id, session_id)
-                logging.info(f"dcm2niix output: {run_dcm2niix_output}")
+                    converted_files = os.listdir(temp_dir)
+                    logging.info(f"Files after conversion: {converted_files}")
+                    if not converted_files:
+                        logging.warning(f"No files were converted in {dicom_dir}")
+                        continue
 
-                converted_files = os.listdir(temp_dir)
-                logging.info(f"Files after conversion: {converted_files}")
-                if not converted_files:
-                    logging.warning(f"No files were converted in {dicom_dir}")
-                    continue
+                    for old_file in converted_files:
+                        try:
+                            old_filepath = os.path.join(temp_dir, old_file)
+                            new_file = f"{subject_id}_{session_id}_task-learn_run-{run}_bold{os.path.splitext(old_file)[-1]}"
+                            new_filepath = os.path.join(output_dir_func, new_file)
 
-                for old_file in converted_files:
-                    try:
-                        old_filepath = os.path.join(temp_dir, old_file)
-                        new_file = f"{subject_id}_{session_id}_task-learn_run-{run}_bold{os.path.splitext(old_file)[-1]}"
-                        new_filepath = os.path.join(output_dir_func, new_file)
+                            shutil.move(old_filepath, new_filepath)
+                            logging.info(f"Moved {old_file} to {new_filepath}")
 
-                        shutil.move(old_filepath, new_filepath)
-                        logging.info(f"Moved {old_file} to {new_filepath}")
+                            if new_filepath.endswith('.json') and os.path.isfile(new_filepath):
+                                logging.info(f"Updating JSON file with BIDS metadata: {new_filepath}")
+                                update_json_file(new_filepath)
+                                logging.info("JSON file update successful.")
+                        
+                        except FileNotFoundError:
+                            logging.error(f"File not found during moving process: {old_file}")
+                        except Exception as e:
+                            logging.error(f"Error processing file {old_file}: {e}")
 
-                        if new_filepath.endswith('.json') and os.path.isfile(new_filepath):
-                            logging.info(f"Updating JSON file with BIDS metadata: {new_filepath}")
-                            update_json_file(new_filepath)
-                            logging.info("JSON file update successful.")
-                    except FileNotFoundError:
-                        logging.error(f"File not found during moving process: {old_file}")
-                    except Exception as e:
-                        logging.error(f"Error processing file {old_file}: {e}")
-
-        if check_cubids_installed():
-            logging.info(f"Adding and removing NIfTI metadata for subject: {subject_id}, session: {session_id}")
-            run_cubids_add_nifti_info(bids_root_dir)
-            run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+            if check_cubids_installed():
+                logging.info(f"Adding and removing NIfTI metadata for subject: {subject_id}, session: {session_id}")
+                run_cubids_add_nifti_info(bids_root_dir)
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+                # Run dcm2niix for verbose output.
+                with tempfile.TemporaryDirectory() as temp_dir_verbose:
+                    run_dcm2niix_verbose(dicom_dir, temp_dir_verbose, subject_id, session_id, log_file_path)
+    
+            else:
+                logging.error("cubids is not installed. Skipping cubids commands.")
+               # Catch error if dcm2niix is not installed.
         else:
-            logging.error("cubids is not installed. Skipping cubids commands.")
-
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            return  # Exit the function if dcm2niix is not installed.
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
         raise
