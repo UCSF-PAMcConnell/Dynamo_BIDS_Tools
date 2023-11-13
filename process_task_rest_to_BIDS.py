@@ -530,8 +530,12 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
                             for old_file in os.listdir(temp_dir):
                                 try:
                                     old_filepath = os.path.join(temp_dir, old_file)
-                                    new_file = f"{subject_id}_{session_id}_task-rest_run-{run:02d}{suffix}{os.path.splitext(old_file)[-1]}"
-                                    new_filepath = os.path.join(output_dir_func, new_file)
+                                    if suffix == '_SBref':
+                                        new_file = f"{subject_id}_{session_id}_task-rest_run-{run:02d}_sbref{os.path.splitext(old_file)[-1]}"
+                                        new_filepath = os.path.join(output_dir_func, new_file)
+                                    else:
+                                        new_file = f"{subject_id}_{session_id}_task-rest_run-{run:02d}{suffix}_bold{os.path.splitext(old_file)[-1]}"
+                                        new_filepath = os.path.join(output_dir_func, new_file)
                                     shutil.move(old_filepath, new_filepath)
                                     logging.info(f"Moved {old_file} to {new_filepath}")
                                 except FileNotFoundError:

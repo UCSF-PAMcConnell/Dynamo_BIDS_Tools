@@ -84,7 +84,6 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     # Configure file logging.
     logging.basicConfig(
         level=logging.INFO,
-        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
         format='%(asctime)s - %(levelname)s - %(message)s',
         filename=log_file_path,
         filemode='w' # 'w' mode overwrites existing log file.
@@ -101,22 +100,22 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Extract the subject and session IDs from the physio_root_dir path
-def extract_subject_session(physio_root_dir):
+# Extract the subject and session IDs from the matlab_root_dir path
+def extract_subject_session(matlab_root_dir):
     """
     Parameters:
-    - physio_root_dir: str, the directory path that includes subject and session information.
+    - matlab_root_dir: str, the directory path that includes subject and session information.
     Returns:
     - subject_id: str, the extracted subject ID
     - session_id: str, the extracted session ID
     """
     # Normalize the path to remove any trailing slashes for consistency
-    physio_root_dir = os.path.normpath(physio_root_dir)
+    matlab_root_dir = os.path.normpath(matlab_root_dir)
 
     # The pattern looks for 'sub-' followed by any characters until a slash, and similar for 'ses-'
-    match = re.search(r'(sub-[^/]+)/(ses-[^/]+)', physio_root_dir)
+    match = re.search(r'(sub-[^/]+)/(ses-[^/]+)', matlab_root_dir)
     if not match:
-        raise ValueError("Unable to extract subject_id and session_id from path: %s", physio_root_dir)
+        raise ValueError("Unable to extract subject_id and session_id from path: %s", matlab_root_dir)
     
     subject_id, session_id = match.groups()
 
@@ -476,7 +475,7 @@ def main(matlab_root_dir, bids_root_dir):
 # Main function executed when the script is run from the command line.
 if __name__ == "__main__":
     
-   # Set up an argument parser to handle command-line arguments.
+    # Set up an argument parser to handle command-line arguments.
     parser = argparse.ArgumentParser(description='Process .mat behavioral files for TASK FMRI and convert to BIDS tsv.')
 
     # Add arguments to the parser.
