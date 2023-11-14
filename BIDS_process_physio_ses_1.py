@@ -12,8 +12,11 @@ Usage:
 Invoke the script from the command line with the following format:
 python BIDS_process_physio_ses_1.py <physio_dir> <bids_root_dir>
 
-Example Usage:
-python BIDS_process_physio_ses_1.py /path/to/physio_dir /path/to/bids_root_dir
+Example usage:
+
+python BIDS_process_physio_ses_1.py <physio_root_dir> <bids_root_dir> [--cut_off_duration <duration_in_minutes>]
+
+Where --cut_off_duration is an optional argument to specify the duration in minutes to cut off from the start of the plot.
 
 Author: PAMcConnell
 Created on: 20231113
@@ -217,12 +220,12 @@ def load_mat_file(mat_file_path):
         labels = mat_contents['labels'].flatten()  # Flatten in case it's a 2D array
         data = mat_contents['data']
         logging.info("Data loaded successfully with shape: %s", data.shape)
-        logging.info("Type of 'data': %s", type(data))
+        # logging.info("Type of 'data': %s", type(data))
         units = mat_contents['units'].flatten()  # Flatten in case it's a 2D array
         
         # Log the labels and units for error checking
-        logging.info("Labels extracted from MAT file: %s", labels)
-        logging.info("Units extracted from MAT file: %s", units)
+        #logging.info("Labels extracted from MAT file: %s", labels)
+        #logging.info("Units extracted from MAT file: %s", units)
         logging.info("Successfully loaded MAT file from %s", mat_file_path)
         
     except Exception as e:
@@ -481,10 +484,10 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
             repetition_time = metadata.get('RepetitionTime')
             num_volumes = metadata.get('NumVolumes')
             if repetition_time is None or num_volumes is None:
-                logging.info(f"RepetitionTime or NumVolumes missing in metadata for run {run_id}")
+                logging.info(f"RepetitionTime or NumVolumes missing in metadata for {run_id}")
                 continue
 
-            logging.info(f"Processing run {run_id} with {num_volumes} volumes and TR={repetition_time}s")
+            logging.info(f"Processing {run_id} with {num_volumes} volumes and TR={repetition_time}s")
             samples_per_volume = int(sampling_rate * repetition_time)
 
             # Start searching for a valid run from the last used trigger index
@@ -496,7 +499,7 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
                     start_idx = trigger_starts[i]
                     end_idx = start_idx + num_volumes * samples_per_volume
                     if end_idx > data.shape[0]:
-                        logging.info(f"Proposed end index {end_idx} for run {run_id} is out of bounds.")
+                        logging.info(f"Proposed end index {end_idx} for {run_id} is out of bounds.")
                         continue
                     
                     run_info = {
@@ -510,17 +513,17 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
                     start_from_index = i + num_volumes  # Update the starting index for the next run
                     break  # Exit loop after finding a valid start index for this run
                 else:
-                    logging.info(f"Run {run_id} at index {i} does not match expected interval.")
+                    logging.info(f"{run_id} at index {i} does not match expected interval.")
             
             if start_from_index >= len(trigger_starts) - num_volumes + 1:
-                logging.info(f"No valid segments found for run {run_id} after index {start_from_index}.")
+                logging.info(f"No valid segments found for {run_id} after index {start_from_index}.")
 
         except KeyError as e:
-            logging.info(f"Metadata key error for run {run_id}: {e}")
+            logging.info(f"Metadata key error for {run_id}: {e}")
         except ValueError as e:
-            logging.info(f"ValueError for run {run_id}: {e}")
+            logging.info(f"ValueError for {run_id}: {e}")
         except Exception as e:
-            logging.info(f"Unexpected error while finding runs for run {run_id}: {e}")
+            logging.info(f"Unexpected error while finding runs for {run_id}: {e}")
 
     logging.info(f"Total number of runs found: {len(runs_info)}")
     if not runs_info:
@@ -739,14 +742,14 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
 
     except Exception as e:
         # Log any exceptions that occur during the file writing process
-        logging.error(f"Failed to write output files for run {run_id}: {e}", exc_info=True)
+        logging.error(f"Failed to write output files for {run_id}: {e}", exc_info=True)
         raise
 
     # Log the successful writing of files
-    logging.info(f"Output files for run {run_id} written successfully to {output_dir}")
+    logging.info(f"Output files for {run_id} written successfully to {output_dir}")
 
 # Plots the segmented data for each run and saves the plots to a png file.
-def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict):
+def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict, cut_off_duration):
     """
     Visualizes and saves plots of segmented data for each fMRI run.
 
@@ -763,68 +766,78 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
     overlays the segmented data for each run. It uses different colors for each run for clear distinction.
 
     Usage Example:
-    plot_runs(orig_data, seg_data_list, runs_info, ['cardiac', 'respiratory'], 500, 'output_plot.png', {'cardiac': 'mV', 'respiratory': 'cm'})
+    plot_runs(orig_data, seg_data_list, runs_info, ['cardiac', 'respiratory'], 500, 'output_plot.png', {'cardiac': 'mV', 'respiratory': 'cm'}, cut_off_duration=0)
 
+    - cut_off_duration (int): Duration in minutes to cut off from the start of the plot. Default is 0 (no cut-off).
+    
     Dependencies:
     - numpy for array manipulation.
     - matplotlib for creating plots.
     - logging module for logging information and errors.
     """
+    logging.info(f"Cut-off duration in plot_runs: {cut_off_duration} minutes")
     try:
-        # Define a list of colors for different runs
-        colors = [
-            'r', 'g', 'b', 'c', 'm', 'y', 'k', 'orange',
-            'pink', 'purple', 'lime', 'indigo', 'violet', 'gold', 'grey', 'brown'
-        ]
+        # Define colors for different runs
+        colors = ['purple', 'g', 'b', 'black', 'm', 'y', 'k', 'orange', 'pink', 'violet', 'lime', 'indigo', 'r', 'gold', 'grey', 'brown']
 
-        # Create a figure and a set of subplots
+        # Calculate the number of samples to cut off
+        cut_off_samples = cut_off_duration * 60 * sampling_rate
+        logging.info(f"Cutoff duration: {cut_off_duration} minutes")
+        logging.info(f"Cutoff samples: {cut_off_samples}")
+
+        # Adjust original data and time axis if a cut-off is applied
+        if cut_off_duration > 0 and original_data.shape[0] > cut_off_samples:
+            original_data = original_data[cut_off_samples:] # Adjust this line if needed
+            time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60
+        else:
+            time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60
+
+        # Create figure and subplots
         fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(20, 10))
 
-        # Time axis for the original data
-        time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60 # convert to minutes.
-
-        # Plot the entire original data as background
+        # Plot background data
         for i, label in enumerate(bids_labels_list):
             unit = units_dict.get(label, 'Unknown unit')
             axes[i].plot(time_axis_original, original_data[:, i], color='grey', alpha=0.5, label='Background' if i == 0 else "")
-            axes[i].set_ylabel(f'{label}\n({unit})')
+            axes[i].set_ylabel(f'{label} ({unit})')
 
-        # Overlay each segmented run on the background
         for segment_index, (segment_data, run_info) in enumerate(zip(segmented_data_list, runs_info)):
-            # Define time_axis_segment for each segmented run
-            time_axis_segment = np.arange(run_info['start_index'], run_info['end_index']) / sampling_rate / 60
-            color = colors[segment_index % len(colors)]  # Cycle through colors
-            for i, label in enumerate(bids_labels_list):
-                axes[i].plot(time_axis_segment, segment_data[:, i], color=color, label=f'Run {run_info["run_id"]}' if i == 0 else "")
+            # Calculate adjusted indices
+            adjusted_start_index = run_info['start_index'] - cut_off_samples
+            adjusted_end_index = run_info['end_index'] - cut_off_samples
 
-        # Set the x-axis label for the bottom subplot
+            # Ensure indices are within valid range
+            adjusted_start_index = max(adjusted_start_index, 0)
+            adjusted_end_index = min(adjusted_end_index, original_data.shape[0])
+
+            # Check if there is data to plot after adjustment
+            if adjusted_start_index < adjusted_end_index:
+                # Calculate time axis relative to the original data
+                time_axis_segment = np.arange(adjusted_start_index, adjusted_end_index) / sampling_rate / 60
+                time_axis_segment = time_axis_segment[adjusted_start_index - run_info['start_index']: adjusted_end_index - run_info['start_index']]
+                
+                # Plot segment data
+                color = colors[segment_index % len(colors)]
+                for i, label in enumerate(bids_labels_list):
+                    segment_plot_data = segment_data[adjusted_start_index - run_info['start_index']: adjusted_end_index - run_info['start_index'], i]
+                    axes[i].plot(time_axis_segment, segment_plot_data, color=color, label=f'Run {run_info["run_id"]}' if i == 0 else "")
+            else:
+                logging.info(f"Skipping run {run_info['run_id']} due to empty data segment after adjustment.")
+
+        # Set labels and legend
         axes[-1].set_xlabel('Time (min)')
-
-        # Collect handles and labels for the legend from all axes
         handles, labels = [], []
         for ax in axes.flat:
             h, l = ax.get_legend_handles_labels()
-            
-            # Add the handle/label if it's not already in the list
-            for hi, li in zip(h, l):
-                if li not in labels:
-                    handles.append(hi)
-                    labels.append(li)
-
-        # Only create a legend if there are items to display.
+            handles.extend(h)
+            labels.extend(l)
         if handles and labels:
-            ncol = min(len(handles), len(labels))
-            fig.legend(handles, labels, loc='lower center', ncol=ncol)
-        else:
-            logging.info("No legend items to display.")
+            fig.legend(handles, labels, loc='lower center', ncol=min(len(handles), len(labels)))
 
-        fig.tight_layout(rect=[0.05, 0.1, 0.95, 0.97])  # Adjust the left and bottom values as needed
-
-        # Save and show the figure.
+        # Adjust layout and save the plot
+        fig.tight_layout(rect=[0.05, 0.1, 0.95, 0.97])
         plt.savefig(plot_file_path, dpi=600)
         logging.info(f"Plot saved to {plot_file_path}")
-
-        # Optionally display the plot.
         plt.show()
 
     except Exception as e:
@@ -832,7 +845,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
         raise
 
 # Main function to orchestrate the conversion process
-def main(physio_root_dir, bids_root_dir):
+def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
     """
     Main function to orchestrate the conversion of physiological data to BIDS format.
 
@@ -851,10 +864,13 @@ def main(physio_root_dir, bids_root_dir):
     Usage Example:
     main('/path/to/physio_data', '/path/to/bids_dataset')
 
+    - cut_off_duration (int): Duration in minutes to cut off from the start of the plot. Default is 0 (no cut-off).
+   
     Dependencies:
     - Requires several helper functions defined in the same script for loading data, renaming channels,
       extracting metadata, finding runs, segmenting data, writing output files, and plotting.
     """
+    print(f"Cut-off duration in main: {cut_off_duration} minutes")
 
     # Extract subject and session IDs from the path.
     subject_id, session_id = extract_subject_session(physio_root_dir)
@@ -918,7 +934,7 @@ def main(physio_root_dir, bids_root_dir):
 
         # Process JSON files to extract metadata for each run
         json_file_paths = glob.glob(os.path.join(bids_root_dir, subject_id, session_id, 'func', '*_bold.json'))
-        logging.info("JSON files found: %s", json_file_paths)
+        # logging.info("JSON files found: %s", json_file_paths)
         logging.info("Extracting metadata from JSON files...")
 
         # Assume json_file_paths is a list of paths to your JSON files
@@ -930,8 +946,8 @@ def main(physio_root_dir, bids_root_dir):
             json_file_paths,
             key=lambda x: int(re.search(r"run-(\d+)_bold\.json$", x).group(1)))
 
-        logging.info("Sorted JSON file paths: %s", sorted_json_file_paths)
-        logging.info("Extracting metadata from JSON files...")
+        # logging.info("Sorted JSON file paths: %s", sorted_json_file_paths)
+        # logging.info("Extracting metadata from JSON files...")
 
         # Now use the sorted_json_file_paths instead of the unsorted json_file_paths
         for json_file_path in sorted_json_file_paths:
@@ -970,7 +986,7 @@ def main(physio_root_dir, bids_root_dir):
         # Verify that the found runs match the expected runs from the JSON metadata.
         if not runs_info:
             raise ValueError("No runs were found. Please check the triggers and metadata.")
-        logging.info("Runs info: %s", runs_info)
+        #logging.info("Runs info: %s", runs_info)
 
         # Verify that the found runs match the expected runs from the JSON metadata
         expected_runs = set(run_info['run_id'] for run_info in runs_info)
@@ -988,9 +1004,9 @@ def main(physio_root_dir, bids_root_dir):
         output_files = []
         for run_id in sorted_run_ids:
             run_info = run_info_dict[run_id]
-            logging.info("Processing run info: %s", run_info)
+            #logging.info("Processing run info: %s", run_info)
             logging.info("Run ID: %s", run_id)
-            logging.info("Processing run %s", run_id)
+            logging.info("Processing %s", run_id)
             start_index, end_index = run_info['start_index'], run_info['end_index']
             logging.info("start_index: %s", start_index)
             logging.info("end_index: %s", end_index)
@@ -999,7 +1015,7 @@ def main(physio_root_dir, bids_root_dir):
             
             # Create the metadata dictionary for the current run
             metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
-            logging.info("Metadata dictionary for run %s: %s", run_id, metadata_dict)
+            # logging.info("Metadata dictionary for run %s: %s", run_id, metadata_dict)
 
             # Call the write_output_files function with the correct parameters
             output_files.append(write_output_files(
@@ -1016,7 +1032,7 @@ def main(physio_root_dir, bids_root_dir):
         # Create a list of segmented data for plotting
         segmented_data_list = [segmented_data_bids_only[run_info['start_index']:run_info['end_index']] for run_info in runs_info]
         logging.info("Segmented data list length: %s", len(segmented_data_list))
-        logging.info("SEgmented data list shape: %s", segmented_data_list[0].shape)
+        logging.info("Segmented data list shape: %s", segmented_data_list[0].shape)
 
         # Filter the original data array to retain only the columns with BIDS labels
         data_bids_only = data[:, [original_label_indices[original] for original in bids_labels_dictionary.keys()]]
@@ -1025,7 +1041,7 @@ def main(physio_root_dir, bids_root_dir):
         if segmented_data_list:
             logging.info("Preparing to plot runs.")
             plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
-            plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
+            plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict, cut_off_duration)
         else:
             logging.error("No data available to plot.")
 
@@ -1042,9 +1058,16 @@ if __name__ == '__main__':
     command-line arguments, specifically the paths to the directories containing the physiological data
     and the BIDS dataset. These arguments are then passed to the main function of the script.
 
-    Usage:
-    python BIDS_process_physio_ses_1.py <physio_root_dir> <bids_root_dir>
+   Usage:
+
+    python BIDS_process_physio_ses_1.py <physio_root_dir> <bids_root_dir> [--cut_off_duration <duration_in_minutes>]
+
+    Where --cut_off_duration is an optional argument to specify the duration in minutes to cut off from the start of the plot.
+
     """
+    # physio_root_dir = '/path/to/physio_dir'
+    # bids_root_dir = '/path/to/bids_root_dir'
+    # cut_off_duration = 5
 
     # Set up an argument parser to handle command-line arguments.
     parser = argparse.ArgumentParser(description="Convert physiological data to BIDS format.")
@@ -1055,16 +1078,24 @@ if __name__ == '__main__':
     # The second argument is the root directory of the BIDS dataset.
     parser.add_argument("bids_root_dir", help="Path to the root of the BIDS dataset.")
     
+    # Optional argument to specify cut-off duration in minutes
+    parser.add_argument("--cut_off_duration", type=int, default=0, help="Duration in minutes to cut off from the start of the plot.")
+    
     # Parse the arguments provided by the user.
     args = parser.parse_args()
-
+    
+    # Starting script messages
     print(f"Starting script with provided arguments.")
-    print(f"Physiological data directory: %s", args.physio_root_dir)
-    print(f"BIDS root directory: %s", args.bids_root_dir)
+    print(f"Physiological data directory: {args.physio_root_dir}")
+    print(f"BIDS root directory: {args.bids_root_dir}")
+    print(f"Cut-off duration received: {args.cut_off_duration} minutes")
+
+    if args.cut_off_duration > 0:
+        print(f"Cut-off duration: {args.cut_off_duration} minutes")
 
     # Call the main function with the parsed arguments.
     try:
-        main(args.physio_root_dir, args.bids_root_dir)
+        main(args.physio_root_dir, args.bids_root_dir, args.cut_off_duration)
     except Exception as e:
         logging.error("An error occurred during script execution: %s", e, exc_info=True)
         logging.info("Script execution completed with errors.")

@@ -109,7 +109,7 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if RESTING-state fmri NIfTI files already exist in the specified BIDS output directory.
+# Checks if Resting-state fmri NIfTI files already exist in the specified BIDS output directory.
 def check_existing_nifti(output_dir_func, subject_id, session_id):
     """
     Parameters:
@@ -122,7 +122,7 @@ def check_existing_nifti(output_dir_func, subject_id, session_id):
     """
     expected_nifti_file = os.path.join(output_dir_func, f'{subject_id}_{session_id}_task-rest_run-01_bold.nii')
     if os.path.isfile(expected_nifti_file):
-        print(f"RESTING-state fmri NIfTI file already exists: {expected_nifti_file}")
+        print(f"Resting-state fmri NIfTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -162,7 +162,7 @@ def extract_subject_session(dicom_root_dir):
 
     return subject_id, session_id
 
-# Updates the JSON sidecar file with specific fields required for BIDS compliance in RESTING-STATE FMRI datasets.
+# Updates the JSON sidecar file with specific fields required for BIDS compliance in Resting-State FMRI datasets.
 def update_json_file(json_filepath):
     """
     Parameters:
@@ -199,7 +199,7 @@ def update_json_file(json_filepath):
             json.dump(data, file, indent=4)
             file.truncate()
 
-        logging.info(f"Updated JSON file at {json_filepath} with RESTING-STATE FMRI-specific metadata.")
+        logging.info(f"Updated JSON file at {json_filepath} with Resting-State FMRI-specific metadata.")
     
     # Catch issues with reading or writing to the JSON file.
     except IOError as e:
@@ -514,7 +514,7 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
 
         # Setup logging after extracting subject_id and session_id.
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
-        logging.info(f"Processing RESTING-STATE FMRI data for subject: {subject_id}, session: {session_id}")
+        logging.info(f"Processing Resting-State FMRI data for subject: {subject_id}, session: {session_id}")
 
         # Check if dcm2niix is installed and accessible in the system's PATH.
         if check_dcm2niix_installed():
@@ -523,6 +523,7 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
                         dicom_dir = os.path.join(base_dicom_dir, f'Resting_{run}{suffix}')
                         logging.info(f"Converting DICOM files in {dicom_dir}")
 
+                        # Open temporary directory for dcm2nixx conversion.
                         with tempfile.TemporaryDirectory() as temp_dir:
                             run_dcm2niix(dicom_dir, temp_dir, subject_id, session_id)
                             logging.info(f"Files after conversion: {os.listdir(temp_dir)}")
@@ -531,13 +532,22 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
                                 try:
                                     old_filepath = os.path.join(temp_dir, old_file)
                                     if suffix == '_SBref':
+                                        # Seperate handling of SBref files.
                                         new_file = f"{subject_id}_{session_id}_task-rest_run-{run:02d}_sbref{os.path.splitext(old_file)[-1]}"
                                         new_filepath = os.path.join(output_dir_func, new_file)
                                     else:
+                                        # Seperate handling of _bold files. 
                                         new_file = f"{subject_id}_{session_id}_task-rest_run-{run:02d}{suffix}_bold{os.path.splitext(old_file)[-1]}"
                                         new_filepath = os.path.join(output_dir_func, new_file)
+                                    # Move the file from the temporary directory to the output directory and rename according to BIDS.    
                                     shutil.move(old_filepath, new_filepath)
                                     logging.info(f"Moved {old_file} to {new_filepath}")
+                                    
+                                    # Update JSON file with necessary BIDS metadata
+                                    if new_filepath.endswith('.json'):
+                                        update_json_file(new_filepath)
+                                
+                                # Catch errors.
                                 except FileNotFoundError:
                                     logging.error(f"File not found: {old_file}")
                                 except Exception as e:
@@ -549,10 +559,6 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
                             # Run cubids commands to add NIfTI metadata.
                             logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}")
                             run_cubids_add_nifti_info(bids_root_dir)
-
-                            # Update JSON file with necessary BIDS metadata
-                            if new_filepath.endswith('.json'):
-                                update_json_file(new_filepath)
 
                             # Run cubids commands to remove metadata fields.
                             logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
@@ -598,7 +604,7 @@ if __name__ == "__main__":
     It performs detailed logging of each step and robust error handling for reliable processing.
     """ 
     # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files for RESTING-STATE FMRI and convert to NIfTI.')
+    parser = argparse.ArgumentParser(description='Process DICOM files for Resting-State FMRI and convert to NIfTI.')
 
     # Add arguments to the parser.
 
