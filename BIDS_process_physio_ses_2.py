@@ -2,14 +2,16 @@
 BIDS_process_physio_ses_2.py
 
 Description:
-This script processes physiological data acquired through Biopac Acqknowledge during Task fMRI sessions into BIDS-compliant files.
-It includes functions for loading data, segmenting physio data based on full run and event types, writing metadata, and generating quality control plots.
+This script processes physiological data, specifically  [ECG, respiration, EDA, PPG], acquired through 
+Biopac Acqknowledge during Task fMRI sessions, into BIDS-compliant files. It includes functions for loading data, 
+segmenting based on run and event types, writing metadata, and generating quality control plots. The script is designed 
+to work with data in .mat format format and expects a BIDS specific directory structure for input and output.
 
 Usage:
-python BIDS_process_physio_ses_2.py <physio_root_directory> <bids_root_dir>
-e.g.,
-<dataset_root_dir>/sourcedata/sub-01/ses-01/physio/sub-01_ses-01_task-learn_physio.mat # <physio_root_dir>
-<dataset_root_dir>/dataset # <bids_root_dir>
+Run the script from the command line with the physiological data directory and BIDS dataset directory as arguments.
+e.g., 
+python BIDS_process_physio_ses_2.py /path/to/physio_data /path/to/BIDS_dataset
+Output files will be saved in the specified BIDS dataset directory.
 
 Author: PAMcConnell
 Created on: 20231111
@@ -19,14 +21,20 @@ License: MIT License
 
 Dependencies:
 - Python 3.12
-- numpy, pandas, matplotlib, scipy
+- numpy 
+- pandas 
+- matplotliby)
+- scipy 
 
 Environment Setup:
-To set up the required environment, use the provided environment.yml file with Conda. <datalad.yml>
+Use the provided environment.yml (datalad.yml) file with Conda for setting up the required environment. 
 
 Change Log:
 - 20231111: Initial version
 
+Error Handling and Logging:
+The script includes comprehensive error handling and logging. Errors during execution are logged, providing clarity for debugging.
+Logs are saved in dataset_root/docs/logs.
 """
 
 import os                                             # Used for interacting with the operating system, like file path operations.
@@ -43,17 +51,22 @@ from collections import OrderedDict                   # Dictionary subclass that
 import sys                                            # System-specific parameters and functions.
 from matplotlib.lines import Line2D                   # Import Line2D from matplotlib to create custom line objects.
 
-## Helper Functions. 
 
-# Set up logging for individual archive logs.
+# Sets up archival logging for the script, directing log output to both a file and the console.
 def setup_logging(subject_id, session_id, bids_root_dir):
     """
-    Sets up logging for the script, creating log files in a specified directory.
 
+    The function configures logging to capture informational, warning, and error messages. It creates a unique log file for each 
+    subject-session combination, stored in a 'logs' directory within the 'doc' folder adjacent to the BIDS root directory.
+
+  
     Parameters:
     - subject_id (str): The identifier for the subject.
     - session_id (str): The identifier for the session.
     - bids_root_dir (str): The root directory of the BIDS dataset.
+
+    Returns:
+    - log_file_path (str): The path to the log file.
 
     This function sets up a logging system that writes logs to both a file and the console. 
     The log file is named based on the subject ID, session ID, and the script name. 
@@ -66,37 +79,43 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     setup_logging('sub-01', 'ses-1', '/path/to/bids_root_dir')
     """
 
-    # Extract the base name of the script without the .py extension.
-    script_name = os.path.basename(__file__).replace('.py', '')
+    try: 
+        # Extract the base name of the script without the .py extension.
+        script_name = os.path.basename(__file__).replace('.py', '')
 
-    # Construct the log directory path within 'doc/logs'
-    log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name, subject_id)
+        # Construct the log directory path within 'doc/logs'
+        log_dir = os.path.join(os.path.dirname(bids_root_dir), 'doc', 'logs', script_name, subject_id)
 
-    # Create the log directory if it doesn't exist.
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+        # Create the log directory if it doesn't exist.
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
 
-    # Construct the log file name using subject ID, session ID, and script name.
-    log_file_name = f"{subject_id}_{session_id}_{script_name}.log"
-    log_file_path = os.path.join(log_dir, log_file_name)
+        # Construct the log file name using subject ID, session ID, and script name.
+        log_file_name = f"{subject_id}_{session_id}_{script_name}.log"
+        log_file_path = os.path.join(log_dir, log_file_name)
 
-    # Configure file logging.
-    logging.basicConfig(
-        level=logging.INFO,
-        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        filename=log_file_path,
-        filemode='w' # 'w' mode overwrites existing log file
-    )
+        # Configure file logging.
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            filename=log_file_path,
+            filemode='w' # 'w' mode overwrites existing log file
+        )
 
-    # If you also want to log to console.
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    console_handler.setFormatter(formatter)
-    logging.getLogger().addHandler(console_handler)
+        # If you also want to log to console.
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(console_handler)
 
-    logging.info(f"Logging setup complete. Log file: {log_file_path}")
+        logging.info(f"Logging setup complete. Log file: {log_file_path}")
+
+        return log_file_path
+    
+    except Exception as e:
+            print(f"Error setting up logging: {e}")
+            sys.exit(1) # Exiting the script due to logging setup failure.
 
 # Extract the subject and session IDs from the provided physio root directory path.
 def extract_subject_session(physio_root_dir):
@@ -133,36 +152,40 @@ def extract_subject_session(physio_root_dir):
 
     return subject_id, session_id
 
-# Load a MATLAB (.mat) file containing physiological data and extracts labels, data, and units.
+# Load a MATLAB (.mat) file containing physiological data and extracts labels, data, and units for physiological data.
 def load_mat_file(mat_file_path):
     """
+    Loads a MATLAB (.mat) file and extracts physiological data labels, data, and units.
+
     Parameters:
-    - mat_file_path (str): The file path to the .mat file.
+    - mat_file_path (str): Path to the .mat file.
 
     Returns:
-    - labels (array): Names of the physiological data channels.
-    - data (array): The actual physiological data.
-    - units (array): Units for each channel of physiological data.
+    - labels (ndarray): Array of data channel names.
+    - data (ndarray): Array containing physiological data.
+    - units (ndarray): Array of units corresponding to each data channel.
 
     Raises:
-    - FileNotFoundError: If the .mat file does not exist at the provided path.
-    - KeyError: If the .mat file is missing any of the required keys ('labels', 'data', 'units').
-    - Exception: For any other issues encountered while loading or processing the .mat file.
+    - FileNotFoundError: If the .mat file is not found at the specified path.
+    - KeyError: If the .mat file lacks required keys ('labels', 'data', 'units').
+    - Exception: For any other issues encountered during loading.
 
-    The function first checks if the specified .mat file exists. It then attempts to load the file 
-    and verifies that it contains the required keys. If successful, it extracts and returns the labels, 
-    data, and units. Comprehensive logging is implemented for troubleshooting.
+    The function verifies the existence of the .mat file, loads its contents, and checks for the presence 
+    of required keys. It provides detailed logging for each step and potential errors for troubleshooting.
 
     Usage Example:
     labels, data, units = load_mat_file('/path/to/physio_data.mat')
 
-    Note: Ensure that the .mat file is structured with 'labels', 'data', and 'units' keys.
+    Note:
+    - The .mat file must contain 'labels', 'data', and 'units' keys.
+    - Compatibility with MATLAB file formats should be verified for different versions.
     """
     
     # Verify if the specified .mat file exists.
     if not os.path.isfile(mat_file_path):
-        logging.error("MAT file does not exist at %s", mat_file_path)
-        raise FileNotFoundError("No MAT file found at the specified path: %s", mat_file_path)
+        error_msg = f"MAT file does not exist at {mat_file_path}"
+        logging.error(error_msg)
+        raise FileNotFoundError(error_msg)
     
     try:
         # Attempt to load the .mat file.
@@ -172,8 +195,9 @@ def load_mat_file(mat_file_path):
         # Verify that required keys are in the loaded .mat file.
         required_keys = ['labels', 'data', 'units']
         if not all(key in mat_contents for key in required_keys):
-            logging.error("MAT file at %s is missing one of the required keys: %s", mat_file_path, required_keys)
-            raise KeyError("MAT file at %s is missing required keys", mat_file_path)
+            error_msg = f"MAT file at {mat_file_path} is missing required keys: {required_keys}"
+            logging.error(error_msg)
+            raise KeyError(error_msg)
         
         # Extract labels, data, and units.
         labels = mat_contents['labels'].flatten()  # Flatten in case it's a 2D array.
@@ -188,7 +212,7 @@ def load_mat_file(mat_file_path):
     
     return labels, data, units
 
-# Rename physiological data channels according to the BIDS conventions.
+#   Renames physiological data channels according to BIDS (Brain Imaging Data Structure) conventions.
 def rename_channels(labels):
     """
     Parameters:
@@ -208,6 +232,8 @@ def rename_channels(labels):
     Note: The function expects a specific set of channel names. Make sure to update the mapping 
     if different channels or naming conventions are used.
     """
+
+    logging.info("Renaming channels according to BIDS conventions")
 
     # Define the mapping from original labels to BIDS labels.
     original_label_mapping = {
@@ -238,15 +264,16 @@ def rename_channels(labels):
         else:
             logging.warning("Label '%s' does not match any BIDS convention and will be omitted.", label)
     
-    # Log the results of the renaming process.
-    # logging.info(f"BIDS Labels Dictionary: {bids_labels_dictionary}")
-    # logging.info(f"BIDS Labels List: {bids_labels_list}")
-    
-    return bids_labels_dictionary, bids_labels_list
+    logging.info("BIDS labels list after renaming: %s", bids_labels_list)
 
-#  Extracts metadata from a BIDS JSON file and identifies the associated run.
+    # Debug log to print the renamed labels in the list.
+    return bids_labels_dictionary, bids_labels_list
+   
+#  Extracts metadata from a JSON file and identifies the associated run.
 def extract_metadata_from_json(json_file_path, processed_jsons):
     """
+    Extracts specific metadata from a JSON file and returns the run identifier and metadata.
+
     Parameters:
     - json_file_path (str): Path to the JSON file containing metadata for a specific fMRI run.
     - processed_jsons (set): A set that tracks already processed JSON files to avoid duplication.
@@ -288,27 +315,31 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
     except json.JSONDecodeError as e:
         logging.error(f"Error decoding JSON: {e}")
         raise
+    
+    try:
+        # Extract run_id from the file name.
+        run_id_match = re.search(r'run-\d+', json_file_path)
+        if not run_id_match:
+            raise ValueError(f"Run identifier not found in JSON file name: {json_file_path}")
+        run_id = run_id_match.group()
 
-    # Extract run_id from the file name.
-    run_id_match = re.search(r'run-\d+', json_file_path)
-    if not run_id_match:
-        raise ValueError(f"Run identifier not found in JSON file name: {json_file_path}")
-    run_id = run_id_match.group()
+        # Verify essential metadata fields are present.
+        required_fields = ['TaskName', 'RepetitionTime', 'NumVolumes']
+        run_metadata = {field: metadata.get(field) for field in required_fields}
+        if not all(run_metadata.values()):
+            missing_fields = [key for key, value in run_metadata.items() if value is None]
+            raise ValueError(f"JSON file {json_file_path} is missing required fields: {missing_fields}")
 
-    # Verify essential metadata fields are present.
-    required_fields = ['TaskName', 'RepetitionTime', 'NumVolumes']
-    run_metadata = {field: metadata.get(field) for field in required_fields}
-    if not all(run_metadata.values()):
-        missing_fields = [key for key, value in run_metadata.items() if value is None]
-        raise ValueError(f"JSON file {json_file_path} is missing required fields: {missing_fields}")
+        # Add the JSON file to the set of processed files.
+        processed_jsons.add(json_file_path)
+        logging.info(f"Successfully extracted metadata for {run_id}: {run_metadata}")
 
-    # Add the JSON file to the set of processed files.
-    processed_jsons.add(json_file_path)
-
-    # Return the run ID and extracted metadata.
-    run_metadata = {field: metadata[field] for field in required_fields}
-    # logging.info(f"Extracted metadata for run {run_id}: {run_metadata}")
-    return run_id, run_metadata
+        # Return the run ID and extracted metadata.
+        return run_id, run_metadata
+    
+    except Exception as e:
+        logging.error(f"Unexpected error occurred while extracting metadata from {json_file_path}: {e}")
+        raise
 
 # Extracts the starting points of triggers in MRI data based on a specified threshold and minimum consecutive points.
 def extract_trigger_points(data, threshold, min_consecutive):
@@ -323,6 +354,10 @@ def extract_trigger_points(data, threshold, min_consecutive):
 
     This function is integral to preprocessing fMRI data, where accurate identification of trigger points is essential for aligning physiological data with MRI volumes. It uses a simple thresholding approach combined with a criterion for a minimum number of consecutive points to reduce false positives.
 
+    The function first converts the data to a binary sequence based on the threshold, then identifies changes 
+    from 0 to 1 as potential trigger starts. It further checks these starts to ensure they have the specified 
+    minimum number of consecutive points above the threshold.
+
     Usage Example:
     trigger_starts = extract_trigger_points(mri_trigger_data, threshold=5, min_consecutive=5)
 
@@ -330,7 +365,8 @@ def extract_trigger_points(data, threshold, min_consecutive):
     - This function assumes the trigger channel data is a 1D numpy array.
     - The choice of threshold and min_consecutive parameters may vary based on the specifics of the MRI acquisition and should be validated for each dataset.
     """
-    
+    logging.info("Extracting trigger points with threshold: %s and minimum consecutive points: %s", threshold, min_consecutive)
+
     # Convert the data points to binary values based on the threshold.
     triggers = (data > threshold).astype(int)
     logging.info(f"Trigger data converted to binary based on threshold {threshold}")
@@ -342,9 +378,11 @@ def extract_trigger_points(data, threshold, min_consecutive):
     # Validate trigger starts based on the minimum consecutive points criterion.
     valid_trigger_starts = []
     for start in potential_trigger_starts:
+        # Check if the start has the required minimum number of consecutive points above the threshold
         if np.sum(triggers[start:start+min_consecutive]) == min_consecutive:
             valid_trigger_starts.append(start)
 
+    logging.info("Identified %d valid trigger starts", len(valid_trigger_starts))
     return valid_trigger_starts
 
 # Finds the index of the next MRI trigger start after a given index in the sequence of trigger starts.
@@ -367,6 +405,8 @@ def find_trigger_start(trigger_starts, current_index):
     - If no trigger start is found after the current_index, the function returns None, indicating the end of the sequence or missing data.
     """
     
+    logging.info(f"Finding trigger start after index {current_index}.")
+
     # Finding the appropriate index in the trigger_starts array.
     next_trigger_index = np.searchsorted(trigger_starts, current_index, side='right')
     
@@ -442,6 +482,10 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
             if start_from_index >= len(trigger_starts) - num_volumes + 1:
                 logging.warning(f"No more valid run length matches for {run_id} after index {start_from_index}.")
 
+        except KeyError as e:
+            logging.info(f"Metadata key error for {run_id}: {e}")
+        except ValueError as e:
+            logging.info(f"ValueError for {run_id}: {e}")
         except Exception as e:
             logging.error(f"Error processing {run_id}: {e}")
 
@@ -494,7 +538,7 @@ def segment_runs(runs_info, output_dir, metadata_dict, labels, subject_id, sessi
             write_output_files(data, run_metadata, metadata_dict, labels, output_dir, subject_id, session_id, run_id)
             
             output_files.append(output_file_path)
-            #logging.info("Output file for run %s written to %s", run_id, output_file_path)
+            logging.info("Output file for run %s written to %s", run_id, output_file_path)
 
         except IOError as e:
             logging.error("Failed to write output file for full run %s: %s", run_id, e, exc_info=True)
@@ -529,16 +573,16 @@ def create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict):
     # Initialize the metadata dictionary with common information.
     metadata_dict = {
         "RunID": run_info['run_id'],
-        "SamplingFrequency": sampling_rate,
+        "SamplingFrequency": sampling_rate, # BIDS label
         "SamplingRate": {
             "Value": sampling_rate,  
-            "Units": "Hz"
+            "Units": "Hz" # provide units
         },
-        "StartTime": run_info['start_index'] / sampling_rate, 
+        "StartTime": run_info['start_index'] / sampling_rate, # BIDS label
         "StartTimeSec": {
             "Value": run_info['start_index'] / sampling_rate, 
             "Description": "Start time of the current run relative to recording onset",
-            "Units": "seconds"
+            "Units": "seconds" # provide units
         },
         "StartTimeMin": {
             "Value": (run_info['start_index'] / sampling_rate)/60, 
@@ -589,9 +633,11 @@ def create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict):
 
     # Add channel-specific metadata to the dictionary if the channel is present.
     for channel in channel_metadata:
+
     # Assuming 'channel' is a variable in this function that holds the current channel being processed.
         if channel in bids_labels_list:
             channel_specific_metadata = channel_metadata[channel]
+            
             # Set the 'Units' dynamically based on the units_dict
             channel_specific_metadata['Units'] = units_dict.get(channel, "Unknown")
             metadata_dict[channel] = channel_specific_metadata
@@ -733,13 +779,11 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
     Raises:
     - Exception: If any error occurs during the file writing process, it logs the error and re-raises the exception.
 
-    Notes:
-    - This function requires the 'pandas' and 'os' libraries for data handling and file operations.
-    - The function also utilizes 'json' for JSON file operations and 'logging' for logging errors and information.
-    - The output consists of two files: a TSV (Tab Separated Values) file with GZip compression and a JSON file containing metadata.
-    - The TSV file name is formatted as '[subject_id]_[session_id]_task-learn_[run_id]_physio.tsv.gz'.
-    - The JSON file name is formatted as '[subject_id]_[session_id]_task-learn_[run_id]_physio.json'.
-    - This function is designed to work with data adhering to the BIDS format, commonly used in neuroimaging studies.
+    The function creates TSV and JSON files named according to BIDS naming conventions.
+    It writes the segmented data to a compressed TSV file and the combined metadata to a JSON file.
+
+    Usage Example:
+    write_output_files(segmented_data, run_meta, meta_dict, labels, '/output/path', 'sub-01', 'ses-1', 'run-01')
 
     Example Usage:
     write_output_files(segmented_data_array, run_metadata_dict, additional_metadata_dict, channel_labels, '/output/path', 'sub-01', 'sess-01', 'run-01')
@@ -761,6 +805,7 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
 
         # Save the DataFrame to a TSV file with GZip compression.
         df.to_csv(tsv_file_path, sep='\t', index=False, compression='gzip')
+        logging.info(f"TSV file written: {tsv_file_path}")
 
         # Merge the run-specific metadata with the additional metadata.
         combined_metadata = {**run_metadata, **metadata_dict}
@@ -768,15 +813,15 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         # Write the combined metadata to a JSON file.
         with open(json_file_path, 'w') as json_file:
             json.dump(combined_metadata, json_file, indent=4)
+        logging.info(f"JSON file written: {json_file_path}")
 
-        # Log the successful writing of files.
-        logging.info(f"Full length run output files for {run_id} also written successfully to {output_dir}")
-    
     except Exception as e:
         # Log any exceptions that occur during the file writing process.
-        # logging.error(f"Failed to write output files for {run_id}: {e}", exc_info=True)
-        # Re-raise the exception for further handling
+        logging.error(f"Failed to write output files for {run_id}: {e}", exc_info=True)
         raise
+    
+    # Log the successful writing of files.
+    logging.info(f"Full length run output files for {run_id} also written successfully to {output_dir}")
 
 # Writes output files (.tsv and .json)for each event segment of physiological data in BIDS format.
 def write_event_output_files(event_segments, run_metadata, metadata_dict_events, bids_labels_list, output_dir, subject_id, session_id, run_id):
@@ -806,8 +851,7 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
     try:
         # Ensure the output directory exists.
         os.makedirs(output_dir, exist_ok=True)
-        #logging.info(f"Output directory '{output_dir}' created successfully.")
-
+      
         # Loop through each segment and write to individual files.
         for i, segment_info in enumerate(event_segments):
 
@@ -828,8 +872,7 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
             # Prepare file paths.
             tsv_event_file_path = os.path.join(output_dir, tsv_event_filename)
             json_event_file_path = os.path.join(output_dir, json_event_filename)
-            # logging.info(f"File paths set for segment {i}: TSV - {tsv_event_file_path}, JSON - {json_event_file_path}")
-
+       
             # Check if segment data is not empty.
             if segment_data.size == 0:
                 logging.warning(f"No data found for event segment {segment_index} of trial type '{trial_type}' in run '{run_id}'. Skipping file writing.")
@@ -838,13 +881,11 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
             # Create a DataFrame and save to a TSV file.
             df = pd.DataFrame(segment_data, columns=bids_labels_list)
             df.to_csv(tsv_event_file_path, sep='\t', index=False, compression='gzip')
-            #logging.info(f"TSV file written for segment {i}, trial type '{trial_type}'.")
-
+        
             # Write the event metadata to a JSON file.
             with open(json_event_file_path, 'w') as json_file:
                 json.dump(metadata_dict_events, json_file, indent=4)
-                #logging.info(f"JSON file written for segment {i}, trial type '{trial_type}'.")
-
+               
             # Log the successful writing of files.
             logging.info(f"Event segment output files for {run_id}, segment {segment_index}, trial type '{trial_type}' written successfully to {output_dir}")
 
@@ -1105,8 +1146,7 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
     
     # Create figure and subplots.
     fig, axes = plt.subplots(nrows=len(bids_labels_list), ncols=1, figsize=(20, 10))
-    #logging.info("Created figure and subplots for event plotting.")
-
+  
     # Plot the original data as a background reference.
     time_axis_original = np.arange(original_data.shape[0]) / sampling_rate / 60  # Convert to minutes.
     for i, label in enumerate(bids_labels_list):
@@ -1115,7 +1155,6 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
 
     # Overlay segmented data on top of the original data.
     for run_id, segments in event_segments_by_run.items():
-        #logging.info(f"Processing run ID for event plotting: {run_id}")
         for segment_data, trial_type, segment_start_time, segment_duration in segments:
             # Calculate the time axis for the segment.
             start_time = segment_start_time / 60  # Convert to minutes.
@@ -1125,8 +1164,7 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
             # Plot each segment.
             for i, label in enumerate(bids_labels_list):
                 axes[i].plot(time_axis_segment, segment_data[:, i], color=colors[trial_type])
-            #logging.info(f"Plotted {trial_type} segment for {run_id}")
-
+            
     # Set x-axis label and legend.
     axes[-1].set_xlabel('Time (min)')
     handles, labels = axes[-1].get_legend_handles_labels()
@@ -1144,21 +1182,26 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
 # Main function to orchestrate the conversion of physiological data to BIDS format.
 def main(physio_root_dir, bids_root_dir):
     """
+    Main function to orchestrate the conversion of physiological data to BIDS format.
+
     Parameters:
-    - physio_root_dir (str): Root directory of the physiological data.
-    - bids_root_dir (str): Root directory of the BIDS dataset.
+    - physio_root_dir (str): Directory containing the physiological .mat files.
+    - bids_root_dir (str): Root directory of the BIDS dataset where output files will be saved.
 
-    Notes:
-    - This function integrates multiple steps: data loading, channel renaming, metadata processing, 
-      event segmentation, file writing, and plotting.
-    - It employs a variety of custom functions (e.g., load_mat_file, rename_channels) that should be defined elsewhere.
-    - The function is designed to handle exceptions and log detailed information for debugging.
-    - Logging is set up to track the process flow and any issues encountered.
-    - The sampling rate is hardcoded but can be replaced with a dynamic value if necessary.
-    - The function assumes a specific directory structure and file naming convention as per BIDS standards.
+    The function performs the following steps:
+    1. Load physiological data from .mat files.
+    2. Rename channels according to BIDS conventions.
+    3. Extract metadata from associated JSON files.
+    4. Segment the data into runs based on triggers and metadata.
+    5. Write segmented data to output files in BIDS format.
+    6. Plot the physiological data for all runs.
 
-    Raises:
-    - Exception: If any error occurs during the processing pipeline.
+    Usage Example:
+    main('/path/to/physio_data', '/path/to/bids_dataset')
+
+    Dependencies:
+    - Requires several helper functions defined in the same script for loading data, renaming channels,
+      extracting metadata, finding runs, segmenting data, writing output files, and plotting.
     """
 
     # Define the known sampling rate.
@@ -1169,10 +1212,10 @@ def main(physio_root_dir, bids_root_dir):
         subject_id, session_id = extract_subject_session(physio_root_dir)
         
         # Setup logging after extracting subject_id and session_id.
-        setup_logging(subject_id, session_id, bids_root_dir) # Uncomment this line and helper function to enable archived logging.
+        log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
-        # Load physiological data.
+        # Load physiological data from the .mat file. 
         mat_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_physio.mat")
         labels, data, units = load_mat_file(mat_file_path)
         if data is None or not data.size:
@@ -1184,23 +1227,22 @@ def main(physio_root_dir, bids_root_dir):
         # Create a dictionary mapping from original labels to units.
         original_labels_to_units = dict(zip(labels, units))
 
+        # Create a mapping of original labels to their indices in the data array.
+        original_label_indices = {label: idx for idx, label in enumerate(labels)}
+
         # Now create the units_dict by using the bids_labels_dictionary to look up the original labels.
         units_dict = {
             bids_labels_dictionary[original_label]: unit
             for original_label, unit in original_labels_to_units.items()
             if original_label in bids_labels_dictionary
         }
-        
-        # Create a mapping of original labels to their indices in the data array.
-        original_label_indices = {label: idx for idx, label in enumerate(labels)}
-
+    
         # Filter the data array to retain only the columns with BIDS labels.
         segmented_data_bids_only = data[:, [original_label_indices[original] for original in bids_labels_dictionary.keys()]]
 
         # Process JSON files to extract metadata for each run.
         json_file_paths = glob.glob(os.path.join(bids_root_dir, subject_id, session_id, 'func', '*_bold.json'))
-        logging.info("Extracting run metadata from JSON files...")
-
+ 
         # Assume json_file_paths is a list of paths to your JSON files.
         all_runs_metadata = {}
         processed_jsons = set()
@@ -1209,8 +1251,7 @@ def main(physio_root_dir, bids_root_dir):
         sorted_json_file_paths = sorted(
             json_file_paths,
             key=lambda x: int(re.search(r"run-(\d+)_bold\.json$", x).group(1)))
-        #logging.info("JSON files found: %s", sorted_json_file_paths)
-
+     
         # Now use the sorted_json_file_paths instead of the unsorted json_file_paths.
         for json_file_path in sorted_json_file_paths:
             run_id, run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
@@ -1234,6 +1275,7 @@ def main(physio_root_dir, bids_root_dir):
             raise ValueError("Trigger channel not found in BIDS labels.")
 
         # Extract trigger points with the appropriate threshold and min_consecutive.
+        # Note: Adjust the threshold and min_consecutive based on your specific data
         trigger_starts = extract_trigger_points(mri_trigger_data, threshold=5, min_consecutive=5) # Note: Adjust the threshold and min_consecutive based on your specific data.
         if len(trigger_starts) == 0:
             raise ValueError("No trigger points found, please check the threshold and min_consecutive parameters.")
@@ -1244,9 +1286,9 @@ def main(physio_root_dir, bids_root_dir):
         if len(runs_info) == 0:
             raise ValueError("No runs were found, please check the triggers and metadata.")
 
+        # Catch error if no runs were found.
         if not runs_info:
             raise ValueError("No runs were found. Please check the triggers and metadata.")
-        # logging.info("Runs info: %s", runs_info)
 
         # Verify that the found runs match the expected runs from the JSON metadata.
         expected_runs = set(run_info['run_id'] for run_info in runs_info)
@@ -1266,7 +1308,6 @@ def main(physio_root_dir, bids_root_dir):
         output_files = []
         for run_id in sorted_run_ids:
             run_info = run_info_dict[run_id]
-            #logging.info("Processing %s", run_id)
             repetition_time = all_runs_metadata[run_id]['RepetitionTime']  # Retrieve repetition time from metadata.
             
             # Construct the events file path.
@@ -1286,9 +1327,6 @@ def main(physio_root_dir, bids_root_dir):
                 logging.error(f"Error reading events file for {run_id}: {e}", exc_info=True)
                 continue  # Skip this run if events file cannot be read.
             
-            # Log events DataFrame details for debugging. 
-            # logging.info("Events DataFrame for %s:\n%s", run_id, events_df.head())
-
             # Process each segment within the run.
             event_segments = segment_data_by_events(data, events_df, sampling_rate, run_info, run_id)
             event_segments_by_run[run_id] = event_segments
@@ -1300,20 +1338,16 @@ def main(physio_root_dir, bids_root_dir):
             
             # Create the metadata dictionary for the current run.
             metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
-            # logging.info("Metadata dictionary for %s: %s", run_id, metadata_dict)
-            
+     
             for segment in event_segments:
-                #logging.info(f"Processing event segment in {run_id}") 
                 if len(segment) != 4:
                     logging.error(f"Invalid segment format for {run_id}: {segment}")
                     continue  # Skip malformed segments.
 
                 segment_data, trial_type, segment_start_time, segment_duration = segment
-                #logging.info(f"Processing segment for trial type {trial_type} in {run_id}")
-
+          
                 segment_length = len(segment_data)
-                #logging.info(f"Segment length: {segment_length}")
-
+             
                 # Retrieve the onset time for the segment from events_df.
                 event_onset = events_df[events_df['trial_type'] == trial_type]['onset'].iloc[0]
                 logging.info(f"First '{trial_type}' event onset beings at {event_onset} seconds relative to the start of the run")
@@ -1331,8 +1365,7 @@ def main(physio_root_dir, bids_root_dir):
                     [segment], sorted_all_runs_metadata[run_id], metadata_dict_events, 
                     bids_labels_list, output_dir, subject_id, session_id, run_id
                 )
-                #logging.info("Event output files successfully written for run %s, segment of trial type '%s'", run_id, trial_type)
-
+       
             # Call the write_output_files function with the correct parameters.
             output_files.append(write_output_files(
                 segmented_data_bids_only[start_index:end_index],
@@ -1355,8 +1388,6 @@ def main(physio_root_dir, bids_root_dir):
         # Plot physiological data for all runs with the filtered background data.
         if segmented_data_list:
             
-            # plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_runs_physio.png")
-            
             # Extract the base name of the script without the .py extension.
             script_name = os.path.basename(__file__).replace('.py', '')
 
@@ -1374,7 +1405,6 @@ def main(physio_root_dir, bids_root_dir):
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
 
             logging.info("Preparing to plot event blocks.")
-            #plot_events_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
             log_file_path_plot_events = os.path.join(log_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
             plot_events_file_path = log_file_path_plot_events
             plot_runs_with_events(data_bids_only, event_segments_by_run, events_df, sampling_rate, plot_events_file_path, units_dict, bids_labels_list, run_info_dict)
@@ -1388,13 +1418,39 @@ def main(physio_root_dir, bids_root_dir):
 # Main function to run the script from the command line.
 if __name__ == '__main__':
     """
-    Entry point for the script when run from the command line.
-    Uses argparse to parse command-line arguments and passes them to the main function.
-    """
+    Command-line execution entry point for the script.
 
-    # Create an argument parser.
+    This block allows the script to be run directly from the command line. It uses argparse to handle
+    command-line arguments, specifically the paths to the directories containing the physiological data
+    and the BIDS dataset. These arguments are then passed to the main function of the script.
+
+   Usage:
+
+    python BIDS_process_physio_ses_2.py <physio_root_dir> <bids_root_dir>
+
+    """
+    # Set up an argument parser to handle command-line arguments.
     parser = argparse.ArgumentParser(description="Convert physiological data to BIDS format.")
+
+    # The first argument is the root directory containing the matlab physio data.
     parser.add_argument("physio_root_dir", help="Directory containing the physiological .mat file.")
+
+    # The second argument is the root directory of the BIDS dataset.
     parser.add_argument("bids_root_dir", help="Path to the root of the BIDS dataset.")
+    
+    # Parse the arguments provided by the user.
     args = parser.parse_args()
-    main(args.physio_root_dir, args.bids_root_dir)
+    
+    # Starting script messages
+    print(f"Starting script with provided arguments.")
+    print(f"Physiological data directory: {args.physio_root_dir}")
+    print(f"BIDS root directory: {args.bids_root_dir}")
+ 
+    # Call the main function with the parsed arguments.
+    try:
+        main(args.physio_root_dir, args.bids_root_dir)
+    except Exception as e:
+        logging.error("An error occurred during script execution: %s", e, exc_info=True)
+        logging.info("Script execution completed with errors.")
+    else:
+        logging.info("Script executed successfully.")

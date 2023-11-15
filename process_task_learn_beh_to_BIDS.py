@@ -375,6 +375,10 @@ def save_as_tsv(data, output_path):
         # Log any exceptions that occur during the saving process
         logging.error(f"Error saving data to {output_path}: {e}")
 
+def matches_pattern(filename, pattern):
+    return all(part in filename for part in pattern.split())
+
+
 # Main function to process all MATLAB files in the specified directory and save them as .tsv files and JSON sidecar files.
 def main(matlab_root_dir, bids_root_dir):
     """
@@ -415,62 +419,71 @@ def main(matlab_root_dir, bids_root_dir):
     setup_logging(subject_id, session_id, bids_root_dir)
     logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
-    try: 
-        # Define the order and identifiers for different types of runs (multiple methods provided for debugging).
-        run_order = [
-        ("*localizer_run1*", "run-00"),
-        ("*localizer_run2*", "run-07"),
-        ("*run1*", "run-01"),
-        ("*run2*", "run-02"),
-        ("*run3*", "run-03"),
-        ("*run4*", "run-04"),
-        ("*run5*", "run-05"),
-        ("*run6*", "run-06")
-    ]
+    # Define the order and identifiers for different types of runs (multiple methods provided for debugging).
+    subject_id_without_prefix = subject_id.replace('sub-', '')  # Remove 'sub-' prefix
 
+    run_order = [
+        (f"{subject_id_without_prefix}_localizer_run1_*_NS.mat", "run-00"),
+        (f"{subject_id_without_prefix}_localizer_run2_*_NS.mat", "run-07"),
+        (f"{subject_id_without_prefix}_learningSession_*_run1_*_NS.mat", "run-01"),
+        (f"{subject_id_without_prefix}_learningSession_*_run2_*_NS.mat", "run-02"),
+        (f"{subject_id_without_prefix}_learningSession_*_run3_*_NS.mat", "run-03"),
+        (f"{subject_id_without_prefix}_learningSession_*_run4_*_NS.mat", "run-04"),
+        (f"{subject_id_without_prefix}_learningSession_*_run5_*_NS.mat", "run-05"),
+        (f"{subject_id_without_prefix}_learningSession_*_run6_*_NS.mat", "run-06")
+    ]
+    
+    matlab_root_dir = os.path.expanduser('~/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN017/ses-2/beh/preprocessed/')
+    files = glob.glob(matlab_root_dir)
+    print(f"Found files: {files}")
+    try:
         # Process each run in the defined order
         for run_name, run_id in run_order:
-            matlab_file_pattern = f"{run_name}*.mat"
-            logging.info(f"Matlab file pattern: {matlab_file_pattern}")
-            logging.info(f"Run ID: {run_id}")
-            logging.info(f"Run name: {run_name}")
-            matlab_files = glob.glob(os.path.join(matlab_root_dir, matlab_file_pattern))
-            logging.info(f"Matlab files: {matlab_files}")
-            logging.info(f"Number of matlab files: {len(matlab_files)}")
+            full_path = os.path.join(matlab_root_dir, run_name)
+            logging.info(f"Full path being searched: {full_path}")
+            
+            # Construct the file pattern for MATLAB files
+            matlab_file_pattern = f"{run_name}"
+            logging.info(f"Searching for files: {matlab_file_pattern}")
 
-            # Process MATLAB file for the current run.
+            # Find all MATLAB files that match the current pattern
+            matlab_files = glob.glob(os.path.join(matlab_root_dir, matlab_file_pattern))
+            logging.info(f"Found files: {matlab_files}")
+
+            # Process each MATLAB file for the current run
             for matlab_file_path in sorted(matlab_files):
                 try:
+                    # Extract file name
                     filename = os.path.basename(matlab_file_path).rstrip('.mat')
                     logging.info(f"Processing file: {filename} for run: {run_id}")
 
                     # Load and format MATLAB data
                     trial_events, block_data = load_matlab_data(matlab_file_path)
                     if trial_events is None or block_data is None:
-                        logging.error(f"Error processing {matlab_file_path}")
-                        continue # Skip this file if an error occurs
+                        logging.error(f"Error loading data from {matlab_file_path}")
+                        continue  # Skip this file if loading fails
 
                     formatted_data = format_data_for_bids(trial_events, block_data)
-                    logging.info(f"Formatted data: {formatted_data}")
                     if formatted_data is None:
-                        logging.error(f"Error processing {matlab_file_path}")
-                        continue
+                        logging.error(f"Error formatting data from {matlab_file_path}")
+                        continue  # Skip this file if formatting fails
 
-                    # Construct output file path
+                    # Construct the output file path
                     output_path = os.path.join(bids_root_dir, f"{subject_id}", session_id, 'func',
                                             f"{subject_id}_{session_id}_task-learn_{run_id}_events.tsv")
 
-                    # Save formatted data as .tsv with .json sidecar
+                    # Save formatted data as TSV
                     save_as_tsv(formatted_data, output_path)
                     logging.info(f"Saved formatted data to: {output_path}")
 
                 except Exception as e:
                     logging.error(f"Error processing {matlab_file_path}: {e}")
-                    raise
+                    # Decide whether to raise an exception or continue with the next file
+                    continue  # or 'raise' to stop processing
 
     except Exception as e:
-        logging.error(f"Error processing MATLAB files: {e}")
-        raise
+        logging.error(f"Unexpected error during processing: {e}")
+        raise  # Propagate the exception upwards
 
 # Main function executed when the script is run from the command line.
 if __name__ == "__main__":
