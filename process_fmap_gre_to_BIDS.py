@@ -237,13 +237,6 @@ def update_json_file(json_filepath, intended_for=None):
             data['IntendedFor'] = intended_for
             logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
 
-            # Verify each file in IntendedFor exists
-            if intended_for:
-                for filepath in intended_for:
-                    if not os.path.exists(filepath):
-                        logging.error(f"File specified in IntendedFor does not exist: {filepath}")
-                        sys.exit(1)  # Exit the script with an error status
-
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)
             json.dump(data, file, indent=4)

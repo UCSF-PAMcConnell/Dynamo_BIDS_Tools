@@ -264,14 +264,7 @@ def update_json_file_AP(json_filepath_AP, session_id,intended_for=None):
             
             data['IntendedFor'] = intended_for
             logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
-            
-            # Verify each file in IntendedFor exists
-            if intended_for:
-                for filepath in intended_for:
-                    if not os.path.exists(filepath):
-                        logging.error(f"File specified in IntendedFor does not exist: {filepath}")
-                        sys.exit(1)  # Exit the script with an error status
-                        
+              
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)
             json.dump(data, file, indent=4)
@@ -755,7 +748,7 @@ def main(dicom_root_dir, bids_root_dir):
     try:
         # Setup logging after extracting subject_id and session_id.
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
-        logging.info(f"Processing GRE Field Map data for subject: {subject_id}, session: {session_id}")
+        logging.info(f"Processing EPIField Map data for subject: {subject_id}, session: {session_id}")
 
         # Specify the exact directory where the DICOM files are located.
         if session_id == 'ses-1':
@@ -788,7 +781,7 @@ def main(dicom_root_dir, bids_root_dir):
                     f"{session_id}/func/{subject_id}_{session_id}_task-rest_run-04_sbref.nii",
                     f"{session_id}/perf/{subject_id}_{session_id}_asl.nii"
                     ]
-                elif session_id == 'ses-2':
+                else:
                     intended_for = [
                     f"{session_id}/func/{subject_id}_{session_id}_task-learn_run-00_bold.nii",
                     f"{session_id}/func/{subject_id}_{session_id}_task-learn_run-01_bold.nii",
