@@ -1462,8 +1462,11 @@ def main(physio_root_dir, bids_root_dir):
             
             # Move up four levels to get to dataset_root_dir
             dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
-            output_derivatives_dir_runs = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'learn', 'runs', 'plots')
-            output_derivatives_dir_events = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'learn', 'events', 'plots')
+            output_derivatives_dir_plot_runs = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'learn', 'runs', 'plots')
+            output_derivatives_dir_plot_events = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'learn', 'events', 'plots')
+            os.makedirs(output_derivatives_dir_plot_runs, exist_ok=True)
+            os.makedirs(output_derivatives_dir_plot_events, exist_ok=True)
+            
 
             # Call the plot_runs function with the correct parameters and save plots to the log directory.
             logging.info("Preparing to plot runs.")
@@ -1472,10 +1475,10 @@ def main(physio_root_dir, bids_root_dir):
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
 
             # Log the action
-            logging.info(f"Runs plot png file copied to: {output_derivatives_dir_runs}")
+            logging.info(f"Runs plot png file copied to: {output_derivatives_dir_plot_runs}")
 
             # Copy the file
-            shutil.copy2(plot_file_path, output_derivatives_dir_runs)
+            shutil.copy2(plot_file_path, output_derivatives_dir_plot_runs)
 
             logging.info("Preparing to plot event blocks.")
             log_file_path_plot_events = os.path.join(log_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
@@ -1483,10 +1486,10 @@ def main(physio_root_dir, bids_root_dir):
             plot_runs_with_events(data_bids_only, event_segments_by_run, events_df, sampling_rate, plot_events_file_path, units_dict, bids_labels_list, run_info_dict)
 
             # Log the action
-            logging.info(f"Events plot png file copied to: {output_derivatives_dir_events}")
+            logging.info(f"Events plot png file copied to: {output_derivatives_dir_plot_events}")
 
             # Copy the file
-            shutil.copy2(plot_events_file_path, output_derivatives_dir_events)
+            shutil.copy2(plot_events_file_path, output_derivatives_dir_plot_events)
         
         else:
             logging.error("No data available to plot.")

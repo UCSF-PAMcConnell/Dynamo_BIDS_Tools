@@ -1083,16 +1083,17 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
             
             # Move up four levels to get to dataset_root_dir
             dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
-            output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'rest', 'plots')
-
+            output_derivatives_dir_plot = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'rest', 'plots')
+            os.makedirs(output_derivatives_dir_plot, exist_ok=True)
+            
             # Plot the segmented fmri and physio data. 
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict, cut_off_duration)
 
             # Log the action
-            logging.info(f"Plot png file copied to: {output_derivatives_dir}")
+            logging.info(f"Plot png file copied to: {output_derivatives_dir_plot}")
 
             # Copy the file
-            shutil.copy2(plot_file_path, output_derivatives_dir)
+            shutil.copy2(plot_file_path, output_derivatives_dir_plot)
         else:
             logging.error("No data available to plot.")
 
