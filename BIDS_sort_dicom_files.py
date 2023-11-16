@@ -206,6 +206,7 @@ def main(sourcedata_root_dir, bids_root_dir):
     
     sort_dicom_files(input_directory, output_directory)
     shutil.rmtree(input_directory)
+    logging.info(f"Removing input directory: {input_directory}")
 
 # Main function to run the script from the command line.
 if __name__ == '__main__':

@@ -146,7 +146,7 @@ def setup_logging(subject_id, session_id, dataset_root_dir):
 
     try:
         # Get the current date and time to create a unique timestamp
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d")   
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H")   
         
         # Extract the base name of the script without the .py extension.
         script_name = os.path.basename(__file__).replace('.py', '')
@@ -198,7 +198,10 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
     The function sets up necessary directories, executes a series of data processing 
     commands for each subject, and validates the output against BIDS standards.
     """
-
+    
+    # Record the starting time for the entire script
+    script_start_time = time.time()
+    
     # Define session ID.
     session_id = "ses-1"
 
@@ -208,8 +211,11 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
 
     # Generate a list of subject IDs based on the provided start and end numbers
     subject_ids = [f"sub-LRN{str(i).zfill(3)}" for i in range(start_num, end_num + 1)]
-    try:
-        for subject_id in subject_ids:
+    
+    for subject_id in subject_ids:
+        try:    
+            # Record the start time for this subject
+            subject_start_time = time.time()
             sourcedata_root_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
             dicom_sorted_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom_sorted')
             dicom_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom')
@@ -237,79 +243,81 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             else:
                 print(f'ZIP file not found for {subject_id}, session {session_id}')
 
-    except Exception as e:
-        print(f'Error while processing {subject_id}, session {session_id}: {str(e)}')
-        sys.exit(1)
+            # Setup logging, directories, and other pre-processing steps for each subject.
+            log_file_path = setup_logging(subject_id, session_id, dataset_root_dir)
+            logging.info("Processing subject: %s, session: %s", subject_id, session_id)
+            
+            # Define root folders for processing.
+            sourcedata_root_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
+            behavior_root_dir = os.path.join(sourcedata_root_dir, 'beh', 'preprocessed')
+            dicom_root_dir = os.path.join(sourcedata_root_dir, 'dicom_sorted')
+            dicom_sort_root_dir = os.path.join(sourcedata_root_dir, 'dicom')
+            physio_root_dir = os.path.join(sourcedata_root_dir, 'physio')
+            bids_root_dir = os.path.join(dataset_root_dir, 'dataset')
+            
+            if not os.path.exists(sourcedata_root_dir):
+                logging.info(f"Subject directory {sourcedata_root_dir} does not exist. Skipping...")
+                continue
 
-    for subject_id in subject_ids:
+            # Define number of resting state runs to process.
+            func_rest_extra_arg = " 4"
+
+            # Define processing commands
+            commands = [
+                "BIDS_sort_dicom_files.py",
+                "process_PCASL_to_BIDS.py",
+                "process_T1_to_BIDS.py",
+                "process_FLAIR_to_BIDS.py",
+                "process_task_rest_to_BIDS.py",
+                "process_DKI_to_BIDS.py",
+                "process_fmap_EPI_to_BIDS.py",
+                "process_fmap_gre_to_BIDS.py",
+                "BIDS_process_physio_ses_1.py"
+            ]
+
+            for command in commands:
+                # Define the path to the script, expanding the user directory
+                script_path = os.path.expanduser("~/Documents/MATLAB/software/iNR/BIDS_tools/" + command)
+
+                # Start with the base command
+                cmd = ["python", script_path]
+
+                # Add arguments based on the command
+                if command == "BIDS_sort_dicom_files.py":
+                    cmd.extend([sourcedata_root_dir, bids_root_dir])
+                elif command == "BIDS_process_physio_ses_1.py":
+                    cmd.extend([physio_root_dir, bids_root_dir])
+                elif command == "process_task_rest_to_BIDS.py":
+                    cmd.extend([dicom_root_dir, bids_root_dir, func_rest_extra_arg])
+                elif command in ["process_T1_to_BIDS.py", "process_FLAIR_to_BIDS.py"]:
+                    cmd.extend([dicom_root_dir, bids_root_dir])
+                    if pydeface:
+                        cmd.append("--pydeface")
+                else:
+                    # For all other commands
+                    cmd.extend([dicom_root_dir, bids_root_dir])
+
+                # Log the command being executed
+                logging.info(f"Executing: {' '.join(cmd)}")
+
+                # Execute the subprocess command
+                run_and_log_subprocess(cmd)
+
+        except Exception as e:
+            print(f'Error while processing {subject_id}, session {session_id}: {str(e)}')
+            sys.exit(1)
         
-        # Setup logging, directories, and other pre-processing steps for each subject.
-        log_file_path = setup_logging(subject_id, session_id, dataset_root_dir)
-        logging.info("Processing subject: %s, session: %s", subject_id, session_id)
-        
-        # Record the starting time
-        start_time = time.time()
-        #logging.info(f"Script execution started at: {start_time}")
+        # Record the end time for this subject
+        subject_end_time = time.time()
 
-        # Define root folders for processing.
-        sourcedata_root_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
-        behavior_root_dir = os.path.join(sourcedata_root_dir, 'beh', 'preprocessed')
-        dicom_root_dir = os.path.join(sourcedata_root_dir, 'dicom_sorted')
-        dicom_sort_root_dir = os.path.join(sourcedata_root_dir, 'dicom')
-        physio_root_dir = os.path.join(sourcedata_root_dir, 'physio')
-        bids_root_dir = os.path.join(dataset_root_dir, 'dataset')
-        
-        if not os.path.exists(sourcedata_root_dir):
-            logging.info(f"Subject directory {sourcedata_root_dir} does not exist. Skipping...")
-            continue
+        # Calculate the time taken for this subject
+        subject_elapsed_time = (subject_end_time - subject_start_time) / 60  # Convert to minutes
+        logging.info(f"Time taken for subject {subject_id}: {subject_elapsed_time:.2f} minutes")
 
-        # Define number of resting state runs to process.
-        func_rest_extra_arg = " 4"
-
-        # Define processing commands
-        commands = [
-            "BIDS_sort_dicom_files.py",
-            "process_PCASL_to_BIDS.py",
-            "process_T1_to_BIDS.py",
-            "process_FLAIR_to_BIDS.py",
-            "process_task_rest_to_BIDS.py",
-            "process_DKI_to_BIDS.py",
-            "process_fmap_EPI_to_BIDS.py",
-            "process_fmap_gre_to_BIDS.py",
-            "BIDS_process_physio_ses_1.py"
-        ]
-
-    for command in commands:
-        # Define the path to the script, expanding the user directory
-        script_path = os.path.expanduser("~/Documents/MATLAB/software/iNR/BIDS_tools/" + command)
-
-        # Start with the base command
-        cmd = ["python", script_path]
-
-        # Add arguments based on the command
-        if command == "BIDS_sort_dicom_files.py":
-            cmd.extend([sourcedata_root_dir, bids_root_dir])
-        elif command == "BIDS_process_physio_ses_1.py":
-            cmd.extend([physio_root_dir, bids_root_dir])
-        elif command == "process_task_rest_to_BIDS.py":
-            cmd.extend([dicom_root_dir, bids_root_dir, func_rest_extra_arg])
-        elif command in ["process_T1_to_BIDS.py", "process_FLAIR_to_BIDS.py"]:
-            cmd.extend([dicom_root_dir, bids_root_dir])
-            if pydeface:
-                cmd.append("--pydeface")
-        else:
-            # For all other commands
-            cmd.extend([dicom_root_dir, bids_root_dir])
-
-        # Log the command being executed
-        logging.info(f"Executing: {' '.join(cmd)}")
-
-        # Execute the subprocess command
-        run_and_log_subprocess(cmd)
 
     # Change the working directory to dataset_root_dir and execute the cubids-validate command
     try:
-        logging.info(f"Changing working directory to: {dataset_root_dir}")
+        #logging.info(f"Changing working directory to: {dataset_root_dir}")
         os.chdir(dataset_root_dir)
         # Now the current working directory is set to the parent of dataset_root_dir
         logging.info(f"Changed working directory to: {os.getcwd()}")
@@ -325,16 +333,13 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
     except Exception as e:
         logging.error(f"Error in processing with cubids commands: {e}")
 
-    # Record the ending time
-    end_time = time.time()
-    #logging.info(f"Script execution ended at: {end_time}")
+    # Record the end time for the entire script
+    script_end_time = time.time()
+
+    # Calculate the total run time for the script
+    total_script_time = (script_end_time - script_start_time) / 60  # Convert to minutes
+    logging.info(f"Total run time of the script: {total_script_time:.2f} minutes")
     
-    # Calculate the total run time in seconds
-    total_run_time_minutes = (end_time - start_time)/60 
-
-    # Log the total run time
-    logging.info(f"Total run time of the script: {total_run_time_minutes:.2f} minutes")
-
 # Main function to run the script from the command line.
 if __name__ == "__main__":
     """
