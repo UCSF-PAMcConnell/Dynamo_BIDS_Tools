@@ -50,7 +50,8 @@ import glob                                           # Used for Unix style path
 from collections import OrderedDict                   # Dictionary subclass that remembers the insertion order of keys.
 import sys                                            # System-specific parameters and functions.
 from matplotlib.lines import Line2D                   # Import Line2D from matplotlib to create custom line objects.
-
+from matplotlib.backends.backend_pdf import PdfPages    # for creating multipage PDFs with matplotlib plots.
+import shutil                                           # for copying files and directories.
 
 # Sets up archival logging for the script, directing log output to both a file and the console.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -789,8 +790,17 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
     write_output_files(segmented_data_array, run_metadata_dict, additional_metadata_dict, channel_labels, '/output/path', 'sub-01', 'sess-01', 'run-01')
     """
     try:
-        # Ensure the output directory exists.
+        
+        # Move up four levels to get to dataset_root_dir
+        dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
+
+        logging.info(f"Dataset root directory: {dataset_root_dir}")
+
+        output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'learn', 'runs')
+
+        # Ensure the output directories exist
         os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(output_derivatives_dir, exist_ok=True)
 
         # Define filenames based on the BIDS format.
         tsv_filename = f"{subject_id}_{session_id}_task-learn_{run_id}_physio.tsv.gz"
@@ -807,6 +817,12 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         df.to_csv(tsv_file_path, sep='\t', index=False, compression='gzip')
         logging.info(f"TSV file written: {tsv_file_path}")
 
+        # Copy the file
+        shutil.copy2(tsv_file_path, output_derivatives_dir)
+
+        # Log the action
+        logging.info(f"TSV file copied to: {output_derivatives_dir}")
+
         # Merge the run-specific metadata with the additional metadata.
         combined_metadata = {**run_metadata, **metadata_dict}
 
@@ -814,6 +830,13 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         with open(json_file_path, 'w') as json_file:
             json.dump(combined_metadata, json_file, indent=4)
         logging.info(f"JSON file written: {json_file_path}")
+
+        # Copy the file
+        shutil.copy2(json_file_path, output_derivatives_dir)
+
+        # Log the action
+        logging.info(f"JSONfile copied to: {output_derivatives_dir}")
+
 
     except Exception as e:
         # Log any exceptions that occur during the file writing process.
@@ -849,8 +872,17 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
     write_event_output_files(event_segments, run_metadata, metadata_dict_events, channel_labels, '/output/path', 'sub-01', 'sess-01', 'run-01')
     """
     try:
-        # Ensure the output directory exists.
+        
+        # Move up four levels to get to dataset_root_dir
+        dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
+
+        logging.info(f"Dataset root directory: {dataset_root_dir}")
+
+        output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'learn', 'events')
+
+        # Ensure the output directories exist
         os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(output_derivatives_dir, exist_ok=True)
       
         # Loop through each segment and write to individual files.
         for i, segment_info in enumerate(event_segments):
@@ -881,11 +913,26 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
             # Create a DataFrame and save to a TSV file.
             df = pd.DataFrame(segment_data, columns=bids_labels_list)
             df.to_csv(tsv_event_file_path, sep='\t', index=False, compression='gzip')
-        
+            logging.info(f"TSV file written: {tsv_event_file_path}")
+
+            # Copy the file
+            shutil.copy2(tsv_event_file_path, output_derivatives_dir)
+
+            # Log the action
+            logging.info(f"TSV file copied to: {output_derivatives_dir}")
+
             # Write the event metadata to a JSON file.
             with open(json_event_file_path, 'w') as json_file:
                 json.dump(metadata_dict_events, json_file, indent=4)
                
+            logging.info(f"JSON file written: {json_event_file_path}")
+
+            # Copy the file
+            shutil.copy2(json_event_file_path, output_derivatives_dir)
+
+            # Log the action
+            logging.info(f"JSONfile copied to: {output_derivatives_dir}")
+
             # Log the successful writing of files.
             logging.info(f"Event segment output files for {run_id}, segment {segment_index}, trial type '{trial_type}' written successfully to {output_dir}")
 
@@ -1210,11 +1257,26 @@ def main(physio_root_dir, bids_root_dir):
     try:
         # Extract subject and session IDs from the path.
         subject_id, session_id = extract_subject_session(physio_root_dir)
+
+        # Define output directory for the BIDS dataset.
+        output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
         
+        # Search for *_physio.tsv files in the output directory
+        file_pattern = os.path.join(output_dir, f"{subject_id}_{session_id}_task-learn_run-01_physio.tsv.gz")
+        existing_files = glob.glob(file_pattern)
+        print(f"File pattern is: {file_pattern}")
+
+        if existing_files:
+            # Print the list of existing files to the console
+            print("The following *_physio.tsv.gz files already exist:", existing_files)
+            return
+            # raise ValueError("Files already exist, processing may already be complete")
+            # Alternatively, use sys.exit() or return, depending on your requirements
+
         # Setup logging after extracting subject_id and session_id.
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
-
+        
         # Load physiological data from the .mat file. 
         mat_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_physio.mat")
         labels, data, units = load_mat_file(mat_file_path)
@@ -1398,16 +1460,33 @@ def main(physio_root_dir, bids_root_dir):
             if not os.path.exists(log_dir):
                 os.makedirs(log_dir)
             
+            # Move up four levels to get to dataset_root_dir
+            dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
+            output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'rest')
+
             # Call the plot_runs function with the correct parameters and save plots to the log directory.
             logging.info("Preparing to plot runs.")
             log_file_path_plot_runs = os.path.join(log_dir, f"{subject_id}_{session_id}_task-learn_all_runs_physio.png")
             plot_file_path = log_file_path_plot_runs
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict)
 
+            # Log the action
+            logging.info(f"Runs plot png file copied to: {output_derivatives_dir}")
+
+            # Copy the file
+            shutil.copy2(plot_file_path, output_derivatives_dir)
+
             logging.info("Preparing to plot event blocks.")
             log_file_path_plot_events = os.path.join(log_dir, f"{subject_id}_{session_id}_task-learn_all_blocks_physio.png")
             plot_events_file_path = log_file_path_plot_events
             plot_runs_with_events(data_bids_only, event_segments_by_run, events_df, sampling_rate, plot_events_file_path, units_dict, bids_labels_list, run_info_dict)
+
+            # Log the action
+            logging.info(f"Events plot png file copied to: {output_derivatives_dir}")
+
+            # Copy the file
+            shutil.copy2(plot_events_file_path, output_derivatives_dir)
+        
         else:
             logging.error("No data available to plot.")
 

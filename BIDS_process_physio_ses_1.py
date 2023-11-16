@@ -48,7 +48,6 @@ import scipy.io as sio                                  # for loading .mat files
 import numpy as np                                      # for numerical operations and arrays.
 import pandas as pd                                     # for data manipulation and analysis.
 import matplotlib.pyplot as plt                         # for plotting data and visualizations.
-import matplotlib                                       # for creating multipage PDFs with matplotlib plots.                                 
 import json                                             # for handling JSON data.
 import glob                                             # for finding files in directories.
 from matplotlib.backends.backend_pdf import PdfPages    # for creating multipage PDFs with matplotlib plots.
@@ -99,7 +98,6 @@ def setup_logging(subject_id, session_id, bids_root_dir):
         # Configure file logging.
         logging.basicConfig(
             level=logging.INFO,
-            # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
             format='%(asctime)s - %(levelname)s - %(message)s',
             filename=log_file_path,
             filemode='w' # 'w' mode overwrites existing log file.
