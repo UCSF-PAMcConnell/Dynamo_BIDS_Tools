@@ -362,9 +362,6 @@ if __name__ == "__main__":
     # The first argument is the root directory of the dataset.
     parser.add_argument("dataset_root_dir", help="Path to the root of the dataset.")
     
-    # # The second argument is the subject_id.
-    # parser.add_argument("subject_ids", nargs='+', help="List of subject IDs.")
-   
     # The second argument is the startsubject_id.
     parser.add_argument("--start-id", help="Starting subject ID")
     

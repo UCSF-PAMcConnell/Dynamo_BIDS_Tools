@@ -12,7 +12,7 @@ Usage:
 
 Example usage:
 
-python BIDS_process_ses_2.py <dataset_root_dir> <subject_ids>
+python BIDS_process_ses_2.py <dataset_root_dir> <subject_ids> [--pydeface]
 
 Author: PAMcConnell
 Created on: 20231113
@@ -50,42 +50,73 @@ import time                     # for timing script execution.
 import re                       # for regular expressions.
 import zipfile                  # for uncompressing zip files.
 import shutil                   # for moving files.
+import glob                     # for finding files.
+import tempfile                 # for creating temporary directories.
+import io                       # for text input and output.
 
-# Unzip the zip file with subject dicoms. 
-def unzip_and_move(zip_file_path, destination_dir):
+# Execute a subprocess and log its output.
+def run_and_log_subprocess(command):
+    try:
+        # Expand the tilde in file paths
+        command = [os.path.expanduser(arg) for arg in command]
+
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+
+        # Log the output
+        if result.stdout:
+            logging.info(f"Subprocess output:\n{result.stdout}")
+        if result.returncode != 0 and result.stderr:
+            logging.error(f"Subprocess error:\n{result.stderr}")
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Subprocess '{' '.join(command)}' failed with error: {e}")
+        if e.stderr:
+            logging.error(f"Subprocess stderr:\n{e.stderr}")
+    except Exception as e:
+        logging.error(f"An error occurred during subprocess execution: {e}")
+
+# Unzip and move files into 'sourcedata' folder.
+def unzip_and_move(zip_file_path, sourcedata_root_dir):
     """
-    # Example usage:
-    zip_file_path = 'path/to/20230712_170324_LRN001_V1.zip'
-    destination_dir = 'path/to/destination_directory'
-    unzip_and_move(zip_file_path, destination_dir)
+    Unzips a file and moves its contents to a specified directory.
 
+    Args:
+    zip_file_path (str): Path to the ZIP file.
+    sourcedata_root_dir (str): Path to the destination directory.
+
+    Example usage:
+    zip_file_path = '/path/to/20230712_170324_LRN001_V2.zip'
+    sourcedata_root_dir = '/path/to/destination_directory'
+    unzip_and_move(zip_file_path, sourcedata_root_dir)
     """
-    
-    # Ensure the destination directory exists
-    os.makedirs(destination_dir, exist_ok=True)
+    try:
+        with tempfile.TemporaryDirectory() as temp_zip_dir:
+            with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_zip_dir)
 
-    # Extract the ZIP file
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-        zip_ref.extractall(destination_dir)
+            inner_folder_name = os.path.basename(zip_file_path).replace('.zip', '')
+            inner_folder = os.path.join(temp_zip_dir, inner_folder_name)
 
-    # Get the list of extracted folders
-    extracted_folders = [f for f in os.listdir(destination_dir) if os.path.isdir(os.path.join(destination_dir, f))]
+            # Check and move 'dicom' and 'convert' directories
+            for folder_name in ['dicom', 'convert']:
+                source_folder = os.path.join(inner_folder, folder_name)
+                destination_folder = os.path.join(sourcedata_root_dir, folder_name)
 
-    # Ensure there are exactly two extracted folders (dicom and convert)
-    if len(extracted_folders) == 2 and 'dicom' in extracted_folders and 'convert' in extracted_folders:
-        # Move the 'dicom' folder to the desired location
-        dicom_source = os.path.join(destination_dir, 'dicom')
-        dicom_destination = os.path.join(destination_dir, 'dicom')
-        shutil.move(dicom_source, dicom_destination)
+                if os.path.exists(source_folder):
+                    if folder_name == 'dicom':
+                        if os.path.exists(destination_folder):
+                            shutil.rmtree(destination_folder)
+                        shutil.move(source_folder, destination_folder)
+                    elif folder_name == 'convert':
+                        # Assuming you want to delete the 'convert' directory
+                        shutil.rmtree(source_folder)
+                else:
+                    print(f'No "{folder_name}" directory found inside the ZIP file.')
 
-        # Remove the remaining extracted folder (e.g., 'convert')
-        remaining_folder = [f for f in extracted_folders if f != 'dicom'][0]
-        remaining_folder_path = os.path.join(destination_dir, remaining_folder)
-        shutil.rmtree(remaining_folder_path)
-    else:
-        # If the extracted folders are not as expected, raise an error or handle it as needed
-        raise ValueError("Unexpected folder structure after extracting the ZIP file.")  
-   
+        print(f'Successfully extracted and moved files from {zip_file_path} to {sourcedata_root_dir}')
+    except Exception as e:
+        print(f'Error unzipping the ZIP file: {str(e)}')
+
 # Sets up archival logging for the script, directing log output to both a file and the console.
 def setup_logging(subject_id, session_id, dataset_root_dir):
     """
@@ -113,7 +144,7 @@ def setup_logging(subject_id, session_id, dataset_root_dir):
 
     try:
         # Get the current date and time to create a unique timestamp
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")   
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H")   
         
         # Extract the base name of the script without the .py extension.
         script_name = os.path.basename(__file__).replace('.py', '')
@@ -146,7 +177,7 @@ def setup_logging(subject_id, session_id, dataset_root_dir):
 
         logging.info(f"Logging setup complete. Log file: {log_file_path}")
 
-        return log_dir
+        return log_file_path
 
     except Exception as e:
         print(f"Error setting up logging: {e}")
@@ -165,6 +196,10 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
     The function sets up necessary directories, executes a series of data processing 
     commands for each subject, and validates the output against BIDS standards.
     """
+
+    # Record the starting time for the entire script
+    script_start_time = time.time()
+
     # Define session ID.
     session_id = "ses-2"
 
@@ -175,42 +210,41 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
     # Generate a list of subject IDs based on the provided start and end numbers
     subject_ids = [f"sub-LRN{str(i).zfill(3)}" for i in range(start_num, end_num + 1)]
 
-    try:
-        for subject_id in subject_ids:
+    for subject_id in subject_ids:
+        try:
+            # Record the start time for this subject
+            subject_start_time = time.time()
             sourcedata_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
             dicom_sorted_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom_sorted')
             dicom_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom')
+            print(f"Dicom dir: {dicom_dir}")
+
+            if os.path.exists(dicom_dir):
+                print(f"Dicom directory {dicom_dir} already exists. Skipping.")
+                continue
+
             # Define the order and identifiers for different types of runs (multiple methods provided for debugging).
             subject_id_without_prefix = subject_id.replace('sub-', '')  # Remove 'sub-' prefix
+            session_id_zip = "V2"
+            zip_file_pattern = f'{sourcedata_root_dir}/*_{subject_id_without_prefix}_{session_id_zip}.zip'
+            zip_files = glob.glob(zip_file_pattern)
 
-            # Check if dicom_sorted or dicom directories exist
-            if not os.path.exists(dicom_sorted_dir) and not os.path.exists(dicom_dir):
-                session_id_zip = "V2"
-                zip_file_path = os.path.join(sourcedata_dir, f'*_{subject_id_without_prefix}_{session_id_zip}.zip')
+            if zip_files:
+                zip_file_path = zip_files[0]
+                print(f"Zip file path: {zip_file_path}")
 
-                # Check if the ZIP file exists
-                if os.path.exists(zip_file_path):
-                    try:
-                        # Unzip and move dicom_sorted and dicom
-                        unzip_and_move(zip_file_path, sourcedata_dir)
-                        print(f'Unzipped and moved files for {subject_id}, session {session_id}')
-                    except Exception as e:
-                        print(f'Error while unzipping and moving files for {subject_id}, session {session_id}: {str(e)}')
-                else:
-                    print(f'ZIP file not found for {subject_id}, session {session_id}')
-    except Exception as e:
-        print(f'Error while processing {subject_id}, session {session_id}: {str(e)}')
-        sys.exit(1)
-
-    try:
-        for subject_id in subject_ids:
-            
+                try:
+                    # Unzip and move dicom_sorted and dicom
+                    unzip_and_move(zip_file_path, sourcedata_root_dir)
+                    print(f'Unzipped and moved files for {subject_id}, session {session_id}')
+                except Exception as e:
+                    print(f'Error while unzipping and moving files for {subject_id}, session {session_id}: {str(e)}')
+            else:
+                print(f'ZIP file not found for {subject_id}, session {session_id}')
+        
             # Setup logging, directories, and other pre-processing steps for each subject.
             log_dir = setup_logging(subject_id, session_id, dataset_root_dir)
             logging.info("Processing subject: %s, session: %s", subject_id, session_id)
-            # Record the starting time
-            start_time = time.time()
-            #logging.info(f"Script execution started at: {start_time}")
 
             # Define root folders for processing.
             sourcedata_root_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
@@ -232,46 +266,52 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
                 "process_task_learn_beh_to_BIDS.py",
                 "BIDS_process_physio_ses_2.py"
             ]
-        try:
+            
             for command in commands:
-                # Construct the base command
-                base_command = "python ~/Documents/MATLAB/software/iNR/BIDS_tools/{}"
+                # Define the path to the script, expanding the user directory
+                script_path = os.path.expanduser("~/Documents/MATLAB/software/iNR/BIDS_tools/" + command)
 
-                # Determine the correct arguments for each command
-                if command == "BIDS_process_physio_ses_2.py":
-                    cmd = base_command.format(command) + " {} {}".format(physio_root_dir, bids_root_dir)
+                # Start with the base command
+                cmd = ["python", script_path]
+
+                # Add arguments based on the command
+                if command == "BIDS_sort_dicom_files.py":
+                    cmd.extend([sourcedata_root_dir, bids_root_dir])
+                elif command == "BIDS_process_physio_ses_2.py":
+                    cmd.extend([physio_root_dir, bids_root_dir])
                 elif command == "process_task_learn_to_BIDS.py":
-                    cmd = base_command.format(command) + " {} {}".format(dicom_root_dir, bids_root_dir)
+                    cmd.extend([dicom_root_dir, bids_root_dir])
                 elif command == "process_task_learn_beh_to_BIDS.py":
-                    cmd = base_command.format(command) + " {} {}".format(behavior_root_dir, bids_root_dir)
+                    cmd.extend([behavior_root_dir, bids_root_dir])
                 elif command in ["process_T1_to_BIDS.py", "process_FLAIR_to_BIDS.py"]:
-                    cmd = base_command.format(command) + " {} {}".format(dicom_root_dir, bids_root_dir)
+                    cmd.extend([dicom_root_dir, bids_root_dir])
                     if pydeface:
-                        cmd += " --pydeface"
+                        cmd.append("--pydeface")
                 else:
                     # For all other commands
-                    cmd = base_command.format(command) + " {} {}".format(dicom_root_dir, bids_root_dir)
+                    cmd.extend([dicom_root_dir, bids_root_dir])
+                
+                # Log the command being executed
+                logging.info(f"Executing: {' '.join(cmd)}")
 
-                logging.info(f"Executing: {cmd}")
-
-                try:
-                    result = subprocess.run(cmd, shell=True, check=True, stderr=subprocess.PIPE)
-                except subprocess.CalledProcessError as e:
-                    logging.error(f"Command '{cmd}' failed with error: {e}")
-                    # Log the standard error output
-                    logging.error(f"Command stderr output:\n{result.stderr.decode('utf-8')}")
+                # Execute the subprocess command
+                run_and_log_subprocess(cmd)
         
         except Exception as e:
-            logging.error(f"Error in processing: {e}")
-            logging.error(f"Command stderr output:\n{result.stderr.decode('utf-8')}")
+            print(f'Error while processing {subject_id}, session {session_id}: {str(e)}')
+            sys.exit(1)
+        
+        # Record the end time for this subject
+        subject_end_time = time.time()
 
-    except Exception as e:
-        logging.error(f"Error in processing: {e}")
-        logging.error(f"Command stderr output:\n{result.stderr.decode('utf-8')}")
+        # Calculate the time taken for this subject
+        subject_elapsed_time = (subject_end_time - subject_start_time) / 60  # Convert to minutes
+        logging.info(f"Time taken for subject {subject_id}: {subject_elapsed_time:.2f} minutes")
 
+               
     # Change the working directory to dataset_root_dir and execute the cubids-validate command
     try:
-        logging.info(f"Changing working directory to: {dataset_root_dir}")
+        #logging.info(f"Changing working directory to: {dataset_root_dir}")
         os.chdir(dataset_root_dir)
         # Now the current working directory is set to the parent of dataset_root_dir
         logging.info(f"Changed working directory to: {os.getcwd()}")
@@ -287,16 +327,13 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
     except Exception as e:
         logging.error(f"Error in processing with cubids commands: {e}")
 
-    # Record the ending time
-    end_time = time.time()
-    #logging.info(f"Script execution ended at: {end_time}")
+    # Record the end time for the entire script
+    script_end_time = time.time()
 
-    # Calculate the total run time in seconds
-    total_run_time_minutes = (end_time - start_time)/60 
-
-    # Log the total run time
-    logging.info(f"Total run time of the script: {total_run_time_minutes:.2f} minutes")
-
+    # Calculate the total run time for the script
+    total_script_time = (script_end_time - script_start_time) / 60  # Convert to minutes
+    logging.info(f"Total run time of the script: {total_script_time:.2f} minutes")
+    
 # Main function to run the script from the command line.
 if __name__ == "__main__":
     """
@@ -319,9 +356,6 @@ if __name__ == "__main__":
     # The first argument is the root directory of the dataset.
     parser.add_argument("dataset_root_dir", help="Path to the root of the dataset.")
     
-    # # The second argument is the subject_id.
-    # parser.add_argument("subject_ids", nargs='+', help="List of subject IDs.")
-   
     # The second argument is the startsubject_id.
     parser.add_argument("--start-id", help="Starting subject ID")
     
