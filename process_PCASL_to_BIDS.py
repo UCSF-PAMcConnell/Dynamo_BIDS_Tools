@@ -609,7 +609,7 @@ def main(dicom_root_dir, bids_root_dir):
 
     # Check if PCASL NIfTI files already exist.
     if check_existing_nifti(output_dir_perf, subject_id, session_id):
-        print(f"PCASL NIfTI files already exist for subject: {subject_id}, session: {session_id}")
+        # print(f"PCASL NIfTI files already exist for subject: {subject_id}, session: {session_id}")
         return # Exit the function if NIfTI files already exist.
     
     # Otherwise:
@@ -691,5 +691,17 @@ if __name__ == "__main__":
     # Parse the arguments provided by the user.
     args = parser.parse_args()
 
+    # Starting script messages
+    print(f"Starting script with provided arguments.")
+    print(f"Dicom data directory: {args.dicom_root_dir}")
+    print(f"BIDS root directory: {args.bids_root_dir}")
+
     # Call the main function with the parsed arguments.
-    main(args.dicom_root_dir, args.bids_root_dir)
+    try:
+        # Run the main function with the parsed arguments.
+        main(args.dicom_root_dir, args.bids_root)
+    except Exception as e:
+        logging.error("An error occurred during script execution: %s", e, exc_info=True)
+        logging.info("Script execution completed with errors.")
+    else:
+        logging.info("Script executed successfully.")

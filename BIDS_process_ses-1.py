@@ -52,25 +52,41 @@ import zipfile                  # for uncompressing zip files.
 import shutil                   # for moving files.
 import glob                     # for finding files.
 import tempfile                 # for creating temporary directories.
+import io                       # for text input and output.
 
-# Unzip the zip file with subject dicoms. 
-import os
-import shutil
-import tempfile
-import zipfile
 
-def unzip_and_move(zip_file_path, sourcedata_dir):
+
+def run_and_log_subprocess(command):
+    try:
+        # Run the subprocess and capture its output and error streams
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        
+        # Log the output
+        if result.stdout:
+            logging.info(f"Subprocess output:\n{result.stdout}")
+        if result.stderr:
+            logging.error(f"Subprocess error:\n{result.stderr}")
+
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Subprocess '{command}' failed with error: {e}")
+        if e.stderr:
+            logging.error(f"Subprocess stderr:\n{e.stderr}")
+    except Exception as e:
+        logging.error(f"An error occurred during subprocess execution: {e}")
+
+# Unzip and move files into 'sourcedata' folder.
+def unzip_and_move(zip_file_path, sourcedata_root_dir):
     """
     Unzips a file and moves its contents to a specified directory.
 
     Args:
     zip_file_path (str): Path to the ZIP file.
-    sourcedata_dir (str): Path to the destination directory.
+    sourcedata_root_dir (str): Path to the destination directory.
 
     Example usage:
     zip_file_path = '/path/to/20230712_170324_LRN001_V1.zip'
-    sourcedata_dir = '/path/to/destination_directory'
-    unzip_and_move(zip_file_path, sourcedata_dir)
+    sourcedata_root_dir = '/path/to/destination_directory'
+    unzip_and_move(zip_file_path, sourcedata_root_dir)
     """
     try:
         with tempfile.TemporaryDirectory() as temp_zip_dir:
@@ -83,7 +99,7 @@ def unzip_and_move(zip_file_path, sourcedata_dir):
             # Check and move 'dicom' and 'convert' directories
             for folder_name in ['dicom', 'convert']:
                 source_folder = os.path.join(inner_folder, folder_name)
-                destination_folder = os.path.join(sourcedata_dir, folder_name)
+                destination_folder = os.path.join(sourcedata_root_dir, folder_name)
 
                 if os.path.exists(source_folder):
                     if folder_name == 'dicom':
@@ -96,7 +112,7 @@ def unzip_and_move(zip_file_path, sourcedata_dir):
                 else:
                     print(f'No "{folder_name}" directory found inside the ZIP file.')
 
-        print(f'Successfully extracted and moved files from {zip_file_path} to {sourcedata_dir}')
+        print(f'Successfully extracted and moved files from {zip_file_path} to {sourcedata_root_dir}')
     except Exception as e:
         print(f'Error unzipping the ZIP file: {str(e)}')
 
@@ -128,7 +144,7 @@ def setup_logging(subject_id, session_id, dataset_root_dir):
 
     try:
         # Get the current date and time to create a unique timestamp
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")   
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d")   
         
         # Extract the base name of the script without the .py extension.
         script_name = os.path.basename(__file__).replace('.py', '')
@@ -193,19 +209,27 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
     subject_ids = [f"sub-LRN{str(i).zfill(3)}" for i in range(start_num, end_num + 1)]
     try:
         for subject_id in subject_ids:
-            sourcedata_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
+            sourcedata_root_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
             dicom_sorted_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom_sorted')
             dicom_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom')
             print(f"Dicom dir: {dicom_dir}")
+
+            try: 
+                if os.path.exists(dicom_dir):
+                    print(f"Dicom directory {dicom_dir} already exists. Skipping.")
+                    return # Skip if dicom directory already exists
+            except:
+                print(f"Output directory {dicom_dir} exists. Exiting script.")
+                sys.exit(1)
 
             # Define the order and identifiers for different types of runs (multiple methods provided for debugging).
             subject_id_without_prefix = subject_id.replace('sub-', '')  # Remove 'sub-' prefix
             print(f"Subject ID without prefix: {subject_id_without_prefix}")
             session_id_zip = "V1"
-            #zip_file_path = os.path.join(sourcedata_dir, f'*_{subject_id_without_prefix}_{session_id_zip}.zip')
+            #zip_file_path = os.path.join(sourcedata_root_dir, f'*_{subject_id_without_prefix}_{session_id_zip}.zip')
 
             # Construct the pattern for the zip file
-            zip_file_pattern = f'{sourcedata_dir}/*_{subject_id_without_prefix}_{session_id_zip}.zip'
+            zip_file_pattern = f'{sourcedata_root_dir}/*_{subject_id_without_prefix}_{session_id_zip}.zip'
 
             # Use glob to find matching zip files
             zip_files = glob.glob(zip_file_pattern)
@@ -221,7 +245,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
                 elif os.path.exists(zip_file_path):
                     try:
                         # Unzip and move dicom_sorted and dicom
-                        unzip_and_move(zip_file_path, sourcedata_dir)
+                        unzip_and_move(zip_file_path, sourcedata_root_dir)
                         print(f'Unzipped and moved files for {subject_id}, session {session_id}')
                     except Exception as e:
                         print(f'Error while unzipping and moving files for {subject_id}, session {session_id}: {str(e)}')
@@ -279,7 +303,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             # Determine the correct arguments for each command
             
             if command == "BIDS_sort_dicom_files.py":
-                cmd = base_command.format(command) + " {} {}".format(dicom_sort_root_dir, bids_root_dir)
+                cmd = base_command.format(command) + " {} {}".format(sourcedata_root_dir, bids_root_dir)
             elif command == "BIDS_process_physio_ses_1.py":
                 cmd = base_command.format(command) + " {} {}".format(physio_root_dir, bids_root_dir)
             elif command == "process_task_rest_to_BIDS.py":
@@ -294,15 +318,9 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
 
             logging.info(f"Executing: {cmd}")
 
-            try:
-                result = subprocess.run(cmd, shell=True, check=True, stderr=subprocess.PIPE)
-            except subprocess.CalledProcessError as e:
-                logging.error(f"Command '{cmd}' failed with error: {e}")
-                # Log the standard error output
-                logging.error(f"Command stderr output:\n{result.stderr.decode('utf-8')}")
-                logging.error(f"Command stderr output:\n{e.stderr.decode('utf-8')}")
-            except Exception as e:
-                logging.error(f"An error occurred during subprocess execution: {e}")
+            # Begin executing the subprocess command loop. 
+            run_and_log_subprocess(cmd)
+
 
     # Change the working directory to dataset_root_dir and execute the cubids-validate command
     try:

@@ -504,7 +504,7 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
 
     # Check if Resting-State fMRI files already exist.
     if check_existing_nifti(output_dir_func, subject_id, session_id):
-        print(f"Resting-state fmri NIfTI files already exist: {output_dir_func}")
+        # print(f"Resting-state fmri NIfTI files already exist: {output_dir_func}")
         return # Skip processing if Resting-State fMRI files already exist.
 
     # Otherwise:
@@ -620,6 +620,20 @@ if __name__ == "__main__":
     # Parse the arguments provided by the user.
     args = parser.parse_args()
 
+    # Starting script messages
+    print(f"Starting script with provided arguments.")
+    print(f"Dicom data directory: {args.dicom_root_dir}")
+    print(f"BIDS root directory: {args.bids_root_dir}")
+    print(f"Number of runs: {args.num_runs}")
+
     # Call the main function with the parsed arguments.
-    main(args.dicom_root_dir, args.bids_root_dir, args.num_runs)
+    try:
+        # Call the main function with the parsed arguments.
+        main(args.dicom_root_dir, args.bids_root_dir, args.num_runs)
+    except Exception as e:
+        logging.error("An error occurred during script execution: %s", e, exc_info=True)
+        logging.info("Script execution completed with errors.")
+    else:
+        logging.info("Script executed successfully.")
+
 

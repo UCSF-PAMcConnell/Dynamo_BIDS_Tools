@@ -912,15 +912,19 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
         
         # Define output directory for the BIDS dataset.
         output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
-                
-        # # Example values for expected MATLAB file sizes in megabytes
-        # expected_mat_file_size_range_mb = (1.5, 2.5)  # GB
-      
-        # # Check MATLAB and TSV files before processing
-        # if not check_files(physio_root_dir, output_dir, expected_mat_file_size_range_mb):
-        #     print(f"Initial file check failed. Exiting script.")
-        #     return # Exit the script if file check fails.
         
+        # Search for *_physio.tsv files in the output directory
+        file_pattern = os.path.join(output_dir, f"{subject_id}_{session_id}_task-rest_run-01_physio.tsv.gz")
+        existing_files = glob.glob(file_pattern)
+        print(f"File pattern is: {file_pattern}")
+
+        if existing_files:
+            # Print the list of existing files to the console
+            print("The following *_physio.tsv.gz files already exist:", existing_files)
+            return
+            # raise ValueError("Files already exist, processing may already be complete")
+            # Alternatively, use sys.exit() or return, depending on your requirements
+
         # Setup logging after extracting subject_id and session_id.
         log_dir = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
