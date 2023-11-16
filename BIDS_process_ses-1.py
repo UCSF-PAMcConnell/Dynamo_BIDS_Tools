@@ -213,19 +213,12 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             if zip_files:
                 zip_file_path = zip_files[0]  # Assuming there's only one matching zip file
                 print(f"Zip file path: {zip_file_path}")
-                try:
-                    # Unzip and move dicom_sorted and dicom
-                    unzip_and_move(zip_file_path, sourcedata_dir)
-                    print(f'Unzipped and moved files for {subject_id}, session {session_id}')
-                except Exception as e:
-                    print(f'Error while unzipping and moving files for {subject_id}, session {session_id}: {str(e)}')
-            else:
-                print(f'ZIP file not found for {subject_id}, session {session_id}')
-
-            # Check if dicom_sorted or dicom directories exist
-            if not os.path.exists(dicom_sorted_dir) and not os.path.exists(dicom_dir):
-                # Check if the ZIP file exists
-                if os.path.exists(zip_file_path):
+                
+                # Check if dicom_sorted or dicom directories exist
+                if os.path.exists(dicom_sorted_dir) or os.path.exists(dicom_dir):
+                    continue # Skip this subject if dicom_sorted and dicom directories exist
+                    # Check if the ZIP file exists
+                elif os.path.exists(zip_file_path):
                     try:
                         # Unzip and move dicom_sorted and dicom
                         unzip_and_move(zip_file_path, sourcedata_dir)
@@ -234,6 +227,9 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
                         print(f'Error while unzipping and moving files for {subject_id}, session {session_id}: {str(e)}')
                 else:
                     print(f'ZIP file not found for {subject_id}, session {session_id}')
+            else:
+                print(f'ZIP file not found for {subject_id}, session {session_id}')
+
     except Exception as e:
         print(f'Error while processing {subject_id}, session {session_id}: {str(e)}')
         sys.exit(1)
@@ -283,7 +279,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             # Determine the correct arguments for each command
             
             if command == "BIDS_sort_dicom_files.py":
-                cmd = base_command.format(command) + " {} {}".format(physio_root_dir, bids_root_dir)
+                cmd = base_command.format(command) + " {} {}".format(dicom_sort_root_dir, bids_root_dir)
             elif command == "BIDS_process_physio_ses_1.py":
                 cmd = base_command.format(command) + " {} {}".format(physio_root_dir, bids_root_dir)
             elif command == "process_task_rest_to_BIDS.py":

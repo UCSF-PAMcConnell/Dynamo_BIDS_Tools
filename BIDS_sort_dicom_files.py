@@ -81,7 +81,6 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     # Configure file logging.
     logging.basicConfig(
         level=logging.INFO,
-        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
         format='%(asctime)s - %(levelname)s - %(message)s',
         filename=log_file_path,
         filemode='w' # 'w' mode overwrites existing log file.
@@ -175,7 +174,7 @@ def sort_dicom_files(input_directory, output_directory):
 
                 # Move the file to the output directory.
                 shutil.move(filepath, output_filepath)
-            
+
             # Handle exceptions for invalid DICOM files.
             except pydicom.errors.InvalidDicomError:
                 logging.warning(f"{filename} is not a valid DICOM file and will be skipped.")
@@ -190,6 +189,10 @@ def main(sourcedata_root_dir, bids_root_dir):
     # Setup logging after extracting subject_id and session_id.
     subject_id, session_id = extract_subject_session(sourcedata_root_dir)
     
+    # Setup the input and output directories.
+    input_directory = os.path.join(sourcedata_root_dir, 'dicom')
+    output_directory = os.path.join(sourcedata_root_dir, 'dicom_sorted')
+
     try: 
         if os.path.exists(output_directory):
             print(f"Output directory {output_directory} already exists. Skipping.")
@@ -199,11 +202,6 @@ def main(sourcedata_root_dir, bids_root_dir):
         sys.exit(1)
 
     setup_logging(subject_id, session_id, bids_root_dir)
-
-    # Setup the input and output directories.
-    input_directory = os.path.join(sourcedata_root_dir, 'dicom')
-    output_directory = os.path.join(sourcedata_root_dir, 'dicom_sorted')
-
     logging.info(f"Processing subject: {subject_id}, session: {session_id}")
     
     sort_dicom_files(input_directory, output_directory)
