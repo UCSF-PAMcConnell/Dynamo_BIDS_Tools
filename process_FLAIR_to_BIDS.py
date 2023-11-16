@@ -330,7 +330,7 @@ def run_cubids_remove_metadata_fields(bids_root_dir, fields):
         raise
 
 # Executes the pydeface command to anonymize NIfTI images by removing facial features.
-def run_pydeface_func(output_dir_anat, subject_id, session_id):
+def run_pydeface(output_dir_anat, subject_id, session_id):
     """
     Parameters:
     - output_dir_anat (str): Directory where the NIfTI files are stored.
@@ -469,7 +469,7 @@ def check_cubids_installed():
         return False
     
 # The main function to convert FLAIR DICOM files to NIfTI format within a BIDS compliant structure.
-def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
+def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
     """
     This function sets up logging, executes the DICOM to NIfTI conversion using dcm2niix, 
     and optionally runs pydeface for anonymization.
