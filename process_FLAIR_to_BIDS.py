@@ -8,9 +8,9 @@ and additional BIDS-compliant metadata processing with cubids. The script checks
 before executing relevant commands. It also handles file renaming and applies defacing for anonymization.
 
 Usage:
-python process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root_dir> [--pydeface]
+python process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root_dir_dir> [--pydeface]
 e.g.,
-python process_FLAIR_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir --pydeface
+python process_FLAIR_to_BIDS.py /path/to/dicom_root_dir /path/to/bids_root_dir_dir --pydeface
 
 Author: PAMcConnell
 Created on: 20231111
@@ -561,10 +561,10 @@ if __name__ == "__main__":
     and an optional flag to run pydeface for defacing the images.
 
     Usage:
-    process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root> [--pydeface]
+    process_FLAIR_to_BIDS.py <dicom_root_dir> <bids_root_dir> [--pydeface]
 
     Example:
-    process_FLAIR_to_BIDS.py /path/to/dicom_root /path/to/bids_root --pydeface
+    process_FLAIR_to_BIDS.py /path/to/dicom_root /path/to/bids_root_dir --pydeface
     """
     
    # Set up an argument parser to handle command-line arguments.
@@ -576,7 +576,7 @@ if __name__ == "__main__":
     parser.add_argument('dicom_root_dir', type=str, help='Root directory containing the DICOM directories.')
     
     # The second argument is the root directory of the BIDS dataset.
-    parser.add_argument('bids_root', type=str, help='Root directory of the BIDS dataset.')
+    parser.add_argument('bids_root_dir', type=str, help='Root directory of the BIDS dataset.')
     
     # The third (optional) argument specifies whether to run pydeface for defacing the images.
     parser.add_argument('--pydeface', action='store_true', help='Optionally run pydeface for defacing the images.')
@@ -593,7 +593,7 @@ if __name__ == "__main__":
     # Call the main function with the parsed arguments.
     try:
         # Run the main function with the parsed arguments.
-        main(args.dicom_root_dir, args.bids_root, args.pydeface)
+        main(args.dicom_root_dir, args.bids_root_dir, args.pydeface)
     except Exception as e:
         logging.error("An error occurred during script execution: %s", e, exc_info=True)
         logging.info("Script execution completed with errors.")

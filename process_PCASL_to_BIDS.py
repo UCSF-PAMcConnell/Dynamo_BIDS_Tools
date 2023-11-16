@@ -699,7 +699,7 @@ if __name__ == "__main__":
     # Call the main function with the parsed arguments.
     try:
         # Run the main function with the parsed arguments.
-        main(args.dicom_root_dir, args.bids_root)
+        main(args.dicom_root_dir, args.bids_root_dir)
     except Exception as e:
         logging.error("An error occurred during script execution: %s", e, exc_info=True)
         logging.info("Script execution completed with errors.")
