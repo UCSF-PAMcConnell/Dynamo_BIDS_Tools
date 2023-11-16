@@ -264,7 +264,14 @@ def update_json_file_AP(json_filepath_AP, session_id,intended_for=None):
             
             data['IntendedFor'] = intended_for
             logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
-
+            
+            # Verify each file in IntendedFor exists
+            if intended_for:
+                for filepath in intended_for:
+                    if not os.path.exists(filepath):
+                        logging.error(f"File specified in IntendedFor does not exist: {filepath}")
+                        sys.exit(1)  # Exit the script with an error status
+                        
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)
             json.dump(data, file, indent=4)
@@ -319,7 +326,14 @@ def update_json_file_PA(json_filepath_PA, session_id, intended_for=None):
             
             data['IntendedFor'] = intended_for
             logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
-
+            
+            # Verify each file in IntendedFor exists
+            if intended_for:
+                for filepath in intended_for:
+                    if not os.path.exists(filepath):
+                        logging.error(f"File specified in IntendedFor does not exist: {filepath}")
+                        sys.exit(1)  # Exit the script with an error status
+            
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)
             json.dump(data, file, indent=4)
@@ -774,7 +788,7 @@ def main(dicom_root_dir, bids_root_dir):
                     f"{session_id}/func/{subject_id}_{session_id}_task-rest_run-04_sbref.nii",
                     f"{session_id}/perf/{subject_id}_{session_id}_asl.nii"
                     ]
-                else:
+                elif session_id == 'ses-2':
                     intended_for = [
                     f"{session_id}/func/{subject_id}_{session_id}_task-learn_run-00_bold.nii",
                     f"{session_id}/func/{subject_id}_{session_id}_task-learn_run-01_bold.nii",
