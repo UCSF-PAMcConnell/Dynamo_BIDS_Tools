@@ -1083,7 +1083,7 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
             
             # Move up four levels to get to dataset_root_dir
             dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
-            output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'rest')
+            output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'rest', 'plots')
 
             # Plot the segmented fmri and physio data. 
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict, cut_off_duration)

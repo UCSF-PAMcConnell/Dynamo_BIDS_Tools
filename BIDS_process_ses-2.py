@@ -260,6 +260,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             # Define processing commands
             commands = [
                 "BIDS_sort_dicom_files.py",
+                "process_T1_to_BIDS.py",
                 "process_task_learn_to_BIDS.py",
                 "process_fmap_EPI_to_BIDS.py",
                 "process_fmap_gre_to_BIDS.py",
@@ -283,7 +284,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
                     cmd.extend([dicom_root_dir, bids_root_dir])
                 elif command == "process_task_learn_beh_to_BIDS.py":
                     cmd.extend([behavior_root_dir, bids_root_dir])
-                elif command in ["process_T1_to_BIDS.py", "process_FLAIR_to_BIDS.py"]:
+                elif command in ["process_T1_to_BIDS.py"]:
                     cmd.extend([dicom_root_dir, bids_root_dir])
                     if pydeface:
                         cmd.append("--pydeface")
