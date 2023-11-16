@@ -508,5 +508,10 @@ if __name__ == "__main__":
     # Parse the arguments provided by the user.
     args = parser.parse_args()
 
+    # Starting script messages
+    print(f"Starting script with provided arguments.")
+    print(f"Dicom data directory: {args.matlab_root_dir}")
+    print(f"BIDS root directory: {args.bids_root_dir}")
+
     # Call the main function with the parsed arguments.
     main(args.matlab_root_dir, args.bids_root_dir)
