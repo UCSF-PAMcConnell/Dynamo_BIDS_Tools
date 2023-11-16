@@ -55,16 +55,21 @@ import tempfile                 # for creating temporary directories.
 import io                       # for text input and output.
 
 
-
+# Execute a subprocess and log its output.
 def run_and_log_subprocess(command):
     try:
-        # Run the subprocess and capture its output and error streams
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-        
+        # Prefer using a list of arguments rather than shell=True for better security and predictability
+        if isinstance(command, str):
+            command = command.split()  # Simple split, works for commands without spaces in arguments
+
+        result = subprocess.run(command, check=True, capture_output=True, text=True)
+
         # Log the output
         if result.stdout:
             logging.info(f"Subprocess output:\n{result.stdout}")
-        if result.stderr:
+        
+        # Log stderr only if there's an error (non-zero exit status)
+        if result.returncode != 0 and result.stderr:
             logging.error(f"Subprocess error:\n{result.stderr}")
 
     except subprocess.CalledProcessError as e:
@@ -163,7 +168,6 @@ def setup_logging(subject_id, session_id, dataset_root_dir):
         # Configure file logging.
         logging.basicConfig(
             level=logging.INFO,
-            # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
             format='%(asctime)s - %(levelname)s - %(message)s',
             filename=log_file_path,
             filemode='w' # 'w' mode overwrites existing log file.

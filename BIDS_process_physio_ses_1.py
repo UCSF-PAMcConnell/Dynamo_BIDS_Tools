@@ -753,7 +753,7 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
 
         logging.info(f"Dataset root directory: {dataset_root_dir}")
 
-        output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio')
+        output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'rest')
 
         # Ensure the output directories exist
         os.makedirs(output_dir, exist_ok=True)

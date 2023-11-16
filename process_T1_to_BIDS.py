@@ -421,11 +421,12 @@ def check_pydeface_installed():
     bool: True if pydeface is installed, False otherwise.
     """
     pydeface_version_output = subprocess.getoutput('pydeface --version')
-    if 'pydeface 2.0.2' in pydeface_version_output: # change version number as needed.
-        logging.info(f"pydeface is installed: {pydeface_version_output.splitlines()[0]}")
-        return True
+    if 'pydeface 2.0.2' in pydeface_version_output:
+        # Extracting the first line which contains the version information
+        version_line = [line for line in pydeface_version_output.splitlines() if 'pydeface 2.0.2' in line][0]
+        logging.info(f"pydeface is installed: {version_line}")
     else:
-        logging.warning("pydeface version 2.02 is not installed.")
+        #logging.warning("pydeface version 2.02 is not installed.")
         return False
     
 # Check if dcm2niix is installed and accessible in the system's PATH.
@@ -439,7 +440,7 @@ def check_dcm2niix_installed():
         logging.info(f"dcm2niix is installed: {dcm2niix_version_output.splitlines()[0]}")
         return True
     else:
-        logging.warning("dcm2niix is not installed.")
+        #logging.warning("dcm2niix is not installed.")
         return False
     
 # Reads and returns the contents of a JSON file.
@@ -499,7 +500,7 @@ def check_cubids_installed():
         logging.info(f"cubids is installed: {cubids_version_output.splitlines()[0]}")
         return True
     else:
-        logging.warning("cubids is not installed.")
+        #logging.warning("cubids is not installed.")
         return False
     
 # The main function to convert T1w DICOM files to NIfTI format within a BIDS compliant structure.
