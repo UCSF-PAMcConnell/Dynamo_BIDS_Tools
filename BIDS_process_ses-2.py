@@ -214,7 +214,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
         try:
             # Record the start time for this subject
             subject_start_time = time.time()
-            sourcedata_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
+            sourcedata_root_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
             dicom_sorted_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom_sorted')
             dicom_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom')
             print(f"Dicom dir: {dicom_dir}")
