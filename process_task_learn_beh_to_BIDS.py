@@ -433,7 +433,7 @@ def main(matlab_root_dir, bids_root_dir):
         (f"{subject_id_without_prefix}_learningSession_*_run6_*_NS.mat", "run-06")
     ]
     
-    matlab_root_dir = os.path.expanduser('~/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN017/ses-2/beh/preprocessed/')
+    #matlab_root_dir = os.path.expanduser('~/Documents/MRI/LEARN/BIDS_test/sourcedata/sub-LRN017/ses-2/beh/preprocessed/')
     files = glob.glob(matlab_root_dir)
     print(f"Found files: {files}")
     try:
@@ -445,10 +445,16 @@ def main(matlab_root_dir, bids_root_dir):
             # Construct the file pattern for MATLAB files
             matlab_file_pattern = f"{run_name}"
             logging.info(f"Searching for files: {matlab_file_pattern}")
-
-            # Find all MATLAB files that match the current pattern
-            matlab_files = glob.glob(os.path.join(matlab_root_dir, matlab_file_pattern))
-            logging.info(f"Found files: {matlab_files}")
+            try: 
+                # Find all MATLAB files that match the current pattern
+                matlab_files = glob.glob(os.path.join(matlab_root_dir, matlab_file_pattern))
+                logging.info(f"Found files: {matlab_files}")
+                if len(matlab_files) == 0:
+                    logging.error(f"No files found for pattern: {matlab_file_pattern}")
+                    break
+            except: 
+                logging.error(f"Error searching for files: {matlab_file_pattern}")
+                break
 
             # Process each MATLAB file for the current run
             for matlab_file_path in sorted(matlab_files):

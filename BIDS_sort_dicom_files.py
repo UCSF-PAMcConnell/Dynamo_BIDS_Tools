@@ -189,12 +189,23 @@ def main(sourcedata_root_dir, bids_root_dir):
 
     # Setup logging after extracting subject_id and session_id.
     subject_id, session_id = extract_subject_session(sourcedata_root_dir)
-    setup_logging(subject_id, session_id, bids_root_dir)
-    logging.info(f"Processing subject: {subject_id}, session: {session_id}")
     
+    try: 
+        if os.path.exists(output_directory):
+            print(f"Output directory {output_directory} already exists. Skipping.")
+            return # Skip if output directory already exists
+    except:
+        print(f"Output directory {output_directory} exists. Exiting script.")
+        sys.exit(1)
+
+    setup_logging(subject_id, session_id, bids_root_dir)
+
     # Setup the input and output directories.
     input_directory = os.path.join(sourcedata_root_dir, 'dicom')
     output_directory = os.path.join(sourcedata_root_dir, 'dicom_sorted')
+
+    logging.info(f"Processing subject: {subject_id}, session: {session_id}")
+    
     sort_dicom_files(input_directory, output_directory)
     shutil.rmtree(input_directory)
 

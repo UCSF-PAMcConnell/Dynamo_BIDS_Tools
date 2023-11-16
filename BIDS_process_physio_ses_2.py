@@ -974,7 +974,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
 
         # Save and show the figure.
         plt.savefig(plot_file_path, dpi=600)
-        plt.show()  # Comment this line if you want to bypass plot display.
+        #plt.show()  # Comment this line if you want to bypass plot display.
         logging.info(f"Plot saved to {plot_file_path}")
 
     except Exception as e:
@@ -1176,7 +1176,7 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
 
     # Save and display the plot.
     plt.savefig(plot_events_file_path, dpi=600)
-    plt.show()
+    #plt.show() # Uncomment to display figure. 
     logging.info(f"Plot saved to {plot_events_file_path}")
     
 # Main function to orchestrate the conversion of physiological data to BIDS format.
