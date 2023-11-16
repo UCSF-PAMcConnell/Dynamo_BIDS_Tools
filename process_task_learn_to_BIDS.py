@@ -92,7 +92,6 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     # Configure file logging.
     logging.basicConfig(
         level=logging.INFO,
-        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
         format='%(asctime)s - %(levelname)s - %(message)s',
         filename=log_file_path,
         filemode='w' # 'w' mode overwrites existing log file.
@@ -186,7 +185,6 @@ def update_json_file(new_filepath):
     try:
         with open(new_filepath, 'r+') as file:
             data = json.load(file)
-            logging.info(f"Original data: {data}")
 
             # Update with specific Task metadata
             data['TaskName'] = 'learn'
@@ -503,7 +501,7 @@ def main(dicom_root_dir, bids_root_dir):
 
     # Check if Task fMRI files already exist.
     if check_existing_nifti(output_dir_func, subject_id, session_id):
-        print(f"Task fmri NIfTI files already exist: {output_dir_func}")
+        #print(f"Task fmri NIfTI files already exist: {output_dir_func}")
         return # Skip processing if Task fMRI files already exist.
 
     try:
@@ -534,12 +532,10 @@ def main(dicom_root_dir, bids_root_dir):
                 logging.info(f"Preparing to convert DICOM files in {dicom_dir}")
 
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    logging.info(f"Running dcm2niix on {dicom_dir}")
                     run_dcm2niix_output = run_dcm2niix(dicom_dir, temp_dir, subject_id, session_id)
-                    logging.info(f"dcm2niix output: {run_dcm2niix_output}")
+                    logging.info(f"Files after conversion: {os.listdir(temp_dir)}")
 
                     converted_files = os.listdir(temp_dir)
-                    logging.info(f"Files after conversion: {converted_files}")
                     if not converted_files:
                         logging.warning(f"No files were converted in {dicom_dir}")
                         continue
@@ -550,33 +546,45 @@ def main(dicom_root_dir, bids_root_dir):
                             new_file = f"{subject_id}_{session_id}_task-learn_run-{run}_bold{os.path.splitext(old_file)[-1]}"
                             new_filepath = os.path.join(output_dir_func, new_file)
 
+                            # Move the file from the temporary directory to the output directory and rename according to BIDS.    
                             shutil.move(old_filepath, new_filepath)
                             logging.info(f"Moved {old_file} to {new_filepath}")
 
+                            # Update JSON file with necessary BIDS metadata
                             if new_filepath.endswith('.json') and os.path.isfile(new_filepath):
-                                logging.info(f"Updating JSON file with BIDS metadata: {new_filepath}")
                                 update_json_file(new_filepath)
-                                logging.info("JSON file update successful.")
                         
+                        # Catch errors.
                         except FileNotFoundError:
                             logging.error(f"File not found during moving process: {old_file}")
                         except Exception as e:
                             logging.error(f"Error processing file {old_file}: {e}")
-
-            if check_cubids_installed():
-                logging.info(f"Adding and removing NIfTI metadata for subject: {subject_id}, session: {session_id}")
-                run_cubids_add_nifti_info(bids_root_dir)
-                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
-                # Run dcm2niix for verbose output.
-                with tempfile.TemporaryDirectory() as temp_dir_verbose:
-                    run_dcm2niix_verbose(dicom_dir, temp_dir_verbose, subject_id, session_id, log_file_path)
-    
-            else:
-                logging.error("cubids is not installed. Skipping cubids commands.")
-               # Catch error if dcm2niix is not installed.
+            
+                # Check if cubids is installed
+                if check_cubids_installed():
+                    
+                    # Run cubids commands to add NIfTI metadata.
+                    logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}, run: {run}")
+                    run_cubids_add_nifti_info(bids_root_dir)
+                    
+                    # Run cubids commands to remove metadata fields.
+                    run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+                    
+                    # Run dcm2niix for verbose output.
+                    with tempfile.TemporaryDirectory() as temp_dir_verbose:
+                        run_dcm2niix_verbose(dicom_dir, temp_dir_verbose, subject_id, session_id, log_file_path)
+                
+                # Catch error if cubids is not installed.
+                else:
+                    logging.error("cubids is not installed. Skipping cubids commands.")
+                    return # Exit the function if cubids is not installed.
+                
+        # Catch error if dcm2niix is not installed.
         else:
             logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
             return  # Exit the function if dcm2niix is not installed.
+    
+    # Log other errors.
     except Exception as e:
         logging.error(f"An error occurred in the main function: {e}")
         raise
@@ -616,7 +624,18 @@ if __name__ == "__main__":
     # Parse the arguments provided by the user.
     args = parser.parse_args()
 
+    # Starting script messages
+    print(f"Starting script with provided arguments.")
+    print(f"Dicom data directory: {args.dicom_root_dir}")
+    print(f"BIDS root directory: {args.bids_root_dir}")
+    
     # Call the main function with the parsed arguments.
-    main(args.dicom_root_dir, args.bids_root_dir)
-
+    try:
+        # Call the main function with the parsed arguments.
+        main(args.dicom_root_dir, args.bids_root_dir)
+    except Exception as e:
+        logging.error("An error occurred during script execution: %s", e, exc_info=True)
+        logging.info("Script execution completed with errors.")
+    else:
+        logging.info("Script executed successfully.")
 

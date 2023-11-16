@@ -92,7 +92,6 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     # Configure file logging.
     logging.basicConfig(
         level=logging.INFO,
-        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
         format='%(asctime)s - %(levelname)s - %(message)s',
         filename=log_file_path,
         filemode='w' # 'w' mode overwrites existing log file.
