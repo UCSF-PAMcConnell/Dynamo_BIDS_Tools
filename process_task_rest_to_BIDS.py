@@ -189,10 +189,10 @@ def update_json_file(json_filepath):
             # Update with specific Resting-State metadata
             data['TaskName'] = 'rest'
             logging.info(f"Task Name: {data['TaskName']}")
-            data['B0FieldSource'] = "*fm2d2r"
-            logging.info(f"B0 Field Source: {data['B0FieldSource']}")
-            data['B0FieldSource2']=	"*epse2d1_104"
+            data['B0FieldSource2'] = "*fm2d2r"
             logging.info(f"B0 Field Source 2: {data['B0FieldSource2']}")
+            data['B0FieldSource']=	"*epse2d1_104"
+            logging.info(f"B0 Field Source: {data['B0FieldSource']}")
             
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)

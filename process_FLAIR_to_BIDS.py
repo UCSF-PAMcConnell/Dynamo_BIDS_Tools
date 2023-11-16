@@ -356,9 +356,9 @@ def run_pydeface_func(output_dir_anat, subject_id, session_id):
         # Construct the pydeface command.
         pydeface_command = [
             'pydeface',
-            f"{output_dir}/{subject_id}_{session_id}_FLAIR.nii",
+            f"{output_dir_anat}/{subject_id}_{session_id}_FLAIR.nii",
             '--outfile',
-            f"{output_dir}/{subject_id}_{session_id}_FLAIR.nii",
+            f"{output_dir_anat}/{subject_id}_{session_id}_FLAIR.nii",
             '--force'
         ]
         logging.info(f"Executing pydeface: {' '.join(pydeface_command)}")

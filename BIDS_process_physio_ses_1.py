@@ -48,6 +48,7 @@ import scipy.io as sio                                  # for loading .mat files
 import numpy as np                                      # for numerical operations and arrays.
 import pandas as pd                                     # for data manipulation and analysis.
 import matplotlib.pyplot as plt                         # for plotting data and visualizations.
+import matplotlib                                       # for creating multipage PDFs with matplotlib plots.                                 
 import json                                             # for handling JSON data.
 import glob                                             # for finding files in directories.
 from matplotlib.backends.backend_pdf import PdfPages    # for creating multipage PDFs with matplotlib plots.
@@ -110,9 +111,10 @@ def setup_logging(subject_id, session_id, bids_root_dir):
         console_handler.setFormatter(formatter)
         logging.getLogger().addHandler(console_handler)
 
+
         logging.info(f"Logging setup complete. Log file: {log_file_path}")
 
-        return log_file_path
+        return log_dir
 
     except Exception as e:
         print(f"Error setting up logging: {e}")
@@ -167,8 +169,14 @@ def check_files(physio_root_dir, output_path, expected_mat_file_size_range_mb):
     - bool: True if all checks pass, False otherwise.
     """
 
+    # Set up debug logging
+    print(f"Checking files in physio_root_dir: {physio_root_dir}")
+    print(f"Checking files in output_path: {output_path}")
+    print(f"Expected MATLAB file size range: {expected_mat_file_size_range_mb} MB")
+
+
     # Convert MB to bytes for file size comparison
-    min_size_bytes, max_size_bytes = [size * 1024 * 1024 for size in expected_mat_file_size_range_mb]
+    min_size_bytes, max_size_bytes = [size * 1024 * 1024 * 1024 for size in expected_mat_file_size_range_mb]
 
     # Check for exactly 1 MATLAB files
     mat_files = [f for f in os.listdir(physio_root_dir) if f.endswith('.mat') and "processedData" not in f]
@@ -181,12 +189,14 @@ def check_files(physio_root_dir, output_path, expected_mat_file_size_range_mb):
         file_path = os.path.join(physio_root_dir, file)
         file_size = os.path.getsize(file_path)
         if not (min_size_bytes <= file_size <= max_size_bytes):
+            print(f"MATLAB file {file} size: {file_size} bytes")
             logging.error(f"MATLAB file {file} size is not within the expected range.")
             return False
 
     # Check that there are not already 8 TSV files in the output directory
     tsv_files = [f for f in os.listdir(output_path) if f.endswith('physio.tsv')]
     if len(tsv_files) >= 8:
+        print(f"Number of TSV files found in {output_path}: {len(tsv_files)}")
         logging.error(f"Found 8 or more TSV files in {output_path}, indicating processing may already be complete.")
         return False
 
@@ -859,7 +869,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
         
         # Adjust layout and save the plot
         plt.savefig(plot_file_path, dpi=600)
-        plt.show() # Comment this line if you want to bypass plot display.
+        #plt.show() # Comment this line if you want to bypass plot display.
         logging.info(f"Plot saved to {plot_file_path}")
 
     except Exception as e:
@@ -903,21 +913,16 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
         # Define output directory for the BIDS dataset.
         output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
                 
-        # Example values for expected MATLAB file sizes in megabytes
-        expected_mat_file_size_range_mb = (1500, 2500)
-
-        # Check MATLAB and TSV files before processing
-        if not check_files(physio_root_dir, output_dir, expected_mat_file_size_range_mb):
-            print(f"Initial file check failed. Exiting script.")
-            return # Exit the script if file check fails.
-        
-        # Check MATLAB and TSV files before processing
-        if not check_files(physio_root_dir, output_dir, expected_mat_file_size_range_mb):
-            print(f"Initial file check failed. Exiting script.")
-            return # Exit the script if file check fails.
+        # # Example values for expected MATLAB file sizes in megabytes
+        # expected_mat_file_size_range_mb = (1.5, 2.5)  # GB
+      
+        # # Check MATLAB and TSV files before processing
+        # if not check_files(physio_root_dir, output_dir, expected_mat_file_size_range_mb):
+        #     print(f"Initial file check failed. Exiting script.")
+        #     return # Exit the script if file check fails.
         
         # Setup logging after extracting subject_id and session_id.
-        log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
+        log_dir = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
         # Load physiological data from the .mat file. 
@@ -1049,7 +1054,8 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
         # Plot physiological data for all runs with the filtered background data
         if segmented_data_list:
             logging.info("Preparing to plot runs.")
-            plot_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
+            log_file_path_plot_runs = os.path.join(log_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
+            plot_file_path = log_file_path_plot_runs
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict, cut_off_duration)
         else:
             logging.error("No data available to plot.")
