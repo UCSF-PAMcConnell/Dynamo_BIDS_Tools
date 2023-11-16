@@ -54,6 +54,7 @@ import glob                                             # for finding files in d
 from matplotlib.backends.backend_pdf import PdfPages    # for creating multipage PDFs with matplotlib plots.
 from collections import OrderedDict                     # for creating ordered dictionaries. 
 import sys                                              # for accessing system-specific parameters and functions.
+import shutil                                           # for copying files and directories.
 
 # Sets up archival logging for the script, directing log output to both a file and the console.
 def setup_logging(subject_id, session_id, bids_root_dir):
@@ -746,8 +747,17 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
     - logging module for logging information and errors.
     """
     try:
-        # Ensure the output directory exists
+        
+        # Move up four levels to get to dataset_root_dir
+        dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
+
+        logging.info(f"Dataset root directory: {dataset_root_dir}")
+
+        output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio')
+
+        # Ensure the output directories exist
         os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(output_derivatives_dir, exist_ok=True)
 
         # Define filenames based on the BIDS format
         tsv_filename = f"{subject_id}_{session_id}_task-rest_{run_id}_physio.tsv.gz"
@@ -764,6 +774,12 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         df.to_csv(tsv_file_path, sep='\t', index=False, compression='gzip')
         logging.info(f"TSV file written: {tsv_file_path}")
 
+        # Copy the file
+        shutil.copy2(tsv_file_path, output_derivatives_dir)
+
+        # Log the action
+        logging.info(f"TSV file copied to: {output_derivatives_dir}")
+
         # Merge the run-specific metadata with the additional metadata
         combined_metadata = {**run_metadata, **metadata_dict}
 
@@ -771,6 +787,12 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         with open(json_file_path, 'w') as json_file:
             json.dump(combined_metadata, json_file, indent=4)
         logging.info(f"JSON file written: {json_file_path}")
+
+        # Copy the file
+        shutil.copy2(json_file_path, output_derivatives_dir)
+
+        # Log the action
+        logging.info(f"JSONfile copied to: {output_derivatives_dir}")
 
     except Exception as e:
         # Log any exceptions that occur during the file writing process

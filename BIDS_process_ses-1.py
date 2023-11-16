@@ -214,43 +214,25 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             dicom_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom')
             print(f"Dicom dir: {dicom_dir}")
 
-            try: 
-                if os.path.exists(dicom_dir):
-                    print(f"Dicom directory {dicom_dir} already exists. Skipping.")
-                    return # Skip if dicom directory already exists
-            except:
-                print(f"Output directory {dicom_dir} exists. Exiting script.")
-                sys.exit(1)
+            if os.path.exists(dicom_dir):
+                print(f"Dicom directory {dicom_dir} already exists. Skipping.")
+                continue
 
-            # Define the order and identifiers for different types of runs (multiple methods provided for debugging).
-            subject_id_without_prefix = subject_id.replace('sub-', '')  # Remove 'sub-' prefix
-            print(f"Subject ID without prefix: {subject_id_without_prefix}")
+            subject_id_without_prefix = subject_id.replace('sub-', '')
             session_id_zip = "V1"
-            #zip_file_path = os.path.join(sourcedata_root_dir, f'*_{subject_id_without_prefix}_{session_id_zip}.zip')
-
-            # Construct the pattern for the zip file
             zip_file_pattern = f'{sourcedata_root_dir}/*_{subject_id_without_prefix}_{session_id_zip}.zip'
-
-            # Use glob to find matching zip files
             zip_files = glob.glob(zip_file_pattern)
 
             if zip_files:
-                zip_file_path = zip_files[0]  # Assuming there's only one matching zip file
+                zip_file_path = zip_files[0]
                 print(f"Zip file path: {zip_file_path}")
-                
-                # Check if dicom_sorted or dicom directories exist
-                if os.path.exists(dicom_sorted_dir) or os.path.exists(dicom_dir):
-                    continue # Skip this subject if dicom_sorted and dicom directories exist
-                    # Check if the ZIP file exists
-                elif os.path.exists(zip_file_path):
-                    try:
-                        # Unzip and move dicom_sorted and dicom
-                        unzip_and_move(zip_file_path, sourcedata_root_dir)
-                        print(f'Unzipped and moved files for {subject_id}, session {session_id}')
-                    except Exception as e:
-                        print(f'Error while unzipping and moving files for {subject_id}, session {session_id}: {str(e)}')
-                else:
-                    print(f'ZIP file not found for {subject_id}, session {session_id}')
+
+                try:
+                    # Unzip and move dicom_sorted and dicom
+                    unzip_and_move(zip_file_path, sourcedata_root_dir)
+                    print(f'Unzipped and moved files for {subject_id}, session {session_id}')
+                except Exception as e:
+                    print(f'Error while unzipping and moving files for {subject_id}, session {session_id}: {str(e)}')
             else:
                 print(f'ZIP file not found for {subject_id}, session {session_id}')
 
