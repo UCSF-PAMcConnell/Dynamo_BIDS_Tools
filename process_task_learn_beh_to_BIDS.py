@@ -410,10 +410,10 @@ def main(matlab_root_dir, bids_root_dir):
     # Construct the output path based on subject_id and session_id
     output_path = os.path.join(bids_root_dir, subject_id, session_id, 'func') 
 
-    # Check MATLAB and TSV files before processing
-    if not check_files(matlab_root_dir, output_path, expected_mat_file_size_range_mb):
-        print(f"Initial file check failed. Exiting script.")
-        return # Exit the script if file check fails.
+    # # Check MATLAB and TSV files before processing
+    # if not check_files(matlab_root_dir, output_path, expected_mat_file_size_range_mb):
+    #     print(f"Initial file check failed. Exiting script.")
+    #     return # Exit the script if file check fails.
     
     # Setup logging after extracting subject_id and session_id.
     setup_logging(subject_id, session_id, bids_root_dir)
