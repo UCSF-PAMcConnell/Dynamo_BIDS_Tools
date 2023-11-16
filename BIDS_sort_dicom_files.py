@@ -202,7 +202,7 @@ def main(sourcedata_root_dir, bids_root_dir):
         sys.exit(1)
 
     setup_logging(subject_id, session_id, bids_root_dir)
-    logging.info(f"Processing subject: {subject_id}, session: {session_id}")
+    logging.info(f"Sorting dicoms for  subject: {subject_id}, session: {session_id}")
     
     sort_dicom_files(input_directory, output_directory)
     shutil.rmtree(input_directory)

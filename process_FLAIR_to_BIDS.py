@@ -387,11 +387,11 @@ def check_pydeface_installed():
     """
     pydeface_version_output = subprocess.getoutput('pydeface --version')
     if 'pydeface 2.0.2' in pydeface_version_output:
-        # Extracting the first line which contains the version information
         version_line = [line for line in pydeface_version_output.splitlines() if 'pydeface 2.0.2' in line][0]
         logging.info(f"pydeface is installed: {version_line}")
+        return True
     else:
-        #logging.warning("pydeface version 2.02 is not installed.")
+        logging.warning("pydeface version 2.0.2 is not installed.")
         return False
     
 # Check if dcm2niix is installed and accessible in the system's PATH.
@@ -538,13 +538,12 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface=False):
             logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
             return  # Exit the function if dcm2niix is not installed.
         
-        # Optional pydeface execution.
-        if run_pydeface and check_pydeface_installed():
-            run_pydeface_func(output_dir_anat, subject_id, session_id)
-
-        # Log pydeface execution errors.
-        elif run_pydeface:
-            logging.warning("Skipping pydeface execution as it is not installed.")
+        # Assuming run_pydeface_func is a boolean indicating whether to run pydeface
+        if run_pydeface_func:
+            if check_pydeface_installed():
+                run_pydeface(output_dir_anat, subject_id, session_id)  # Corrected function call
+            else:
+                logging.warning("Skipping pydeface execution as it is not installed.")
         else:
             logging.info("Pydeface execution is not enabled.")
 

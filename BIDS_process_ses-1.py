@@ -58,22 +58,19 @@ import io                       # for text input and output.
 # Execute a subprocess and log its output.
 def run_and_log_subprocess(command):
     try:
-        # Prefer using a list of arguments rather than shell=True for better security and predictability
-        if isinstance(command, str):
-            command = command.split()  # Simple split, works for commands without spaces in arguments
+        # Expand the tilde in file paths
+        command = [os.path.expanduser(arg) for arg in command]
 
         result = subprocess.run(command, check=True, capture_output=True, text=True)
 
         # Log the output
         if result.stdout:
             logging.info(f"Subprocess output:\n{result.stdout}")
-        
-        # Log stderr only if there's an error (non-zero exit status)
         if result.returncode != 0 and result.stderr:
             logging.error(f"Subprocess error:\n{result.stderr}")
 
     except subprocess.CalledProcessError as e:
-        logging.error(f"Subprocess '{command}' failed with error: {e}")
+        logging.error(f"Subprocess '{' '.join(command)}' failed with error: {e}")
         if e.stderr:
             logging.error(f"Subprocess stderr:\n{e.stderr}")
     except Exception as e:
@@ -162,7 +159,7 @@ def setup_logging(subject_id, session_id, dataset_root_dir):
             os.makedirs(log_dir)
 
         # Construct the log file name using timestamp, session ID, and script name.
-        log_file_name = f"{script_name}_{timestamp}_{session_id}.log"
+        log_file_name = f"{script_name}_{timestamp}.log"
         log_file_path = os.path.join(log_dir, log_file_name)
 
         # Configure file logging.
@@ -282,31 +279,33 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             "BIDS_process_physio_ses_1.py"
         ]
 
-        for command in commands:
-            # Construct the base command
-            base_command = "python ~/Documents/MATLAB/software/iNR/BIDS_tools/{}"
+    for command in commands:
+        # Define the path to the script, expanding the user directory
+        script_path = os.path.expanduser("~/Documents/MATLAB/software/iNR/BIDS_tools/" + command)
 
-            # Determine the correct arguments for each command
-            
-            if command == "BIDS_sort_dicom_files.py":
-                cmd = base_command.format(command) + " {} {}".format(sourcedata_root_dir, bids_root_dir)
-            elif command == "BIDS_process_physio_ses_1.py":
-                cmd = base_command.format(command) + " {} {}".format(physio_root_dir, bids_root_dir)
-            elif command == "process_task_rest_to_BIDS.py":
-                cmd = base_command.format(command) + " {} {}".format(dicom_root_dir, bids_root_dir) + func_rest_extra_arg
-            elif command in ["process_T1_to_BIDS.py", "process_FLAIR_to_BIDS.py"]:
-                cmd = base_command.format(command) + " {} {}".format(dicom_root_dir, bids_root_dir)
-                if pydeface:
-                    cmd += " --pydeface"
-            else:
-                # For all other commands
-                cmd = base_command.format(command) + " {} {}".format(dicom_root_dir, bids_root_dir)
+        # Start with the base command
+        cmd = ["python", script_path]
 
-            logging.info(f"Executing: {cmd}")
+        # Add arguments based on the command
+        if command == "BIDS_sort_dicom_files.py":
+            cmd.extend([sourcedata_root_dir, bids_root_dir])
+        elif command == "BIDS_process_physio_ses_1.py":
+            cmd.extend([physio_root_dir, bids_root_dir])
+        elif command == "process_task_rest_to_BIDS.py":
+            cmd.extend([dicom_root_dir, bids_root_dir, func_rest_extra_arg])
+        elif command in ["process_T1_to_BIDS.py", "process_FLAIR_to_BIDS.py"]:
+            cmd.extend([dicom_root_dir, bids_root_dir])
+            if pydeface:
+                cmd.append("--pydeface")
+        else:
+            # For all other commands
+            cmd.extend([dicom_root_dir, bids_root_dir])
 
-            # Begin executing the subprocess command loop. 
-            run_and_log_subprocess(cmd)
+        # Log the command being executed
+        logging.info(f"Executing: {' '.join(cmd)}")
 
+        # Execute the subprocess command
+        run_and_log_subprocess(cmd)
 
     # Change the working directory to dataset_root_dir and execute the cubids-validate command
     try:

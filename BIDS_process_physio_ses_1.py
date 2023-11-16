@@ -1082,6 +1082,17 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
             logging.info("Preparing to plot runs.")
             log_file_path_plot_runs = os.path.join(log_dir, f"{subject_id}_{session_id}_task-rest_all_runs_physio.png")
             plot_file_path = log_file_path_plot_runs
+            
+            # Move up four levels to get to dataset_root_dir
+            dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
+            output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'rest')
+            
+            # Copy the file
+            shutil.copy2(plot_file_path, output_derivatives_dir)
+
+            # Log the action
+            logging.info(f"Plot png file copied to: {output_derivatives_dir}")
+
             plot_runs(data_bids_only, segmented_data_list, runs_info, bids_labels_list, sampling_rate, plot_file_path, units_dict, cut_off_duration)
         else:
             logging.error("No data available to plot.")
