@@ -251,7 +251,7 @@ def update_json_file(json_filepath, intended_for=None):
                     
                     # Concatenating to get the full path
                     full_path = os.path.join(intended_for_root_dir, filepath)
-                    logging.info(f"IntendedFor full_path: {full_path}")
+                    logging.info(f"IntendedFor full_path exists: {full_path}")
                     if not os.path.exists(full_path):
                         logging.error(f"File specified in IntendedFor does not exist: {full_path}")
                         sys.exit(1)  # Exit the script with an error status
@@ -648,7 +648,6 @@ def main(dicom_root_dir, bids_root_dir):
 
     # Check if GRE Field Map NIfTI files already exist.
     if check_existing_nifti(output_dir_fmap, subject_id, session_id):
-        # print(f"GRE Field Map NIfTI files already exist for subject: {subject_id}, session: {session_id}")
         return # Exit the function if NIfTI files already exist.
 
     # Otherwise:

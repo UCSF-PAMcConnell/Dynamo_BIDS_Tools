@@ -277,7 +277,7 @@ def update_json_file_AP(json_filepath_AP, session_id,intended_for=None):
                     
                     # Concatenating to get the full path
                     full_path = os.path.join(intended_for_root_dir, filepath)
-                    logging.info(f"IntendedFor full_path: {full_path}")
+                    logging.info(f"IntendedFor full_path exists: {full_path}")
                     if not os.path.exists(full_path):
                         logging.error(f"File specified in IntendedFor does not exist: {full_path}")
                         sys.exit(1)  # Exit the script with an error status
@@ -771,28 +771,60 @@ def main(dicom_root_dir, bids_root_dir):
             logging.info(f"dicom_dir_AP: {dicom_dir_AP}, session_id: {session_id}")
             dicom_dir_PA = os.path.join(dicom_root_dir, 'sms3_distortionmap_PA')
 
-        # Check if dcm2niix is installed and accessible in the system's PATH.
-        if check_dcm2niix_installed():
-            
-            # Run dcm2niix for AP DICOM to NIfTI conversion.
-            run_dcm2niix_AP(dicom_dir_AP, output_dir_AP, subject_id, session_id)
-
-            # Run dcm2niix for PA DICOM to NIfTI conversion.    
-            run_dcm2niix_PA(dicom_dir_PA, output_dir_PA, subject_id, session_id)
-            
-            # Loop through all files in the specified directory to remove EPI_phase images.
-            for filename in os.listdir(output_dir_PA):
-                # Check if 'epi_ph' is in the filename
-                if 'epi_ph' in filename:
-                    # Construct full file path
-                    file_path = os.path.join(output_dir_PA, filename)
-                    # Remove the file
-                    os.remove(file_path)
-                    logging.info(f"Removed EPI Field Map Phase (_ph) files: {file_path}")
-
-            # Check if cubids is installed
-            if check_cubids_installed():
+        # Check if cubids is installed
+        if check_cubids_installed():
                 
+            # Check if dcm2niix is installed and accessible in the system's PATH.
+            if check_dcm2niix_installed():
+                
+                # Run dcm2niix for AP DICOM to NIfTI conversion.
+                run_dcm2niix_AP(dicom_dir_AP, output_dir_AP, subject_id, session_id)
+
+                # Loop through all files in the specified directory to remove EPI_phase images.
+                for filename in os.listdir(output_dir_AP):
+                    # Check if 'epi_ph' is in the filename
+                    if 'epi_ph' in filename:
+                        # Construct full file path
+                        file_path = os.path.join(output_dir_AP, filename)
+                        # Remove the file
+                        os.remove(file_path)
+                        logging.info(f"Removed EPI Field Map Phase (_ph) files: {file_path}")
+
+                # Run cubids commands to add NIfTI metadata to AP EPI Field Map.
+                logging.info(f"Adding BIDS to AP EPI Field Map metadata to {subject_id}_{session_id}_dir-AP_epi.json")
+                run_cubids_add_nifti_info(bids_root_dir)
+
+                # Construct the JSON file name
+                json_filepath_AP = os.path.join(output_dir_AP, f'{subject_id}_{session_id}_dir-AP_epi.json')
+
+                # Run cubids commands to remove metadata fields.
+                logging.info(f"Removing metadata fields from AP EPI Field Map from {subject_id}_{session_id}_dir_AP_epi.json")
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+
+                # Run dcm2niix for PA DICOM to NIfTI conversion.    
+                run_dcm2niix_PA(dicom_dir_PA, output_dir_PA, subject_id, session_id)
+                
+                # Loop through all files in the specified directory to remove EPI_phase images.
+                for filename in os.listdir(output_dir_PA):
+                    # Check if 'epi_ph' is in the filename
+                    if 'epi_ph' in filename:
+                        # Construct full file path
+                        file_path = os.path.join(output_dir_PA, filename)
+                        # Remove the file
+                        os.remove(file_path)
+                        logging.info(f"Removed EPI Field Map Phase (_ph) files: {file_path}")
+
+                # Run cubids commands to add NIfTI metadata to AP EPI Field Map.
+                logging.info(f"Adding BIDS to PA EPI Field Map metadata to {subject_id}_{session_id}_dir-PA_epi.json")
+                run_cubids_add_nifti_info(bids_root_dir)
+
+                # Construct the JSON file name
+                json_filepath_PA = os.path.join(output_dir_PA, f'{subject_id}_{session_id}_dir-PA_epi.json')
+                
+                # Run cubids commands to remove BIDS metadata from PA files.
+                logging.info(f"Removing BIDS metadata fields from PA EPI Field Map from {subject_id}_{session_id}_dir-PA_epi.nii")
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+
                 # Update JSON file with necessary BIDS metadata
                 # Intended to correct magnetic field distortion in functional MRI images.
                 if session_id == 'ses-1':
@@ -819,48 +851,25 @@ def main(dicom_root_dir, bids_root_dir):
                     f"{session_id}/func/{subject_id}_{session_id}_task-learn_run-07_bold.nii",
                     ]
 
-                # Run cubids commands to add NIfTI metadata.
-                logging.info(f"Adding BIDS metadata for subject: {subject_id}, session: {session_id}")
-                run_cubids_add_nifti_info(bids_root_dir)
-
-                # Construct the JSON file name
-                json_filepath_AP = os.path.join(output_dir_AP, f'{subject_id}_{session_id}_dir-AP_epi.json')
-
                 # Call the function to update the JSON file
                 update_json_file_AP(json_filepath_AP, session_id, intended_for)
 
-                # Run cubids commands to add NIfTI metadata.
-                logging.info(f"Adding BIDS metadata for subject: {subject_id}, session: {session_id}")
-                run_cubids_add_nifti_info(bids_root_dir)
-
-                # Run cubids commands to remove metadata fields.
-                logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
-                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
-
-                # Construct the JSON file name
-                json_filepath_PA = os.path.join(output_dir_PA, f'{subject_id}_{session_id}_dir-PA_epi.json')
-
                 # Call the function to update the JSON file
                 update_json_file_PA(json_filepath_PA, session_id, intended_for)
-                
-                # Run cubids commands to remove BIDS metadata from PA files.
-                logging.info(f"Removing BIDS metadata from {subject_id}_{session_id}_dir-PA_epi.nii")
-                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
 
                 # Run dcm2niix for verbose output.
                 with tempfile.TemporaryDirectory() as temp_dir:
                     run_dcm2niix_verbose_AP(dicom_dir_AP, temp_dir, subject_id, session_id, log_file_path)
                     run_dcm2niix_verbose_PA(dicom_dir_PA, temp_dir, subject_id, session_id, log_file_path)
-
-            # Catch error if cubids is not installed.
+            
+            # Catch error if dcm2niix is not installed.
             else:
-                logging.error("cubids is not installed. Skipping cubids commands.")
-                return  # Exit the function if cubids is not installed.
-        
-        # Catch error if dcm2niix is not installed.
+                logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+                return  # Exit the function if dcm2niix is not installed.
+                        # Catch error if cubids is not installed.
         else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
-            return  # Exit the function if dcm2niix is not installed.
+            logging.error("cubids is not installed. Skipping cubids commands.")
+            return  # Exit the function if cubids is not installed.
         
     # Log other errors. 
     except Exception as e:
