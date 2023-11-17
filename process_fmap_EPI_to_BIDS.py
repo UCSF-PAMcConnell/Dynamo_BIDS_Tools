@@ -99,7 +99,6 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     # Configure file logging.
     logging.basicConfig(
         level=logging.INFO,
-        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
         format='%(asctime)s - %(levelname)s - %(message)s',
         filename=log_file_path,
         filemode='w' # 'w' mode overwrites existing log file.
@@ -262,8 +261,29 @@ def update_json_file_AP(json_filepath_AP, session_id,intended_for=None):
                 data['B0FieldIdentifier'] = "*epfid2d1_96"
                 logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
             
+            # Navigate up to the fmap directory
+            fmap_dir = os.path.dirname(json_filepath_AP)
+
+            # Navigate up to the ses-1 directory
+            ses_dir = os.path.dirname(fmap_dir)
+
+            # Navigate up to the sub-LRN001 directory, which is the intended directory
+            intended_for_root_dir = os.path.dirname(ses_dir)
+            logging.info(f"IntendedFor root directory: {intended_for_root_dir}")
+
+            # Verify each file in IntendedFor exists
+            if intended_for:
+               for filepath in intended_for:
+                    
+                    # Concatenating to get the full path
+                    full_path = os.path.join(intended_for_root_dir, filepath)
+                    logging.info(f"IntendedFor full_path: {full_path}")
+                    if not os.path.exists(full_path):
+                        logging.error(f"File specified in IntendedFor does not exist: {full_path}")
+                        sys.exit(1)  # Exit the script with an error status
+
             data['IntendedFor'] = intended_for
-            logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
+            logging.info(f"Updated EPI AP IntendedFor to {data['IntendedFor']}")
               
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)
@@ -318,14 +338,7 @@ def update_json_file_PA(json_filepath_PA, session_id, intended_for=None):
                 logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
             
             data['IntendedFor'] = intended_for
-            logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
-            
-            # Verify each file in IntendedFor exists
-            if intended_for:
-                for filepath in intended_for:
-                    if not os.path.exists(filepath):
-                        logging.error(f"File specified in IntendedFor does not exist: {filepath}")
-                        sys.exit(1)  # Exit the script with an error status
+            logging.info(f"Updated PA EPI IntendedFor to {data['IntendedFor']}")
             
             # Write back the updated data and truncate the file to the new data length.
             file.seek(0)
@@ -736,26 +749,26 @@ def main(dicom_root_dir, bids_root_dir):
 
     # Check if AP EPI Field Map NIfTI files already exist.
     if check_existing_nifti_AP(output_dir_AP, subject_id, session_id):
-        #print(f"AP EPI Field Map NIfTI files already exist for subject: {subject_id}, session: {session_id}")
         return # Exit the function if NIfTI files already exist.
 
     # Check if PA EPI Field Map NIfTI files already exist.
     if check_existing_nifti_AP(output_dir_PA, subject_id, session_id):
-        #print(f"PA EPI Field Map NIfTI files already exist for subject: {subject_id}, session: {session_id}")
         return # Exit the function if NIfTI files already exist.
 
     # Otherwise:
     try:
         # Setup logging after extracting subject_id and session_id.
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
-        logging.info(f"Processing EPIField Map data for subject: {subject_id}, session: {session_id}")
+        logging.info(f"Processing EPI Field Map data for subject: {subject_id}, session: {session_id}")
 
         # Specify the exact directory where the DICOM files are located.
         if session_id == 'ses-1':
             dicom_dir_AP = os.path.join(dicom_root_dir, 'SpinEchoFieldMap_AP')
+            logging.info(f"dicom_dir_AP: {dicom_dir_AP}, session_id: {session_id}")
             dicom_dir_PA = os.path.join(dicom_root_dir, 'SpinEchoFieldMap_PA')
         else:
             dicom_dir_AP = os.path.join(dicom_root_dir, 'sms3_distortionmap_AP')
+            logging.info(f"dicom_dir_AP: {dicom_dir_AP}, session_id: {session_id}")
             dicom_dir_PA = os.path.join(dicom_root_dir, 'sms3_distortionmap_PA')
 
         # Check if dcm2niix is installed and accessible in the system's PATH.
@@ -763,6 +776,19 @@ def main(dicom_root_dir, bids_root_dir):
             
             # Run dcm2niix for AP DICOM to NIfTI conversion.
             run_dcm2niix_AP(dicom_dir_AP, output_dir_AP, subject_id, session_id)
+
+            # Run dcm2niix for PA DICOM to NIfTI conversion.    
+            run_dcm2niix_PA(dicom_dir_PA, output_dir_PA, subject_id, session_id)
+            
+            # Loop through all files in the specified directory to remove EPI_phase images.
+            for filename in os.listdir(output_dir_PA):
+                # Check if 'epi_ph' is in the filename
+                if 'epi_ph' in filename:
+                    # Construct full file path
+                    file_path = os.path.join(output_dir_PA, filename)
+                    # Remove the file
+                    os.remove(file_path)
+                    logging.info(f"Removed EPI Field Map Phase (_ph) files: {file_path}")
 
             # Check if cubids is installed
             if check_cubids_installed():
@@ -803,16 +829,13 @@ def main(dicom_root_dir, bids_root_dir):
                 # Call the function to update the JSON file
                 update_json_file_AP(json_filepath_AP, session_id, intended_for)
 
-                # Run cubids commands to remove metadata fields.
-                logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
-                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
-            
-                # Run dcm2niix for PA DICOM to NIfTI conversion.    
-                run_dcm2niix_PA(dicom_dir_PA, output_dir_PA, subject_id, session_id)
-            
                 # Run cubids commands to add NIfTI metadata.
                 logging.info(f"Adding BIDS metadata for subject: {subject_id}, session: {session_id}")
                 run_cubids_add_nifti_info(bids_root_dir)
+
+                # Run cubids commands to remove metadata fields.
+                logging.info(f"Removing metadata fields for subject: {subject_id}, session: {session_id}")
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
 
                 # Construct the JSON file name
                 json_filepath_PA = os.path.join(output_dir_PA, f'{subject_id}_{session_id}_dir-PA_epi.json')
@@ -828,16 +851,6 @@ def main(dicom_root_dir, bids_root_dir):
                 with tempfile.TemporaryDirectory() as temp_dir:
                     run_dcm2niix_verbose_AP(dicom_dir_AP, temp_dir, subject_id, session_id, log_file_path)
                     run_dcm2niix_verbose_PA(dicom_dir_PA, temp_dir, subject_id, session_id, log_file_path)
-                
-                # Loop through all files in the specified directory to remove EPI_phase images.
-                for filename in os.listdir(output_dir_PA):
-                    # Check if 'epi_ph' is in the filename
-                    if 'epi_ph' in filename:
-                        # Construct full file path
-                        file_path = os.path.join(output_dir_PA, filename)
-                        # Remove the file
-                        os.remove(file_path)
-                        print(f"Removed file: {file_path}")
 
             # Catch error if cubids is not installed.
             else:

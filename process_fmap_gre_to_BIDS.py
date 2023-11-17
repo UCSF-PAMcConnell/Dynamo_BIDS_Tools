@@ -234,6 +234,29 @@ def update_json_file(json_filepath, intended_for=None):
             logging.info(f"Updated EchoTime2 to {data['EchoTime2']}")
             data['B0FieldIdentifier'] = "*fm2d2r"
             logging.info(f"Updated B0FieldIdentifier to {data['B0FieldIdentifier']}")
+            
+            # Navigate up to the fmap directory
+            fmap_dir = os.path.dirname(json_filepath)
+
+            # Navigate up to the ses-1 directory
+            ses_dir = os.path.dirname(fmap_dir)
+
+            # Navigate up to the sub-LRN001 directory, which is the intended directory
+            intended_for_root_dir = os.path.dirname(ses_dir)
+            logging.info(f"IntendedFor root directory: {intended_for_root_dir}")
+
+            # Verify each file in IntendedFor exists
+            if intended_for:
+               for filepath in intended_for:
+                    
+                    # Concatenating to get the full path
+                    full_path = os.path.join(intended_for_root_dir, filepath)
+                    logging.info(f"IntendedFor full_path: {full_path}")
+                    if not os.path.exists(full_path):
+                        logging.error(f"File specified in IntendedFor does not exist: {full_path}")
+                        sys.exit(1)  # Exit the script with an error status
+
+            
             data['IntendedFor'] = intended_for
             logging.info(f"Updated IntendedFor to {data['IntendedFor']}")
 
