@@ -2,8 +2,8 @@
 process_FLAIR_to_BIDS.py
 
 Description:
-This script processes T2-weighted FLAIR DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
-It includes functionalities for DICOM to NIfTI conversion using dcm2niix, defacing NIfTI images with pydeface for enhanced privacy, 
+This script processes T2-weighted FLAIR DICOM files into NIFTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+It includes functionalities for DICOM to NIFTI conversion using dcm2niix, defacing NIFTI images with pydeface for enhanced privacy, 
 and additional BIDS-compliant metadata processing with cubids. The script checks for the installation of dcm2niix, pydeface, and cubids 
 before executing relevant commands. It also handles file renaming and applies defacing for anonymization.
 
@@ -104,20 +104,20 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if T2-weighted FLAIR NIfTI files already exist in the specified BIDS output directory.
+# Checks if T2-weighted FLAIR NIFTI files already exist in the specified BIDS output directory.
 def check_existing_nifti(output_dir_anat, subject_id, session_id):
     """
     Parameters:
-    - output_dir_anat (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_anat (str): The BIDS output directory where NIFTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if FLAIR NIfTI files exist, False otherwise.
+    - bool: True if FLAIR NIFTI files exist, False otherwise.
     """
     expected_nifti_file = os.path.join(output_dir_anat, f'{subject_id}_{session_id}_FLAIR.nii')
     if os.path.isfile(expected_nifti_file):
-        print(f"T2-weighted FLAIR NIfTI file already exists: {expected_nifti_file}")
+        print(f"T2-weighted FLAIR NIFTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -157,18 +157,18 @@ def extract_subject_session(dicom_root_dir):
 
     return subject_id, session_id
 
-# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
 def run_dcm2niix(input_dir, output_dir_anat, subject_id, session_id, log_file_path):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_anat (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_anat (str): Directory where the converted NIFTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
-    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
     It saves the output in the specified output directory, structuring the filenames
     according to BIDS conventions. The function assumes that dcm2niix is installed
     and accessible in the system's PATH.
@@ -216,7 +216,7 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -329,11 +329,11 @@ def run_cubids_remove_metadata_fields(bids_root_dir, fields):
         logging.error(f"cubids-remove-metadata-fields execution failed: {e}")
         raise
 
-# Executes the pydeface command to anonymize NIfTI images by removing facial features.
+# Executes the pydeface command to anonymize NIFTI images by removing facial features.
 def run_pydeface(output_dir_anat, subject_id, session_id):
     """
     Parameters:
-    - output_dir_anat (str): Directory where the NIfTI files are stored.
+    - output_dir_anat (str): Directory where the NIFTI files are stored.
     - subject_id (str): Subject ID used in the BIDS file naming.
     - session_id (str): Session ID used in the BIDS file naming.
 
@@ -468,15 +468,15 @@ def check_cubids_installed():
         #logging.warning("cubids is not installed.")
         return False
     
-# The main function to convert FLAIR DICOM files to NIfTI format within a BIDS compliant structure.
+# The main function to convert FLAIR DICOM files to NIFTI format within a BIDS compliant structure.
 def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
     """
-    This function sets up logging, executes the DICOM to NIfTI conversion using dcm2niix, 
+    This function sets up logging, executes the DICOM to NIFTI conversion using dcm2niix, 
     and optionally runs pydeface for anonymization.
 
     Parameters:
     - dicom_root_dir (str): The root directory containing the DICOM files.
-    - bids_root_dir (str): The root directory for the BIDS dataset where the NIfTI files will be saved.
+    - bids_root_dir (str): The root directory for the BIDS dataset where the NIFTI files will be saved.
 
     The function assumes that 'pydeface' and 'dcm2niix' are installed and accessible in the system's PATH.
 
@@ -484,20 +484,20 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
     main('/path/to/dicom_root_dir', '/path/to/bids_root_dir')
 
     Dependencies:
-    - dcm2niix for DICOM to NIfTI conversion.
-    - pydeface for defacing NIfTI images.
+    - dcm2niix for DICOM to NIFTI conversion.
+    - pydeface for defacing NIFTI images.
     """
     
     # Extarct subject and session IDs from the DICOM directory path.
     subject_id, session_id = extract_subject_session(dicom_root_dir)
     
-    # Specify the exact directory where the NIfTI files will be saved.
+    # Specify the exact directory where the NIFTI files will be saved.
     output_dir_anat = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'anat')
 
-    # Check if FLAIR NIfTI files already exist.
+    # Check if FLAIR NIFTI files already exist.
     if check_existing_nifti(output_dir_anat, subject_id, session_id):
-        #print(f"FLAIR NIfTI files already exist: {output_dir_anat}")
-        return  # Exit the function if FLAIR NIfTI files already exist.
+        #print(f"FLAIR NIFTI files already exist: {output_dir_anat}")
+        return  # Exit the function if FLAIR NIFTI files already exist.
     
     # Otherwise:
     try:
@@ -511,7 +511,7 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
         # Check if dcm2niix is installed and accessible in the system's PATH.
         if check_dcm2niix_installed():
             
-            # Run dcm2niix for DICOM to NIfTI conversion.
+            # Run dcm2niix for DICOM to NIFTI conversion.
             run_dcm2niix(dicom_dir, output_dir_anat, subject_id, session_id, log_file_path)
         
             # Check if cubids is installed.
@@ -535,7 +535,7 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
         
         # Catch errors if dcm2niix is not installed.
         else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIFTI conversion.")
             return  # Exit the function if dcm2niix is not installed.
         
         # Assuming run_pydeface_func is a boolean indicating whether to run pydeface
@@ -568,7 +568,7 @@ if __name__ == "__main__":
     """
     
    # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files and convert them to NIfTI format following BIDS conventions.')
+    parser = argparse.ArgumentParser(description='Process DICOM files and convert them to NIFTI format following BIDS conventions.')
     
     # Add arguments to the parser.
     

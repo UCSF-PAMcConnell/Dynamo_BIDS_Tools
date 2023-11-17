@@ -2,7 +2,7 @@
 process_fmap_epi_to_BIDS.py
 
 Description:
-This script processes Echo Planar Imaging (EPI) Reverse Phase Echo (RPE) Field Map DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+This script processes Echo Planar Imaging (EPI) Reverse Phase Echo (RPE) Field Map DICOM files into NIFTI format following the Brain Imaging Data Structure (BIDS) conventions. 
 It automates the conversion using dcm2niix, applies BIDS-compliant metadata processing with cubids, and handles file renaming for fMRI data analysis. 
 This technique is essential for correcting distortions in EPI images by acquiring images with opposite phase-encoding polarities (e.g., anterior-posterior and posterior-anterior).
 
@@ -12,7 +12,7 @@ It aids in comparing phase-encoded images to estimate and correct voxel displace
 
 Process Overview:
 1. Extracts subject and session IDs from DICOM file paths.
-2. Converts DICOM files to NIfTI format using dcm2niix.
+2. Converts DICOM files to NIFTI format using dcm2niix.
 3. Adds and updates JSON metadata for BIDS compliance.
 4. Optionally removes specific files and unwanted metadata fields.
 
@@ -33,7 +33,7 @@ License: MIT License
 Dependencies:
 - Python 3.12
 - pydicom for reading DICOM files.
-- dcm2niix (command-line tool) for DICOM to NIfTI conversion.
+- dcm2niix (command-line tool) for DICOM to NIFTI conversion.
 - CuBIDS (command-line tool) for BIDS metadata processing.
 - Standard Python libraries: tempfile, os, logging, subprocess, argparse, re, sys, json, glob.
 
@@ -47,7 +47,7 @@ Error Handling and Logging:
 - The script includes detailed error handling and logging mechanisms to provide insights into the processing steps and assist in troubleshooting.
 
 Change Log:
-- 20231112: Initial version. Implemented DICOM to NIfTI conversion and BIDS metadata processing.
+- 20231112: Initial version. Implemented DICOM to NIFTI conversion and BIDS metadata processing.
 """
 
 import os                     # Used for operating system dependent functionalities like file path manipulation.
@@ -115,38 +115,38 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if AP EPI FIELD MAP NIfTI files already exist in the specified BIDS output directory.
+# Checks if AP EPI FIELD MAP NIFTI files already exist in the specified BIDS output directory.
 def check_existing_nifti_AP(output_dir_AP, subject_id, session_id):
     """
     Parameters:
-    - output_dir_AP (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_AP (str): The BIDS output directory where NIFTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if AP EPI FIELD MAP NIfTI files exist, False otherwise.
+    - bool: True if AP EPI FIELD MAP NIFTI files exist, False otherwise.
     """
     expected_nifti_file = os.path.join(output_dir_AP, f'{subject_id}_{session_id}_dir-AP_epi.nii')
     if os.path.isfile(expected_nifti_file):
-        print(f"AP EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
+        print(f"AP EPI FIELD MAP NIFTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
 
-# Checks if PA EPI FIELD MAP NIfTI files already exist in the specified BIDS output directory.
+# Checks if PA EPI FIELD MAP NIFTI files already exist in the specified BIDS output directory.
 def check_existing_nifti_PA(output_dir_PA, subject_id, session_id):
     """
     Parameters:
-    - output_dir_PA (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_PA (str): The BIDS output directory where NIFTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if PA EPI FIELD MAP NIfTI files exist, False otherwise.
+    - bool: True if PA EPI FIELD MAP NIFTI files exist, False otherwise.
     """
     expected_nifti_file = os.path.join(output_dir_PA, f'{subject_id}_{session_id}_dir-PA_epi.nii')
     if os.path.isfile(expected_nifti_file):
-        print(f"PA EPI FIELD MAP NIfTI file already exists: {expected_nifti_file}")
+        print(f"PA EPI FIELD MAP NIFTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -360,18 +360,18 @@ def update_json_file_PA(json_filepath_PA, session_id, intended_for=None):
         logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath_PA}. Error: {e}")
         raise
 
-# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
 def run_dcm2niix_AP(input_dir_AP, output_dir_AP, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_fmap (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_fmap (str): Directory where the converted NIFTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
-    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
     It saves the output in the specified output directory, structuring the filenames
     according to BIDS conventions. 
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
@@ -419,7 +419,7 @@ def run_dcm2niix_verbose_AP(input_dir_AP, temp_dir, subject_id, session_id, log_
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -464,18 +464,18 @@ def run_dcm2niix_verbose_AP(input_dir_AP, temp_dir, subject_id, session_id, log_
         logging.error("An error occurred during dcm2niix conversion: %s", e)
         raise
 
-# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
 def run_dcm2niix_PA(input_dir_PA, output_dir_PA, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_fmap (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_fmap (str): Directory where the converted NIFTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
-    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
     It saves the output in the specified output directory, structuring the filenames
     according to BIDS conventions. 
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
@@ -523,7 +523,7 @@ def run_dcm2niix_verbose_PA(input_dir_PA, temp_dir, subject_id, session_id, log_
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -709,27 +709,27 @@ def check_cubids_installed():
         logging.warning("cubids is not installed.")
         return False
 
-# Main function to orchestrate the process of converting EPI Field Map DICOM files to BIDS-compliant NIfTI format.
+# Main function to orchestrate the process of converting EPI Field Map DICOM files to BIDS-compliant NIFTI format.
 def main(dicom_root_dir, bids_root_dir):
     """
-    Orchestrate the process of converting EPI Field Map DICOM files to BIDS-compliant NIfTI format.
+    Orchestrate the process of converting EPI Field Map DICOM files to BIDS-compliant NIFTI format.
 
     This function handles the conversion of Anterior-Posterior (AP) and Posterior-Anterior (PA) 
-    EPI Field Map DICOM files. It ensures the converted NIfTI files are appropriately named and 
+    EPI Field Map DICOM files. It ensures the converted NIFTI files are appropriately named and 
     stored in the BIDS dataset, following the BIDS naming conventions and directory structure.
 
     Steps:
     1. Extracts subject and session IDs from DICOM directory paths.
-    2. Checks for the existence of converted NIfTI files to prevent redundant processing.
-    3. Converts AP and PA DICOM files to NIfTI format using dcm2niix.
-    4. Updates JSON metadata for the NIfTI files to adhere to BIDS specifications.
+    2. Checks for the existence of converted NIFTI files to prevent redundant processing.
+    3. Converts AP and PA DICOM files to NIFTI format using dcm2niix.
+    4. Updates JSON metadata for the NIFTI files to adhere to BIDS specifications.
     5. Removes unwanted metadata fields and specific files based on naming patterns.
     
     Parameters:
     - dicom_root_dir (str): Path to the directory containing the DICOM files.
     - bids_root_dir (str): Path to the BIDS dataset root directory.
 
-    The function requires the dcm2niix tool for DICOM to NIfTI conversion and cubids for BIDS 
+    The function requires the dcm2niix tool for DICOM to NIFTI conversion and cubids for BIDS 
     metadata processing. It also handles specific file removals post-conversion.
 
     Usage Example:
@@ -743,17 +743,17 @@ def main(dicom_root_dir, bids_root_dir):
     # Extract subject and session IDs from the DICOM directory path.
     subject_id, session_id = extract_subject_session(dicom_root_dir)
 
-    # Specify the exact directory where the NIfTI files will be saved.
+    # Specify the exact directory where the NIFTI files will be saved.
     output_dir_AP = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
     output_dir_PA = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
 
-    # Check if AP EPI Field Map NIfTI files already exist.
+    # Check if AP EPI Field Map NIFTI files already exist.
     if check_existing_nifti_AP(output_dir_AP, subject_id, session_id):
-        return # Exit the function if NIfTI files already exist.
+        return # Exit the function if NIFTI files already exist.
 
-    # Check if PA EPI Field Map NIfTI files already exist.
+    # Check if PA EPI Field Map NIFTI files already exist.
     if check_existing_nifti_AP(output_dir_PA, subject_id, session_id):
-        return # Exit the function if NIfTI files already exist.
+        return # Exit the function if NIFTI files already exist.
 
     # Otherwise:
     try:
@@ -777,7 +777,7 @@ def main(dicom_root_dir, bids_root_dir):
             # Check if dcm2niix is installed and accessible in the system's PATH.
             if check_dcm2niix_installed():
                 
-                # Run dcm2niix for AP DICOM to NIfTI conversion.
+                # Run dcm2niix for AP DICOM to NIFTI conversion.
                 run_dcm2niix_AP(dicom_dir_AP, output_dir_AP, subject_id, session_id)
 
                 # Loop through all files in the specified directory to remove EPI_phase images.
@@ -790,7 +790,7 @@ def main(dicom_root_dir, bids_root_dir):
                         os.remove(file_path)
                         logging.info(f"Removed EPI Field Map Phase (_ph) files: {file_path}")
 
-                # Run cubids commands to add NIfTI metadata to AP EPI Field Map.
+                # Run cubids commands to add NIFTI metadata to AP EPI Field Map.
                 logging.info(f"Adding BIDS to AP EPI Field Map metadata to {subject_id}_{session_id}_dir-AP_epi.json")
                 run_cubids_add_nifti_info(bids_root_dir)
 
@@ -801,7 +801,7 @@ def main(dicom_root_dir, bids_root_dir):
                 logging.info(f"Removing metadata fields from AP EPI Field Map from {subject_id}_{session_id}_dir_AP_epi.json")
                 run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
 
-                # Run dcm2niix for PA DICOM to NIfTI conversion.    
+                # Run dcm2niix for PA DICOM to NIFTI conversion.    
                 run_dcm2niix_PA(dicom_dir_PA, output_dir_PA, subject_id, session_id)
                 
                 # Loop through all files in the specified directory to remove EPI_phase images.
@@ -814,7 +814,7 @@ def main(dicom_root_dir, bids_root_dir):
                         os.remove(file_path)
                         logging.info(f"Removed EPI Field Map Phase (_ph) files: {file_path}")
 
-                # Run cubids commands to add NIfTI metadata to AP EPI Field Map.
+                # Run cubids commands to add NIFTI metadata to AP EPI Field Map.
                 logging.info(f"Adding BIDS to PA EPI Field Map metadata to {subject_id}_{session_id}_dir-PA_epi.json")
                 run_cubids_add_nifti_info(bids_root_dir)
 
@@ -864,7 +864,7 @@ def main(dicom_root_dir, bids_root_dir):
             
             # Catch error if dcm2niix is not installed.
             else:
-                logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+                logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIFTI conversion.")
                 return  # Exit the function if dcm2niix is not installed.
                         # Catch error if cubids is not installed.
         else:
@@ -889,7 +889,7 @@ if __name__ == "__main__":
    """  
     
     # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files and convert to NIfTI.')
+    parser = argparse.ArgumentParser(description='Process DICOM files and convert to NIFTI.')
     
      # Add arguments to the parser.
 

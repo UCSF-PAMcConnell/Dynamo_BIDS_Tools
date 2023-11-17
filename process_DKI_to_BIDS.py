@@ -2,8 +2,8 @@
 process_DKI_to_BIDS.py
 
 Description:
-This script processes Diffusion Kurtosis Imaging (DKI) DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
-It includes functionalities for DICOM to NIfTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids.
+This script processes Diffusion Kurtosis Imaging (DKI) DICOM files into NIFTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+It includes functionalities for DICOM to NIFTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids.
 The script checks for the installation of dcm2niix, pydeface, and cubids 
 before executing relevant commands. It also handles file renaming.
 
@@ -148,80 +148,80 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if DKI NIfTI files already exist in the specified BIDS output directory.
+# Checks if DKI NIFTI files already exist in the specified BIDS output directory.
 def check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
     """
-    Checks if Diffusion Kurtosis Imaging (DKI) NIfTI files already exist in the 
+    Checks if Diffusion Kurtosis Imaging (DKI) NIFTI files already exist in the 
     specified BIDS (Brain Imaging Data Structure) output directory. This function 
     is designed to prevent redundant data processing by verifying the presence of 
-    expected NIfTI files.
+    expected NIFTI files.
 
     Parameters:
-    - output_dir_dwi (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_dwi (str): The BIDS output directory where NIFTI files are stored.
     - subject_id (str): The subject ID, used in the naming convention of the files.
     - session_id (str): The session ID, used in the naming convention of the files.
 
     Returns:
-    - bool: True if the DKI NIfTI file exists, False otherwise.
+    - bool: True if the DKI NIFTI file exists, False otherwise.
 
     Usage example:
     file_exists = check_existing_nifti_dwi('/path/to/output/dir', 'sub-01', 'ses-01')
     if file_exists:
-        print("NIfTI file already exists.")
+        print("NIFTI file already exists.")
     """
     try:
         # Construct the expected file path based on BIDS naming convention
-        expected_nifti_file = os.path.join(output_dir_dwi, f'{subject_id}_{session_id}_dir-AP_dwi.nii')
+        expected_nifti_file_dwi = os.path.join(output_dir_dwi, f'{subject_id}_{session_id}_dir-AP_dwi.nii')
         
-        # Check if the expected NIfTI file exists
-        if os.path.isfile(expected_nifti_file):
-            print(f"DKI NIfTI file already exists: {expected_nifti_file}")
+        # Check if the expected NIFTI file exists
+        if os.path.isfile(expected_nifti_file_dwi):
+            print(f"DKI NIFTI file already exists, skipping...: {expected_nifti_file_dwi}")
             return True
         else:
-            logging.info(f"DKI NIfTI file not found: {expected_nifti_file}")
+            logging.info(f"No DKI NIFTI file found, proceeding with processing: {expected_nifti_file_dwi}")
             return False
         
     # Catch and log any exceptions.
     except Exception as e:
-        logging.error(f"Error occurred while checking for existing DKI NIfTI file: {str(e)}")
+        logging.error(f"Error occurred while checking for existing DKI NIFTI file: {str(e)}")
         raise
 
-# Checks if Top Up NIfTI files already exist in the specified BIDS output directory.
+# Checks if Top Up NIFTI files already exist in the specified BIDS output directory.
 def check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
     """
-    Checks if Top Up NIfTI files already exist in the specified BIDS (Brain Imaging Data Structure) 
+    Checks if Top Up NIFTI files already exist in the specified BIDS (Brain Imaging Data Structure) 
     output directory. The function is designed to avoid redundant data processing by ensuring that 
-    the necessary NIfTI files for a given subject and session have not been previously generated.
+    the necessary NIFTI files for a given subject and session have not been previously generated.
 
     Parameters:
-    - output_dir_topup (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_topup (str): The BIDS output directory where NIFTI files are stored.
     - subject_id (str): The subject ID, used in the naming convention of the files.
     - session_id (str): The session ID, used in the naming convention of the files.
 
     Returns:
-    - bool: True if the Top Up NIfTI file exists, False otherwise.
+    - bool: True if the Top Up NIFTI file exists, False otherwise.
 
     Usage example:
     file_exists = check_existing_nifti_topup('/path/to/output/dir', 'sub-01', 'ses-01')
     if file_exists:
-        print("Top Up NIfTI file already exists.")
+        print("Top Up NIFTI file already exists.")
     """
 
     try:
         # Construct the expected file path based on BIDS naming convention
-        expected_nifti_file = os.path.join(output_dir_topup, f'{subject_id}_{session_id}_acq-topup_dir-PA_epi.nii')
+        expected_nifti_file_topup= os.path.join(output_dir_topup, f'{subject_id}_{session_id}_acq-topup_dir-PA_epi.nii')
         
-        # Check if the expected NIfTI file exists
-        if os.path.isfile(expected_nifti_file):
-            logging.info(f"Top Up NIfTI file already exists: {expected_nifti_file}")
+        # Check if the expected NIFTI file exists
+        if os.path.isfile(expected_nifti_file_topup):
+            print(f"Top Up NIFTI file already exists, skipping...: {expected_nifti_file_topup}")
             return True
         else:
-            print(f"Top Up NIfTI file not found: {expected_nifti_file}")
+            print(f"No Top Up NIFTI file found, proceeding with processing: {expected_nifti_file_topup}")
             return False
         
     # Catch and log any exceptions.
     except Exception as e:
-        logging.error(f"Error occurred while checking for existing Top Up NIfTI file: {str(e)}")
+        logging.error(f"Error occurred while checking for existing Top Up NIFTI file: {str(e)}")
         raise
     
 # Extract the subject and session IDs from the provided physio root directory path.
@@ -402,18 +402,18 @@ def update_json_file_topup(json_filepath_topup, subject_id, session_id, dicom_di
         logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath_topup}. Error: {e}")
         raise
 
-# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
 def run_dcm2niix_dwi(input_dir, output_dir_dwi, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_dwi (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_dwi (str): Directory where the converted NIFTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
-    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
     It saves the output in the specified output directory, structuring the filenames
     according to BIDS conventions. 
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
@@ -461,7 +461,7 @@ def run_dcm2niix_verbose_dwi(input_dir, temp_dir, subject_id, session_id, log_fi
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -506,18 +506,18 @@ def run_dcm2niix_verbose_dwi(input_dir, temp_dir, subject_id, session_id, log_fi
         logging.error("An error occurred during dcm2niix conversion: %s", e)
         raise
 
-# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
 def run_dcm2niix_topup(input_dir, output_dir_topup, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_dwi (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_dwi (str): Directory where the converted NIFTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
-    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
     It saves the output in the specified output directory, structuring the filenames
     according to BIDS conventions. 
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
@@ -565,7 +565,7 @@ def run_dcm2niix_verbose_topup(input_dir, temp_dir, subject_id, session_id, log_
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -754,7 +754,7 @@ def check_cubids_installed():
 # Main function for orchestrating the conversion process.
 def main(dicom_root_dir,bids_root_dir):
     """
-    Main function for orchestrating the conversion of DKI DICOM files to NIfTI format following BIDS conventions.
+    Main function for orchestrating the conversion of DKI DICOM files to NIFTI format following BIDS conventions.
     This function manages the entire conversion workflow, from checking pre-existing files to executing conversion
     and metadata handling tasks.
 
@@ -765,8 +765,8 @@ def main(dicom_root_dir,bids_root_dir):
     The function performs the following steps:
     1. Extracts subject and session IDs from the DICOM directory path.
     2. Sets up logging for detailed record-keeping of the process.
-    3. Checks if NIfTI files already exist to avoid redundant processing.
-    4. Runs dcm2niix for DICOM to NIfTI conversion if necessary.
+    3. Checks if NIFTI files already exist to avoid redundant processing.
+    4. Runs dcm2niix for DICOM to NIFTI conversion if necessary.
     5. Executes cubids commands for BIDS-compliant metadata processing.
 
     Usage Example:
@@ -776,18 +776,16 @@ def main(dicom_root_dir,bids_root_dir):
     # Extract subject and session IDs from the DICOM directory path.
     subject_id, session_id = extract_subject_session(dicom_root_dir)
     
-    # Specify the exact directory where the NIfTI files will be saved.
+    # Specify the exact directory where the NIFTI files will be saved.
     output_dir_dwi = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'dwi')
     output_dir_topup = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
 
-    # Check if DKI NIfTI files already exist.
+    # Check if DKI NIFTI files already exist.
     if check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
-        #print(f"DWI NIfTI files already exist for subject: {subject_id}, session: {session_id}")
-        return # Exit the function if DWI NIfTI files already exist.
+        return # Exit the function if DWI NIFTI files already exist.
     
-    # Check if TOP-UP NIfTI files already exist.
+    # Check if TOP-UP NIFTI files already exist.
     if check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
-        #print(f"Topup NIfTI files already exist for subject: {subject_id}, session: {session_id}")
         return   
     
     # Otherwise:   
@@ -803,7 +801,7 @@ def main(dicom_root_dir,bids_root_dir):
         # Check if dcm2niix is installed and accessible in the system's PATH.
         if check_dcm2niix_installed():
                 
-                # Run dcm2niix for DKI DICOM to NIfTI conversion.
+                # Run dcm2niix for DKI DICOM to NIFTI conversion.
                 run_dcm2niix_dwi(dicom_dir_dwi, output_dir_dwi, subject_id, session_id)
                 
                 # Check if cubids is installed.
@@ -821,7 +819,7 @@ def main(dicom_root_dir,bids_root_dir):
                     logging.info(f"Removing BIDS metadata from {subject_id}_{session_id}_dir-AP_dwi.nii")
                     run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
                 
-                    # Run dcm2niix for top up DICOM to NIfTI conversion.    
+                    # Run dcm2niix for top up DICOM to NIFTI conversion.    
                     run_dcm2niix_topup(dicom_dir_topup, output_dir_topup, subject_id, session_id)
                 
                     # Run cubids commands to add necessary BIDS metadata to top up files.
@@ -846,7 +844,7 @@ def main(dicom_root_dir,bids_root_dir):
         
         # Catch error if dcm2niix is not installed.
         else:       
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIFTI conversion.")
             return  # Exit the function if dcm2niix is not installed.
         
     # Log other errors. 
@@ -866,7 +864,7 @@ if __name__ == "__main__":
    """
     
     # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files for DKI and convert to NIfTI.')
+    parser = argparse.ArgumentParser(description='Process DICOM files for DKI and convert to NIFTI.')
 
     # Add arguments to the parser.
 

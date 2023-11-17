@@ -2,8 +2,8 @@
 process_fmap_gre_to_BIDS.py
 
 Description:
-This script processes Gradient Recalled Echo (GRE) DICOM files into NIfTI format following the Brain Imaging Data Structure (BIDS) conventions. 
-It includes functionalities for DICOM to NIfTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids. 
+This script processes Gradient Recalled Echo (GRE) DICOM files into NIFTI format following the Brain Imaging Data Structure (BIDS) conventions. 
+It includes functionalities for DICOM to NIFTI conversion using dcm2niix and additional BIDS-compliant metadata processing with cubids. 
 The script checks for the installation of dcm2niix, pydeface, and cubids 
 before executing relevant commands. It also handles file renaming.
 
@@ -107,20 +107,20 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if GRE FIELD MAP NIfTI files already exist in the specified BIDS output directory.
+# Checks if GRE FIELD MAP NIFTI files already exist in the specified BIDS output directory.
 def check_existing_nifti(output_dir_fmap, subject_id, session_id):
     """
     Parameters:
-    - output_dir_fmap (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_fmap (str): The BIDS output directory where NIFTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if GRE FIELD MAP NIfTI files exist, False otherwise.
+    - bool: True if GRE FIELD MAP NIFTI files exist, False otherwise.
     """
     expected_nifti_file = os.path.join(output_dir_fmap, f'{subject_id}_{session_id}_magnitude1.nii')
     if os.path.isfile(expected_nifti_file):
-        print(f"GRE FIELD MAP NIfTI file already exists: {expected_nifti_file}")
+        print(f"GRE FIELD MAP NIFTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -280,18 +280,18 @@ def update_json_file(json_filepath, intended_for=None):
         logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath}. Error: {e}")
         raise
 
-# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
 def run_dcm2niix(input_dir, temp_dir_fmap, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_fmap (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_fmap (str): Directory where the converted NIFTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
-    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
     It saves the output in the specified output directory, structuring the filenames
     according to BIDS conventions. 
     The function assumes that dcm2niix is installed and accessible in the system's PATH.
@@ -342,7 +342,7 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -607,18 +607,18 @@ def rename_fmap_files(bids_root_dir, subject_id, session_id, temp_dir_fmap):
         logging.error(f"Error renaming files: {e}")
         return
 
-# Main function to process GRE Field Map DICOM files and convert them to NIfTI format following BIDS conventions.    
+# Main function to process GRE Field Map DICOM files and convert them to NIFTI format following BIDS conventions.    
 def main(dicom_root_dir, bids_root_dir):
     """
-    Orchestrates the process of converting GRE Field Map DICOM files to BIDS-compliant NIfTI format.
+    Orchestrates the process of converting GRE Field Map DICOM files to BIDS-compliant NIFTI format.
 
     This function performs the following steps:
     1. Extracts subject and session IDs from the DICOM directory path.
     2. Sets up detailed logging for the process.
-    3. Checks for the existence of NIfTI files to prevent redundant processing.
-    4. Converts DICOM files to NIfTI format using dcm2niix.
+    3. Checks for the existence of NIFTI files to prevent redundant processing.
+    4. Converts DICOM files to NIFTI format using dcm2niix.
     5. Renames and moves converted files to the appropriate BIDS directory.
-    6. Uses cubids to add and update NIfTI metadata for BIDS compliance.
+    6. Uses cubids to add and update NIFTI metadata for BIDS compliance.
     7. Optionally removes unwanted metadata fields using cubids.
     
     Parameters:
@@ -643,12 +643,12 @@ def main(dicom_root_dir, bids_root_dir):
     # Extract subject and session IDs from the DICOM directory path.
     subject_id, session_id = extract_subject_session(dicom_root_dir)
 
-    # Specify the exact directory where the NIfTI files will be saved.
+    # Specify the exact directory where the NIFTI files will be saved.
     output_dir_fmap = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'fmap')
 
-    # Check if GRE Field Map NIfTI files already exist.
+    # Check if GRE Field Map NIFTI files already exist.
     if check_existing_nifti(output_dir_fmap, subject_id, session_id):
-        return # Exit the function if NIfTI files already exist.
+        return # Exit the function if NIFTI files already exist.
 
     # Otherwise:
     try:
@@ -665,7 +665,7 @@ def main(dicom_root_dir, bids_root_dir):
             # Create a temporary directory for the conversion files. 
             with tempfile.TemporaryDirectory() as temp_dir_fmap:
             
-            # Run dcm2niix for DICOM to NIfTI conversion.
+            # Run dcm2niix for DICOM to NIFTI conversion.
                 run_dcm2niix(dicom_dir, temp_dir_fmap, subject_id, session_id)
 
                 # Rename the files in the BIDS dataset directory to match the expected naming convention
@@ -674,8 +674,8 @@ def main(dicom_root_dir, bids_root_dir):
             # Check if cubids is installed
             if check_cubids_installed():
                 
-                # Run cubids commands to add NIfTI metadata.
-                logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}")
+                # Run cubids commands to add NIFTI metadata.
+                logging.info(f"Adding NIFTI metadata for subject: {subject_id}, session: {session_id}")
                 run_cubids_add_nifti_info(bids_root_dir)
 
                 # Update JSON file with necessary BIDS metadata
@@ -736,7 +736,7 @@ def main(dicom_root_dir, bids_root_dir):
         
         # Catch error if dcm2niix is not installed.
         else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIFTI conversion.")
             return  # Exit the function if dcm2niix is not installed.
         
     # Log other errors. 
@@ -762,7 +762,7 @@ if __name__ == "__main__":
    """  
     
     # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files and convert to NIfTI.')
+    parser = argparse.ArgumentParser(description='Process DICOM files and convert to NIFTI.')
     
      # Add arguments to the parser.
 

@@ -3,9 +3,9 @@ process_task_rest_to_BIDS.py
 
 Description:
 
-This script is designed to process Resting-State fMRI DICOM files into NIfTI format in 
+This script is designed to process Resting-State fMRI DICOM files into NIFTI format in 
 compliance with Brain Imaging Data Structure (BIDS) conventions. 
-It encompasses DICOM to NIfTI conversion using the dcm2niix tool, 
+It encompasses DICOM to NIFTI conversion using the dcm2niix tool, 
 along with the application of additional BIDS-compliant metadata processing using cubids. 
 Before executing, the script verifies the installation of dcm2niix and cubids. 
 It features robust error handling and detailed logging for each processing step, 
@@ -28,7 +28,7 @@ This software is released under the MIT License.
 
 Dependencies:
 - Python 3.12
-- dcm2niix (command-line tool): Essential for converting DICOM to NIfTI format. (https://github.com/rordenlab/dcm2niix)
+- dcm2niix (command-line tool): Essential for converting DICOM to NIFTI format. (https://github.com/rordenlab/dcm2niix)
 - CuBIDS (command-line tool): Utilized for handling BIDS-compliant metadata. (https://cubids.readthedocs.io/en/latest/index.html)
 - Python standard libraries: logging, os, tempfile, shutil, glob, subprocess, argparse, sys, re, json.
 
@@ -39,7 +39,7 @@ Environment Setup:
 - To establish the required environment, utilize the provided 'environment.yml' file with Conda.
 
 Change Log:
-- 20231111: Initial release of the script with basic functionality for DICOM to NIfTI conversion.
+- 20231111: Initial release of the script with basic functionality for DICOM to NIFTI conversion.
 - 20231112: Enhanced functionality with verbose logging from dcm2niix, standardized output file paths, and improved error handling.
 """
 
@@ -108,20 +108,20 @@ def setup_logging(subject_id, session_id, bids_root_dir):
 
     return log_file_path
 
-# Checks if Resting-state fmri NIfTI files already exist in the specified BIDS output directory.
+# Checks if Resting-state fmri NIFTI files already exist in the specified BIDS output directory.
 def check_existing_nifti(output_dir_func, subject_id, session_id):
     """
     Parameters:
-    - output_dir_func (str): The BIDS output directory where NIfTI files are stored.
+    - output_dir_func (str): The BIDS output directory where NIFTI files are stored.
     - subject_id (str): The subject ID.
     - session_id (str): The session ID.
 
     Returns:
-    - bool: True if Resting-State fMRI NIfTI files exist, False otherwise.
+    - bool: True if Resting-State fMRI NIFTI files exist, False otherwise.
     """
     expected_nifti_file = os.path.join(output_dir_func, f'{subject_id}_{session_id}_task-rest_run-01_bold.nii')
     if os.path.isfile(expected_nifti_file):
-        print(f"Resting-state fmri NIfTI file already exists: {expected_nifti_file}")
+        print(f"Resting-state fmri NIFTI file already exists: {expected_nifti_file}")
         return True
     else:
         return False
@@ -213,18 +213,18 @@ def update_json_file(json_filepath):
         logging.error(f"Unexpected error occurred while updating JSON file at {json_filepath}. Error: {e}")
         raise
 
-# Runs the dcm2niix conversion tool to convert DICOM files to NIfTI format.
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
 def run_dcm2niix(input_dir, temp_dir, subject_id, session_id):
     """
     The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - output_dir_func (str): Directory where the converted NIfTI files will be saved.
+    - output_dir_func (str): Directory where the converted NIFTI files will be saved.
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
-    This function uses the dcm2niix tool to convert DICOM files into NIfTI format.
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
     It saves the output in the specified output directory, structuring the filenames
     according to BIDS conventions. The function assumes that dcm2niix is installed
     and accessible in the system's PATH.
@@ -273,7 +273,7 @@ def run_dcm2niix_verbose(input_dir, temp_dir_verbose, subject_id, session_id, lo
 
     Parameters:
     - input_dir (str): Directory containing the DICOM files to be converted.
-    - temp_dir (str): Directory where the converted NIfTI files will be saved and deleted. 
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
     - subject_id (str): Subject ID, extracted from the DICOM directory path.
     - session_id (str): Session ID, extracted from the DICOM directory path.
 
@@ -460,19 +460,19 @@ def check_cubids_installed():
         logging.warning("cubids is not installed.")
         return False
 
-# Processes DICOM files in the given root directory and converts them to NIfTI format in the BIDS dataset.
+# Processes DICOM files in the given root directory and converts them to NIFTI format in the BIDS dataset.
 def main(dicom_root_dir, bids_root_dir, num_runs):
     """
-    Main function to process resting-state fMRI DICOM files into BIDS-compliant NIfTI format.
+    Main function to process resting-state fMRI DICOM files into BIDS-compliant NIFTI format.
 
-    The function systematically processes each run of resting-state fMRI data. It uses dcm2niix for DICOM to NIfTI conversion, 
+    The function systematically processes each run of resting-state fMRI data. It uses dcm2niix for DICOM to NIFTI conversion, 
     organizes the converted files into the BIDS format, and applies necessary metadata adjustments using cubids. 
     The process includes checking for existing files, handling naming conventions, and organizing outputs in the 'func' 
     directory of the BIDS dataset.
 
     Parameters:
     - dicom_root_dir (str): Root directory containing the DICOM directories.
-    - bids_root_dir (str): Root directory of the BIDS dataset where the NIfTI files will be saved.
+    - bids_root_dir (str): Root directory of the BIDS dataset where the NIFTI files will be saved.
     - num_runs (int): Number of fMRI runs to process.
 
     Each run's data is expected to be in a separate directory following a consistent naming pattern.
@@ -484,7 +484,7 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
       Example: main('/path/to/dicom', '/path/to/bids', 4)
 
     Dependencies:
-    - dcm2niix for DICOM to NIfTI conversion.
+    - dcm2niix for DICOM to NIFTI conversion.
     - cubids for BIDS metadata processing.
     - Standard Python libraries: os, logging, tempfile, shutil.
 
@@ -497,13 +497,13 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
     # Extract subject and session IDs from the DICOM directory path.
     subject_id, session_id = extract_subject_session(dicom_root_dir)
 
-    # Specify the exact directory where the NIfTI files will be saved.
+    # Specify the exact directory where the NIFTI files will be saved.
     output_dir_func = os.path.join(bids_root_dir, f'{subject_id}', f'{session_id}', 'func')
     os.makedirs(output_dir_func, exist_ok=True)
 
     # Check if Resting-State fMRI files already exist.
     if check_existing_nifti(output_dir_func, subject_id, session_id):
-        # print(f"Resting-state fmri NIfTI files already exist: {output_dir_func}")
+        # print(f"Resting-state fmri NIFTI files already exist: {output_dir_func}")
         return # Skip processing if Resting-State fMRI files already exist.
 
     # Otherwise:
@@ -555,8 +555,8 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
                         # Check if cubids is installed
                         if check_cubids_installed():
                         
-                            # Run cubids commands to add NIfTI metadata.
-                            logging.info(f"Adding NIfTI metadata for subject: {subject_id}, session: {session_id}")
+                            # Run cubids commands to add NIFTI metadata.
+                            logging.info(f"Adding NIFTI metadata for subject: {subject_id}, session: {session_id}")
                             run_cubids_add_nifti_info(bids_root_dir)
 
                             # Run cubids commands to remove metadata fields.
@@ -574,7 +574,7 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
     
         # Catch error if dcm2niix is not installed.
         else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIfTI conversion.")
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIFTI conversion.")
             return  # Exit the function if dcm2niix is not installed.
         
     # Log other errors. 
@@ -586,13 +586,13 @@ def main(dicom_root_dir, bids_root_dir, num_runs):
 if __name__ == "__main__":
     """
     Script's entry point when executed from the command line. 
-    This script processes resting-state fMRI DICOM files, converting them into NIfTI format following 
+    This script processes resting-state fMRI DICOM files, converting them into NIFTI format following 
     the Brain Imaging Data Structure (BIDS) conventions. It handles multiple runs of fMRI data 
     and organizes the output into a BIDS-compliant dataset structure.
 
     The script requires three command-line arguments:
     - The root directory containing the DICOM directories.
-    - The root directory of the BIDS dataset where the converted NIfTI files will be stored.
+    - The root directory of the BIDS dataset where the converted NIFTI files will be stored.
     - The number of runs (sessions) of fMRI data to process.
 
     Usage:
@@ -603,7 +603,7 @@ if __name__ == "__main__":
     It performs detailed logging of each step and robust error handling for reliable processing.
     """ 
     # Set up an argument parser to handle command-line arguments.
-    parser = argparse.ArgumentParser(description='Process DICOM files for Resting-State FMRI and convert to NIfTI.')
+    parser = argparse.ArgumentParser(description='Process DICOM files for Resting-State FMRI and convert to NIFTI.')
 
     # Add arguments to the parser.
 
