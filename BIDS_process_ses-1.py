@@ -95,8 +95,11 @@ def unzip_and_move(zip_file_path, sourcedata_root_dir):
             with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_zip_dir)
 
-            inner_folder_name = os.path.basename(zip_file_path).replace('.zip', '')
-            inner_folder = os.path.join(temp_zip_dir, inner_folder_name)
+            # Find the first (or the only) folder inside the temp_zip_dir
+            extracted_folders = [f for f in os.listdir(temp_zip_dir) if os.path.isdir(os.path.join(temp_zip_dir, f))]
+            if not extracted_folders:
+                raise Exception("No directories found inside the ZIP file.")
+            inner_folder = os.path.join(temp_zip_dir, extracted_folders[0])
 
             # Check and move 'dicom' and 'convert' directories
             for folder_name in ['dicom', 'convert']:
@@ -218,7 +221,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
             subject_start_time = time.time()
             sourcedata_root_dir = os.path.join(dataset_root_dir, 'sourcedata', subject_id, session_id)
             dicom_sorted_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom_sorted')
-            dicom_dir = os.path.join(dataset_root_dir, subject_id, session_id, 'dicom')
+            dicom_dir = os.path.join(sourcedata_root_dir, 'dicom')
             print(f"Dicom dir: {dicom_dir}")
 
             if os.path.exists(dicom_dir):
@@ -227,7 +230,7 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
 
             subject_id_without_prefix = subject_id.replace('sub-', '')
             session_id_zip = "V1"
-            zip_file_pattern = f'{sourcedata_root_dir}/*_{subject_id_without_prefix}_{session_id_zip}.zip'
+            zip_file_pattern = f'{sourcedata_root_dir}/*_{subject_id_without_prefix}_*.zip'
             zip_files = glob.glob(zip_file_pattern)
 
             if zip_files:

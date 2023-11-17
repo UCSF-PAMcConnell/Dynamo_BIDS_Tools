@@ -205,7 +205,7 @@ def main(sourcedata_root_dir, bids_root_dir):
     logging.info(f"Sorting dicoms for  subject: {subject_id}, session: {session_id}")
     
     sort_dicom_files(input_directory, output_directory)
-    shutil.rmtree(input_directory)
+    #shutil.rmtree(input_directory)
     logging.info(f"Removing input directory: {input_directory}")
 
 # Main function to run the script from the command line.
