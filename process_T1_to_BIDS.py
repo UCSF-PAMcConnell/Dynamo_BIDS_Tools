@@ -262,6 +262,110 @@ def run_dcm2niix_verbose(input_dir, temp_dir, subject_id, session_id, log_file_p
         logging.error("An error occurred during dcm2niix conversion: %s", e)
         raise
 
+# Runs the dcm2niix conversion tool to convert DICOM files to NIFTI format.
+def run_dcm2niix_lowres(input_dir, output_dir_anat, subject_id, session_id, log_file_path):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - output_dir_anat (str): Directory where the converted NIFTI files will be saved.
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    This function uses the dcm2niix tool to convert DICOM files into NIFTI format.
+    It saves the output in the specified output directory, structuring the filenames
+    according to BIDS conventions. The function assumes that dcm2niix is installed
+    and accessible in the system's PATH.
+
+    Usage Example:
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<anat_dicoms>', '/bids_root_dir/sub-01/ses-01/anat', 'sub-01', 'sub-01', 'ses-01')
+
+    """
+    try:
+        # Ensure the output directory for anatomical scans exists.
+        os.makedirs(output_dir_anat, exist_ok=True)
+        base_cmd = [
+            'dcm2niix',
+            '-f', f'{subject_id}_{session_id}_acq-lowres_T1w', # Naming convention. 
+            '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+            '-b', 'y', # Save BIDS metadata to .json sidecar. 
+            '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+            '-x', 'y', # Crop images. This will attempt to remove excess neck from 3D acquisitions.
+            '-z', 'n', # Do not compress files.
+            '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+            '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+            '-m', '2', # Merge slices from same series automatically based on modality. 
+            '-o', output_dir_anat,
+            input_dir
+        ]
+        
+        # Run the actual conversion without verbose output.
+        subprocess.run(base_cmd) #capture_output=False, text=False)
+        logging.info(f"dcm2niix conversion completed successfully to {output_dir_anat}.")
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
+# Runs the dcm2niix conversion tool to produce verbose output to logfile. 
+def run_dcm2niix_verbose_lowres(input_dir, temp_dir, subject_id, session_id, log_file_path):
+    """
+    The output files are named according to BIDS (Brain Imaging Data Structure) conventions.
+
+    Parameters:
+    - input_dir (str): Directory containing the DICOM files to be converted.
+    - temp_dir (str): Directory where the converted NIFTI files will be saved and deleted. 
+    - subject_id (str): Subject ID, extracted from the DICOM directory path.
+    - session_id (str): Session ID, extracted from the DICOM directory path.
+
+    The function logs verbose output to the specified log file. 
+
+    Usage Example:
+    run_dcm2niix('/dicom_root_dir/dicom_sorted/<anat_dicoms>, 'temp_dir', 'sub-01', 'ses-01')
+
+    """
+    try:
+        verbose_cmd = [
+        'dcm2niix',
+        '-f', f'{subject_id}_{session_id}_acq-lowres_T1w', # Naming convention. 
+        '-l', 'y', # Losslessly scale 16-bit integers to use maximal dynamic range.
+        '-b', 'y', # Save BIDS metadata to .json sidecar. 
+        '-p', 'n', # Do not use Use Philips precise float (rather than display) scaling.
+        '-x', 'n', # Do notCrop images. This will attempt to remove excess neck from 3D acquisitions.
+        '-z', 'n', # Do not compress files.
+        '-ba', 'n', # Do not anonymize files (anonymized at MR console). 
+        '-i', 'n', # Do not ignore derived, localizer and 2D images. 
+        '-m', '2', # Merge slices from same series automatically based on modality. 
+        '-v', 'y', # Print verbose output to logfile.
+        '-o', temp_dir,
+        input_dir
+    ]
+        
+        # Create a temporary directory for the verbose output run.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(log_file_path, 'a') as log_file:
+                result = subprocess.run(verbose_cmd, check=True, stdout=log_file, stderr=log_file)
+                logging.info(result.stdout)
+                if result.stderr:
+                    logging.error(result.stderr)
+
+    # Log conversion errors.
+    except subprocess.CalledProcessError as e:
+        logging.error("dcm2niix conversion failed: %s", e)
+        raise
+    
+    # Log other errors.
+    except Exception as e:
+        logging.error("An error occurred during dcm2niix conversion: %s", e)
+        raise
+
 # Executes the cubids-add-nifti-info command to add nifti header information to the BIDS dataset.
 def run_cubids_add_nifti_info(bids_root_dir):
     """
@@ -378,6 +482,57 @@ def run_pydeface(output_dir_anat, subject_id, session_id):
         logging.error("An error occurred during pydeface execution: %s", e)
         raise
 
+# Executes the pydeface command to anonymize NIFTI images by removing facial features.
+def run_pydeface_lowres(output_dir_anat, subject_id, session_id):
+    """
+    Parameters:
+    - output_dir_anat (str): Directory where the NIFTI files are stored.
+    - subject_id (str): Subject ID used in the BIDS file naming.
+    - session_id (str): Session ID used in the BIDS file naming.
+
+    The function constructs a pydeface command to deface the anatomical MRI images (T1-weighted images)
+    for the specified subject and session. The defaced image is saved with the same filename, 
+    overwriting the original by using the '--force' flag.
+
+    Pydeface is used to enhance the privacy and anonymity of the MRI data by removing facial characteristics 
+    that could potentially identify subjects. This is especially important in shared datasets.
+
+    Usage Example:
+    run_pydeface('/path/to/nifti/output', 'sub-01', 'ses-01')
+
+    Dependencies:
+    - subprocess module for executing shell commands.
+    - logging module for logging operations.
+
+    """
+    if os.path.exists(f"{output_dir_anat}/{subject_id}_{session_id}_acq-lowres_T1w.nii"):
+        try:
+            # Construct the pydeface command to overwrite the original T1w image.
+            pydeface_command = [
+                'pydeface',
+                f"{output_dir_anat}/{subject_id}_{session_id}_acq-lowres_T1w.nii",
+                '--outfile',
+                f"{output_dir_anat}/{subject_id}_{session_id}_acq-lowres_T1w.nii",
+                '--force'
+            ]
+            logging.info(f"Executing pydeface: {' '.join(pydeface_command)}")
+            result = subprocess.run(pydeface_command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            # Log the standard output and error.
+            logging.info("pydeface output:\n%s", result.stdout)
+            if result.stderr:
+                logging.error("pydeface error output:\n%s", result.stderr)
+            logging.info("pydeface executed successfully.")
+
+        except subprocess.CalledProcessError as e:
+            logging.error("pydeface execution failed: %s", e)
+            raise
+        except Exception as e:
+            logging.error("An error occurred during pydeface execution: %s", e)
+            raise
+    else:
+        logging.info(f"{output_dir_anat}/{subject_id}_{session_id}_acq-lowres_T1w.nii does not exist. Skipping pydeface.")
+
 # Renames the cropped NIFTI file to overwrite the original T1w file in BIDS format.
 def rename_cropped_file(output_dir_anat, subject_id, session_id):
     """
@@ -407,6 +562,40 @@ def rename_cropped_file(output_dir_anat, subject_id, session_id):
         else:
             logging.warning(f"No cropped file found to rename: {cropped_file_path}")
     
+    # Log errors.
+    except Exception as e:
+            logging.error(f"Error occurred while renaming cropped file: {e}")
+            raise
+    
+# Renames the cropped NIFTI file to overwrite the original T1w file in BIDS format.
+def rename_cropped_file_lowres(output_dir_anat, subject_id, session_id):
+    """
+    This function is particularly useful in workflows where post-processing steps 
+    (like cropping) generate new files that should replace the original ones.
+
+    Parameters:
+    - output_dir_anat (str): Directory where the conversion results are saved.
+    - subject_id (str): Subject ID, typically in the format 'sub-XX'.
+    - session_id (str): Session ID, typically in the format 'ses-XX'.
+
+    The function assumes the presence of a cropped file named 'sub-XX_ses-XX_T1w_Crop_1.nii'.
+    If this file exists, it is renamed to overwrite 'sub-XX_ses-XX_T1w.nii', ensuring 
+    consistency with BIDS naming conventions.
+
+    Usage Example:
+    rename_cropped_file('/path/to/nifti/output', 'sub-01', 'ses-01')
+    """
+    
+    try:
+        cropped_file_path_lowres = os.path.join(output_dir_anat, f'{subject_id}_{session_id}_acq-lowres_T1w_Crop_1.nii')
+        original_file_path_lowres = os.path.join(output_dir_anat, f'{subject_id}_{session_id}_acq-lowres_T1w.nii')
+    
+        if os.path.exists(cropped_file_path_lowres):
+            shutil.move(cropped_file_path_lowres, original_file_path_lowres)
+            logging.info(f"Cropped file renamed to overwrite the original LowRes T1w file: {original_file_path_lowres}")
+        else:
+            logging.info(f"No LowRes T1wcropped file found to rename: {cropped_file_path_lowres}")
+
     # Log errors.
     except Exception as e:
             logging.error(f"Error occurred while renaming cropped file: {e}")
@@ -550,7 +739,8 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
 
         # Specify the exact directory where the DICOM files are located.
         dicom_dir = os.path.join(dicom_root_dir, 't1_mprage_sag_p2_iso')
-
+        dicom_dir_lowres = os.path.join(dicom_root_dir, 'SAG_T1')
+        
         # Check if dcm2niix is installed and accessible in the system's PATH.
         if check_dcm2niix_installed():
             
@@ -592,6 +782,50 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
                 logging.warning("Skipping pydeface execution as it is not installed.")
         else:
             logging.info("Pydeface execution is not enabled.")
+        
+        # Optional processing for LowRes Sag T1 Acquisitions.
+        if os.path.exists(dicom_dir_lowres): # Check if DICOM directory exists for dicom_dir_lowres 
+            logging.info(f"Processing LowRes T1-weighted DICOM files for subject: {subject_id}, session: {session_id}")
+            
+            # Run dcm2niix for DICOM to NIFTI conversion.
+            run_dcm2niix_lowres(dicom_dir_lowres, output_dir_anat, subject_id, session_id, log_file_path)
+            
+            # Rename any cropped files if they exist and overwrite the original T1-weighted NIFTI file.
+            rename_cropped_file_lowres(output_dir_anat, subject_id, session_id)
+        
+            # Check if cubids is installed.
+            if check_cubids_installed():
+
+                # Run cubids commands to add necessary metadata fields.
+                logging.info(f"Adding BIDS metadata to {subject_id}_{session_id}_acq-lowres_T1w.nii")
+                run_cubids_add_nifti_info(bids_root_dir)
+                
+                # Run cubids commands to remove unnecessary metadata fields.
+                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+            
+                # Run dcm2niix for verbose output.
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    run_dcm2niix_verbose_lowres(dicom_dir_lowres, temp_dir, subject_id, session_id, log_file_path)
+            
+            # Catch error if cubids is not installed.
+            else:
+                logging.error("cubids is not installed. Skipping cubids commands.")
+                return # Exit the function if cubids is not installed.
+        
+        # Catch error if dcm2niix is not installed.
+        else:
+            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIFTI conversion.")
+            return  # Exit the function if dcm2niix is not installed.
+        
+        # Assuming run_pydeface_func is a boolean indicating whether to run pydeface
+        if run_pydeface_func:
+            if check_pydeface_installed():
+                run_pydeface_lowres(output_dir_anat, subject_id, session_id)  # Corrected function call
+            else:
+                logging.warning("Skipping pydeface execution as it is not installed.")
+        else:
+            logging.info("Pydeface execution is not enabled.")
+
 
     # Log other errors. 
     except Exception as e:
