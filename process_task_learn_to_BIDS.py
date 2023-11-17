@@ -159,7 +159,7 @@ def extract_subject_session(dicom_root_dir):
     
     subject_id, session_id = match.groups()
 
-    print(f"Subject ID: %s, Session ID: %s", subject_id, session_id)
+    print(f"Subject ID: {subject_id}, Session ID: {session_id}")
     return subject_id, session_id
 
 # Updates the JSON sidecar file with specific fields required for BIDS compliance in TASK FMRI datasets.
