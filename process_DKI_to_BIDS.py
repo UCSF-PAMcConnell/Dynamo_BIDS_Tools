@@ -131,7 +131,6 @@ def setup_logging(subject_id, session_id, bids_root_dir):
     # Configure file logging.
     logging.basicConfig(
         level=logging.INFO,
-        # filename='process_physio_ses_2.log', # Uncomment this line to save log in script execution folder.
         format='%(asctime)s - %(levelname)s - %(message)s',
         filename=log_file_path,
         filemode='w' # 'w' mode overwrites existing log file.
@@ -178,12 +177,12 @@ def check_existing_nifti_dwi(output_dir_dwi, subject_id, session_id):
             print(f"DKI NIFTI file already exists, skipping...: {expected_nifti_file_dwi}")
             return True
         else:
-            logging.info(f"No DKI NIFTI file found, proceeding with processing: {expected_nifti_file_dwi}")
+            print(f"No DKI NIFTI file found, proceeding with processing: {expected_nifti_file_dwi}")
             return False
         
     # Catch and log any exceptions.
     except Exception as e:
-        logging.error(f"Error occurred while checking for existing DKI NIFTI file: {str(e)}")
+        print(f"Error occurred while checking for existing DKI NIFTI file: {str(e)}")
         raise
 
 # Checks if Top Up NIFTI files already exist in the specified BIDS output directory.
@@ -221,7 +220,7 @@ def check_existing_nifti_topup(output_dir_topup, subject_id, session_id):
         
     # Catch and log any exceptions.
     except Exception as e:
-        logging.error(f"Error occurred while checking for existing Top Up NIFTI file: {str(e)}")
+        print(f"Error occurred while checking for existing Top Up NIFTI file: {str(e)}")
         raise
     
 # Extract the subject and session IDs from the provided physio root directory path.
