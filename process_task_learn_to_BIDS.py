@@ -501,7 +501,6 @@ def main(dicom_root_dir, bids_root_dir):
 
     # Check if Task fMRI files already exist.
     if check_existing_nifti(output_dir_func, subject_id, session_id):
-        #print(f"Task fmri NIFTI files already exist: {output_dir_func}")
         return # Skip processing if Task fMRI files already exist.
 
     try:
@@ -513,7 +512,7 @@ def main(dicom_root_dir, bids_root_dir):
         logging.info(f"Processing TASK FMRI data for subject: {subject_id}, session: {session_id}")
 
         run_mapping = {
-            '': '01',
+            #'': '01',
             '_seqexec_PRE': '00',
             '_seqexec_POST': '07',
             '_1': '01',
@@ -537,7 +536,10 @@ def main(dicom_root_dir, bids_root_dir):
 
                     converted_files = os.listdir(temp_dir)
                     if not converted_files:
-                        logging.warning(f"No files were converted in {dicom_dir}")
+                        if not os.exists(dicom_dir):
+                            logging.warning(f"DICOM directory does not exist: {dicom_dir}")
+                        else:
+                            logging.warning(f"No files were converted in {dicom_dir}")
                         continue
 
                     for old_file in converted_files:

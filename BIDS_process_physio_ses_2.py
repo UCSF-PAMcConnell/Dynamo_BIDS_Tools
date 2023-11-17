@@ -835,7 +835,7 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         shutil.copy2(json_file_path, output_derivatives_dir)
 
         # Log the action
-        logging.info(f"JSONfile copied to: {output_derivatives_dir}")
+        logging.info(f"JSON file copied to: {output_derivatives_dir}")
 
 
     except Exception as e:
@@ -931,7 +931,7 @@ def write_event_output_files(event_segments, run_metadata, metadata_dict_events,
             shutil.copy2(json_event_file_path, output_derivatives_dir)
 
             # Log the action
-            logging.info(f"JSONfile copied to: {output_derivatives_dir}")
+            logging.info(f"JSON file copied to: {output_derivatives_dir}")
 
             # Log the successful writing of files.
             logging.info(f"Event segment output files for {run_id}, segment {segment_index}, trial type '{trial_type}' written successfully to {output_dir}")
