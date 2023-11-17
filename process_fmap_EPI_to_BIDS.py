@@ -820,8 +820,8 @@ def main(dicom_root_dir, bids_root_dir):
                 # Call the function to update the JSON file
                 update_json_file_PA(json_filepath_PA, session_id, intended_for)
                 
-                # Run cubids commands to remove BIDS metadata from top up files.
-                logging.info(f"Removing BIDS metadata from {subject_id}_{session_id}_acq-topup_dir-PA_epi.nii")
+                # Run cubids commands to remove BIDS metadata from PA files.
+                logging.info(f"Removing BIDS metadata from {subject_id}_{session_id}_dir-PA_epi.nii")
                 run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
 
                 # Run dcm2niix for verbose output.

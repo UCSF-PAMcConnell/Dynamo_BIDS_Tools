@@ -157,7 +157,7 @@ def setup_logging(subject_id, session_id, dataset_root_dir):
             os.makedirs(log_dir)
 
         # Construct the log file name using timestamp, session ID, and script name.
-        log_file_name = f"{script_name}_{timestamp}.log"
+        log_file_name = f"{script_name}_{timestamp}_{subject_id}.log"
         log_file_path = os.path.join(log_dir, log_file_name)
 
         # Configure file logging.

@@ -1,0 +1,17 @@
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN001 --end-id sub-LRN001;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN002 --end-id sub-LRN002;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN003 --end-id sub-LRN003;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN004 --end-id sub-LRN004;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN005 --end-id sub-LRN005;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN006 --end-id sub-LRN006;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN007 --end-id sub-LRN007;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN008 --end-id sub-LRN008;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN009 --end-id sub-LRN009;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN010 --end-id sub-LRN010;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN011 --end-id sub-LRN011;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN012 --end-id sub-LRN012;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN013 --end-id sub-LRN013;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN014 --end-id sub-LRN014;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN015 --end-id sub-LRN015;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN017 --end-id sub-LRN017;
+python /Users/PAM201/Documents/MATLAB/software/iNR/BIDS_tools/BIDS_process_ses-2.py /Users/PAM201/Documents/MRI/LEARN/BIDS_test/ --start-id sub-LRN019 --end-id sub-LRN019;
