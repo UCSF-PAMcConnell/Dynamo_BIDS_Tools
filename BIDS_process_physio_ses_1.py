@@ -1037,7 +1037,7 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=
             if not args.force:
                 raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
             else:
-                print("Warning: Mismatch between found runs and expected runs. Proceeding due to --force flag.")
+                logging.info("Warning: Mismatch between found runs and expected runs. Proceeding due to --force flag.")
 
         # Create a mapping from run_id to run_info
         run_info_dict = {info['run_id']: info for info in runs_info}
