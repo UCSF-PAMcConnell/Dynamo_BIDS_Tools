@@ -1356,9 +1356,11 @@ def main(physio_root_dir, bids_root_dir, force_process_flag=False):
         # expected_runs = set(run_info['run_id'] for run_info in runs_info)
         # if expected_runs != set(all_runs_metadata.keys()):
         #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
-
+        found_runs = sorted(run_info['run_id'] for run_info in runs_info)
         # Verify that the found runs match the expected runs from the JSON metadata.
-        if expected_runs != set(all_runs_metadata.keys()):
+        logging.info(f"Expected runs: {expected_runs}")
+        logging.info(f"Found runs: {found_runs}")
+        if expected_runs != found_runs:
             if not args.force:
                 raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
             else:
