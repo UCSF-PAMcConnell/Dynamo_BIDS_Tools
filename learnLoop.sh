@@ -40,8 +40,8 @@ subject_ids_ses_2=(
 "sub-LRN019"
 )
 # Path to your Python script and data directory
-script_path="~/Documents/MATLAB/software/iNR/BIDS_tools"
-data_dir="~/Documents/MRI/LEARN/BIDS_test/"
+script_path="$HOME/Documents/MATLAB/software/iNR/BIDS_tools"
+data_dir="$HOME/Documents/MRI/LEARN/BIDS_test/"
 
 # Loop through each subject ID for session 1
 for id in "${subject_ids_ses_1[@]}"; do
