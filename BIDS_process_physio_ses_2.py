@@ -794,7 +794,7 @@ def write_output_files(segmented_data, run_metadata, metadata_dict, bids_labels_
         # Move up four levels to get to dataset_root_dir
         dataset_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(output_dir))))
 
-        logging.info(f"Dataset root directory: {dataset_root_dir}")
+        #logging.info(f"Dataset root directory: {dataset_root_dir}")
 
         output_derivatives_dir = os.path.join(dataset_root_dir, 'derivatives', 'physio', 'learn', 'runs')
 
@@ -1227,7 +1227,7 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
     logging.info(f"Plot saved to {plot_events_file_path}")
     
 # Main function to orchestrate the conversion of physiological data to BIDS format.
-def main(physio_root_dir, bids_root_dir):
+def main(physio_root_dir, bids_root_dir, force_process_flag=False):
     """
     Main function to orchestrate the conversion of physiological data to BIDS format.
 
@@ -1351,95 +1351,109 @@ def main(physio_root_dir, bids_root_dir):
         # Catch error if no runs were found.
         if not runs_info:
             raise ValueError("No runs were found. Please check the triggers and metadata.")
+ 
+        # expected_runs = set(run_info['run_id'] for run_info in runs_info)
+        # if expected_runs != set(all_runs_metadata.keys()):
+        #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
 
         # Verify that the found runs match the expected runs from the JSON metadata.
-        expected_runs = set(run_info['run_id'] for run_info in runs_info)
         if expected_runs != set(all_runs_metadata.keys()):
-            raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
-
+            if not args.force:
+                raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+            else:
+                logging.warning("Warning: Mismatch between found runs and expected runs. Proceeding due to --force flag.")
+        
         # Create a mapping from run_id to run_info.
         run_info_dict = {info['run_id']: info for info in runs_info}
 
-        # Verify that the found runs match the expected runs from the JSON metadata.
-        if not set(sorted_run_ids) == set(run_info_dict.keys()):
-            raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+        # # Verify that the found runs match the expected runs from the JSON metadata.
+        # if not set(sorted_run_ids) == set(run_info_dict.keys()):
+        #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
 
         event_segments_by_run = {}  # Dictionary to store event segments for each run.
 
         # Segment runs and write output files for each run, using sorted_run_ids to maintain order.
         output_files = []
         for run_id in sorted_run_ids:
-            run_info = run_info_dict[run_id]
-            repetition_time = all_runs_metadata[run_id]['RepetitionTime']  # Retrieve repetition time from metadata.
-            
-            # Construct the events file path.
-            events_file_path = os.path.join(
-                bids_root_dir, 
-                subject_id, 
-                session_id, 
-                'func', 
-                f"{subject_id}_{session_id}_task-learn_{run_id}_events.tsv"
-            )
-            logging.info(f"Events file path for {run_id} sourced from: {events_file_path}")
-            
-            # Read the events file into events_df.
             try:
-                events_df = pd.read_csv(events_file_path, sep='\t')
-            except Exception as e:
-                logging.error(f"Error reading events file for {run_id}: {e}", exc_info=True)
-                continue  # Skip this run if events file cannot be read.
-            
-            # Process each segment within the run.
-            event_segments = segment_data_by_events(data, events_df, sampling_rate, run_info, run_id)
-            event_segments_by_run[run_id] = event_segments
-
-            start_index, end_index = run_info['start_index'], run_info['end_index']
-            segmented_data = data[start_index:end_index]
- 
-            output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
-            
-            # Create the metadata dictionary for the current run.
-            metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
-     
-            for segment in event_segments:
-                if len(segment) != 4:
-                    logging.error(f"Invalid segment format for {run_id}: {segment}")
-                    continue  # Skip malformed segments.
-
-                segment_data, trial_type, segment_start_time, segment_duration = segment
-          
-                segment_length = len(segment_data)
-             
-                # Retrieve the onset time for the segment from events_df.
-                event_onset = events_df[events_df['trial_type'] == trial_type]['onset'].iloc[0]
-                logging.info(f"First '{trial_type}' event onset beings at {event_onset} seconds relative to the start of the run")
-
-                # Create event metadata for each segment.
-                metadata_dict_events = create_event_metadata_dict(
-                    run_info, segment_length, sampling_rate, repetition_time, 
-                    bids_labels_list, units_dict, trial_type, 
-                    segment_start_time, event_onset, segment_duration
+                run_info = run_info_dict[run_id]
+                repetition_time = all_runs_metadata[run_id]['RepetitionTime']  # Retrieve repetition time from metadata.
+                
+                # Construct the events file path.
+                events_file_path = os.path.join(
+                    bids_root_dir, 
+                    subject_id, 
+                    session_id, 
+                    'func', 
+                    f"{subject_id}_{session_id}_task-learn_{run_id}_events.tsv"
                 )
+                logging.info(f"Events file path for {run_id} sourced from: {events_file_path}")
+                
+                # Read the events file into events_df.
+                try:
+                    events_df = pd.read_csv(events_file_path, sep='\t')
+                except Exception as e:
+                    logging.error(f"Error reading events file for {run_id}: {e}", exc_info=True)
+                    continue  # Skip this run if events file cannot be read.
+                
+                # Process each segment within the run.
+                event_segments = segment_data_by_events(data, events_df, sampling_rate, run_info, run_id)
+                event_segments_by_run[run_id] = event_segments
 
-                # logging.info(f"Metadata event dictionary for {run_id}: {metadata_dict_events}")
-                logging.info(f"Writing event output files for {run_id} '{trial_type}' segment")
-                write_event_output_files(
-                    [segment], sorted_all_runs_metadata[run_id], metadata_dict_events, 
-                    bids_labels_list, output_dir, subject_id, session_id, run_id
-                )
-       
-            # Call the write_output_files function with the correct parameters.
-            output_files.append(write_output_files(
-                segmented_data_bids_only[start_index:end_index],
-                sorted_all_runs_metadata[run_id],
-                metadata_dict,
-                bids_labels_list,
-                output_dir,
-                subject_id,
-                session_id,
-                run_id
-            ))  
+                start_index, end_index = run_info['start_index'], run_info['end_index']
+                segmented_data = data[start_index:end_index]
 
+                output_dir = os.path.join(bids_root_dir, subject_id, session_id, 'func')
+                
+                # Create the metadata dictionary for the current run.
+                metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
+        
+                for segment in event_segments:
+                    if len(segment) != 4:
+                        logging.error(f"Invalid segment format for {run_id}: {segment}")
+                        continue  # Skip malformed segments.
+
+                    segment_data, trial_type, segment_start_time, segment_duration = segment
+            
+                    segment_length = len(segment_data)
+                
+                    # Retrieve the onset time for the segment from events_df.
+                    event_onset = events_df[events_df['trial_type'] == trial_type]['onset'].iloc[0]
+                    logging.info(f"First '{trial_type}' event onset beings at {event_onset} seconds relative to the start of the run")
+
+                    # Create event metadata for each segment.
+                    metadata_dict_events = create_event_metadata_dict(
+                        run_info, segment_length, sampling_rate, repetition_time, 
+                        bids_labels_list, units_dict, trial_type, 
+                        segment_start_time, event_onset, segment_duration
+                    )
+
+                    # logging.info(f"Metadata event dictionary for {run_id}: {metadata_dict_events}")
+                    logging.info(f"Writing event output files for {run_id} '{trial_type}' segment")
+                    write_event_output_files(
+                        [segment], sorted_all_runs_metadata[run_id], metadata_dict_events, 
+                        bids_labels_list, output_dir, subject_id, session_id, run_id
+                    )
+        
+                # Call the write_output_files function with the correct parameters.
+                output_files.append(write_output_files(
+                    segmented_data_bids_only[start_index:end_index],
+                    sorted_all_runs_metadata[run_id],
+                    metadata_dict,
+                    bids_labels_list,
+                    output_dir,
+                    subject_id,
+                    session_id,
+                    run_id
+                ))  
+
+            except KeyError as e:
+                if not args.force:
+                    raise  # Re-raise the exception if --force flag is not set
+                else:
+                    print(f"Warning: Run {e.args[0]} not found. Skipping due to --force flag.")
+                    continue  # Skip this run and continue with the next
+        
         # Create a list of segmented data for plotting.
         segmented_data_list = [segmented_data_bids_only[run_info['start_index']:run_info['end_index']] for run_info in runs_info]
         logging.info("Number of runs segmented: %s", len(segmented_data_list))
@@ -1521,6 +1535,9 @@ if __name__ == '__main__':
     # The second argument is the root directory of the BIDS dataset.
     parser.add_argument("bids_root_dir", help="Path to the root of the BIDS dataset.")
     
+    # The third argument is an optional flag to force processing even if run mismatch occurs.
+    parser.add_argument('--force', action='store_true', help='Force processing even if run mismatch occurs')
+
     # Parse the arguments provided by the user.
     args = parser.parse_args()
     
@@ -1528,10 +1545,11 @@ if __name__ == '__main__':
     print(f"Starting script with provided arguments.")
     print(f"Physiological data directory: {args.physio_root_dir}")
     print(f"BIDS root directory: {args.bids_root_dir}")
+    print(f"Force processing: {args.force}")
  
     # Call the main function with the parsed arguments.
     try:
-        main(args.physio_root_dir, args.bids_root_dir)
+        main(args.physio_root_dir, args.bids_root_dir, args.force)
     except Exception as e:
         logging.error("An error occurred during script execution: %s", e, exc_info=True)
         logging.info("Script execution completed with errors.")

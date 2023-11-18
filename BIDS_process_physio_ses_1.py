@@ -897,7 +897,7 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
         raise
 
 # Main function to orchestrate the conversion of physiological data to BIDS format.
-def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
+def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=False):
     """
     Main function to orchestrate the conversion of physiological data to BIDS format.
 
@@ -1027,46 +1027,60 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0):
         if not runs_info:
             raise ValueError("No runs were found. Please check the triggers and metadata.")
 
-        # Verify that the found runs match the expected runs from the JSON metadata
-        expected_runs = set(run_info['run_id'] for run_info in runs_info)
+        # # Verify that the found runs match the expected runs from the JSON metadata
+        # expected_runs = set(run_info['run_id'] for run_info in runs_info)
+        # if expected_runs != set(all_runs_metadata.keys()):
+        #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+
+        # Verify that the found runs match the expected runs from the JSON metadata.
         if expected_runs != set(all_runs_metadata.keys()):
-            raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+            if not args.force:
+                raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+            else:
+                print("Warning: Mismatch between found runs and expected runs. Proceeding due to --force flag.")
 
         # Create a mapping from run_id to run_info
         run_info_dict = {info['run_id']: info for info in runs_info}
 
-        # Verify that the found runs match the expected runs from the JSON metadata
-        if not set(sorted_run_ids) == set(run_info_dict.keys()):
-            raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
+        # # Verify that the found runs match the expected runs from the JSON metadata
+        # if not set(sorted_run_ids) == set(run_info_dict.keys()):
+        #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
 
         # Segment runs and write output files for each run, using sorted_run_ids to maintain order
         output_files = []
         for run_id in sorted_run_ids:
-            run_info = run_info_dict[run_id]
-            #logging.info("Processing run info: %s", run_info)
-            logging.info("Run ID: %s", run_id)
-            logging.info("Processing %s", run_id)
-            start_index, end_index = run_info['start_index'], run_info['end_index']
-            logging.info("start_index: %s", start_index)
-            logging.info("end_index: %s", end_index)
-            segmented_data = data[start_index:end_index]
-            logging.info("Segmented data shape: %s", segmented_data.shape)
-            
-            # Create the metadata dictionary for the current run
-            metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
+            try:
+                run_info = run_info_dict[run_id]
+                #logging.info("Processing run info: %s", run_info)
+                logging.info("Run ID: %s", run_id)
+                logging.info("Processing %s", run_id)
+                start_index, end_index = run_info['start_index'], run_info['end_index']
+                logging.info("start_index: %s", start_index)
+                logging.info("end_index: %s", end_index)
+                segmented_data = data[start_index:end_index]
+                logging.info("Segmented data shape: %s", segmented_data.shape)
+                
+                # Create the metadata dictionary for the current run
+                metadata_dict = create_metadata_dict(run_info, sampling_rate, bids_labels_list, units_dict)
 
-            # Call the write_output_files function with the correct parameters
-            output_files.append(write_output_files(
-                segmented_data_bids_only[start_index:end_index],
-                sorted_all_runs_metadata[run_id],
-                metadata_dict,
-                bids_labels_list,
-                output_dir,
-                subject_id,
-                session_id,
-                run_id
-            ))       
-
+                # Call the write_output_files function with the correct parameters
+                output_files.append(write_output_files(
+                    segmented_data_bids_only[start_index:end_index],
+                    sorted_all_runs_metadata[run_id],
+                    metadata_dict,
+                    bids_labels_list,
+                    output_dir,
+                    subject_id,
+                    session_id,
+                    run_id
+                ))       
+            except KeyError as e:
+                if not args.force:
+                    raise  # Re-raise the exception if --force flag is not set
+                else:
+                    print(f"Warning: Run {e.args[0]} not found. Skipping due to --force flag.")
+                    continue  # Skip this run and continue with the next
+        
         # Create a list of segmented data for plotting
         segmented_data_list = [segmented_data_bids_only[run_info['start_index']:run_info['end_index']] for run_info in runs_info]
         logging.info("Segmented data list length: %s", len(segmented_data_list))
@@ -1129,6 +1143,10 @@ if __name__ == '__main__':
     # Optional argument to specify cut-off duration in minutes
     parser.add_argument("--cut_off_duration", type=int, default=0, help="Duration in minutes to cut off from the start of the plot.")
     
+    # The fourth argument is an optional flag to force processing even if run mismatch occurs.
+    parser.add_argument('--force', action='store_true', help='Force processing even if run mismatch occurs')
+
+
     # Parse the arguments provided by the user.
     args = parser.parse_args()
     
@@ -1136,13 +1154,14 @@ if __name__ == '__main__':
     print(f"Starting script with provided arguments.")
     print(f"Physiological data directory: {args.physio_root_dir}")
     print(f"BIDS root directory: {args.bids_root_dir}")
- 
+    print(f"Force processing: {args.force}")
+
     if args.cut_off_duration > 0:
         print(f"Cut-off duration: {args.cut_off_duration} minutes")
 
     # Call the main function with the parsed arguments.
     try:
-        main(args.physio_root_dir, args.bids_root_dir, args.cut_off_duration)
+        main(args.physio_root_dir, args.bids_root_dir, args.cut_off_duration, args.force)
     except Exception as e:
         logging.error("An error occurred during script execution: %s", e, exc_info=True)
         logging.info("Script execution completed with errors.")
