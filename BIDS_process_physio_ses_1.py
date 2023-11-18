@@ -948,7 +948,8 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=
         # Setup logging after extracting subject_id and session_id.
         log_dir = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
-
+        logging.info(f"Force processing flag: {force_process_flag}")
+        
         # Load physiological data from the .mat file. 
         mat_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-rest_physio.mat")
         labels, data, units = load_mat_file(mat_file_path)
