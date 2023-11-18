@@ -793,38 +793,29 @@ def main(dicom_root_dir, bids_root_dir, run_pydeface_func=False):
             # Rename any cropped files if they exist and overwrite the original T1-weighted NIFTI file.
             rename_cropped_file_lowres(output_dir_anat, subject_id, session_id)
         
-            # Check if cubids is installed.
-            if check_cubids_installed():
-
-                # Run cubids commands to add necessary metadata fields.
-                logging.info(f"Adding BIDS metadata to {subject_id}_{session_id}_acq-lowres_T1w.nii")
-                run_cubids_add_nifti_info(bids_root_dir)
-                
-                # Run cubids commands to remove unnecessary metadata fields.
-                run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
+            # Run cubids commands to add necessary metadata fields.
+            logging.info(f"Adding BIDS metadata to {subject_id}_{session_id}_acq-lowres_T1w.nii")
+            run_cubids_add_nifti_info(bids_root_dir)
             
-                # Run dcm2niix for verbose output.
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    run_dcm2niix_verbose_lowres(dicom_dir_lowres, temp_dir, subject_id, session_id, log_file_path)
-            
-            # Catch error if cubids is not installed.
-            else:
-                logging.error("cubids is not installed. Skipping cubids commands.")
-                return # Exit the function if cubids is not installed.
+            # Run cubids commands to remove unnecessary metadata fields.
+            run_cubids_remove_metadata_fields(bids_root_dir, ['PatientBirthDate'])
         
-        # Catch error if dcm2niix is not installed.
-        else:
-            logging.error("dcm2niix is not installed. Cannot proceed with DICOM to NIFTI conversion.")
-            return  # Exit the function if dcm2niix is not installed.
+            # Run dcm2niix for verbose output.
+            with tempfile.TemporaryDirectory() as temp_dir:
+                run_dcm2niix_verbose_lowres(dicom_dir_lowres, temp_dir, subject_id, session_id, log_file_path)
         
-        # Assuming run_pydeface_func is a boolean indicating whether to run pydeface
-        if run_pydeface_func:
-            if check_pydeface_installed():
-                run_pydeface_lowres(output_dir_anat, subject_id, session_id)  # Corrected function call
+            # Assuming run_pydeface_func is a boolean indicating whether to run pydeface
+            if run_pydeface_func:
+                if check_pydeface_installed():
+                    run_pydeface_lowres(output_dir_anat, subject_id, session_id)  # Corrected function call
+                else:
+                    logging.warning("Skipping pydeface execution as it is not installed.")
             else:
-                logging.warning("Skipping pydeface execution as it is not installed.")
+                logging.info("Pydeface execution is not enabled.")
         else:
-            logging.info("Pydeface execution is not enabled.")
+            logging.info("LowRes T1-weighted DICOM files not found, skipping processing.")
+        
+        
 
 
     # Log other errors. 
