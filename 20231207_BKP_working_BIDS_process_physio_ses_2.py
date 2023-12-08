@@ -325,7 +325,7 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
         run_id = run_id_match.group()
 
         # Verify essential metadata fields are present.
-        required_fields = ['TaskName', 'RepetitionTime', 'NumVolumes', 'SeriesDescription']
+        required_fields = ['TaskName', 'RepetitionTime', 'NumVolumes']
         run_metadata = {field: metadata.get(field) for field in required_fields}
         if not all(run_metadata.values()):
             missing_fields = [key for key, value in run_metadata.items() if value is None]
@@ -421,7 +421,7 @@ def find_trigger_start(trigger_starts, current_index):
         return None  # Indicate that there are no more triggers to process.
 
 # Segments physiological data into individual fMRI runs based on metadata and trigger starts.
-def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate, invalid_runs):
+def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
     """
     Parameters:
     - data (numpy.ndarray): The complete physiological data set.
@@ -1225,24 +1225,9 @@ def plot_runs_with_events(original_data, event_segments_by_run, events_df, sampl
     plt.savefig(plot_events_file_path, dpi=600)
     #plt.show() # Uncomment to display figure. 
     logging.info(f"Plot saved to {plot_events_file_path}")
-
-# SeriesDecription to run ID mapping for invalid run use cases. 
-def determine_expected_series_description(run_id):
-    series_descriptions = {
-    "run-00": "sms3_TASK_seqexec_PRE",
-    "run-01": "sms3_TASK_1",
-    "run-02": "sms3_TASK_2",
-    "run-03": "sms3_TASK_3",
-    "run-04": "sms3_TASK_4",
-    "run-05": "sms3_TASK_5",
-    "run-06": "sms3_TASK_6",
-    "run-07": "sms3_TASK_seqexec_POST"
-    }
-
-    return series_descriptions.get(run_id, '')
     
 # Main function to orchestrate the conversion of physiological data to BIDS format.
-def main(physio_root_dir, bids_root_dir, force_process_flag=False, invalid_runs_str=''):
+def main(physio_root_dir, bids_root_dir, force_process_flag=False):
     """
     Main function to orchestrate the conversion of physiological data to BIDS format.
 
@@ -1268,9 +1253,6 @@ def main(physio_root_dir, bids_root_dir, force_process_flag=False, invalid_runs_
 
     # Define the known sampling rate.
     sampling_rate = 5000  # Replace with the actual sampling rate if different.
-    
-    # Parse the invalid runs string into a list
-    invalid_runs = invalid_runs_str.split(',') if invalid_runs_str else []
 
     try:
         # Extract subject and session IDs from the path.
@@ -1295,7 +1277,6 @@ def main(physio_root_dir, bids_root_dir, force_process_flag=False, invalid_runs_
         log_file_path = setup_logging(subject_id, session_id, bids_root_dir)
         logging.info("Processing subject: %s, session: %s", subject_id, session_id)
         logging.info(f"Force processing flag: {force_process_flag}")
-        logging.info(f"Invalid runs: {invalid_runs}")
         
         # Load physiological data from the .mat file. 
         mat_file_path = os.path.join(physio_root_dir, f"{subject_id}_{session_id}_task-learn_physio.mat")
@@ -1338,22 +1319,6 @@ def main(physio_root_dir, bids_root_dir, force_process_flag=False, invalid_runs_
         for json_file_path in sorted_json_file_paths:
             run_id, run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
             if run_id and run_metadata:  # Checks that neither are None.
-
-                # Retrieve the actual SeriesDescription from the run_metadata.
-                actual_series_description = run_metadata['SeriesDescription']
-
-                # Logic to determine expected series description based on run_id and run mapping.
-                expected_series_description = determine_expected_series_description(run_id)
-                
-                # Check for mismatch between actual and expected SeriesDescription.
-                if actual_series_description != expected_series_description:
-                    if run_id not in invalid_runs and invalid_runs:
-                        logging.warning(f"Warning: SeriesDescription mismatch for {run_id} but it's marked as invalid. Expected: {expected_series_description}, Found: {actual_series_description}.")
-                    elif run_id not in invalid_runs and not invalid_runs:
-                        logging.error(f"Error: SeriesDescription mismatch for {run_id}. Expected: {expected_series_description}, Found: {actual_series_description}.")
-                        sys.exit(1)  # Terminate the script with an error if a mismatch is found and it's not marked as invalid.
-                    
-                # Get metadata for the current run.
                 all_runs_metadata[run_id] = run_metadata
 
         # Sort the run IDs based on their numeric part.
@@ -1379,8 +1344,8 @@ def main(physio_root_dir, bids_root_dir, force_process_flag=False, invalid_runs_
             raise ValueError("No trigger points found, please check the threshold and min_consecutive parameters.")
         logging.info("Trigger starts: %s", len(trigger_starts)) # trigger_starts.
 
-        # Find runs using the extracted trigger points and the list of invalid runs
-        runs_info = find_runs(data, all_runs_metadata, trigger_starts, sampling_rate, invalid_runs)
+        # Find runs using the extracted trigger points.
+        runs_info = find_runs(data, all_runs_metadata, trigger_starts, sampling_rate)
         if len(runs_info) == 0:
             raise ValueError("No runs were found, please check the triggers and metadata.")
 
@@ -1410,15 +1375,9 @@ def main(physio_root_dir, bids_root_dir, force_process_flag=False, invalid_runs_
 
         event_segments_by_run = {}  # Dictionary to store event segments for each run.
 
-        # Create a set of valid run IDs from runs_info for quick lookup
-        valid_run_ids = {info['run_id'] for info in runs_info}
-
         # Segment runs and write output files for each run, using sorted_run_ids to maintain order.
         output_files = []
         for run_id in sorted_run_ids:
-            if run_id not in valid_run_ids:
-                logging.info(f"Skipping event segmentation for invalid or missing run {run_id}.")
-                continue  # Skip this run
             try:
                 run_info = run_info_dict[run_id]
                 repetition_time = all_runs_metadata[run_id]['RepetitionTime']  # Retrieve repetition time from metadata.
@@ -1582,9 +1541,6 @@ if __name__ == '__main__':
     # The third argument is an optional flag to force processing even if run mismatch occurs.
     parser.add_argument('--force', action='store_true', help='Force processing even if run mismatch occurs')
 
-    # Another optional argument is a comma-separated list of invalid runs (e.g., run-04,run-05).
-    parser.add_argument('--invalid', type=str, help='Comma-separated list of invalid runs.', default='')
-
     # Parse the arguments provided by the user.
     args = parser.parse_args()
     
@@ -1593,11 +1549,10 @@ if __name__ == '__main__':
     print(f"Physiological data directory: {args.physio_root_dir}")
     print(f"BIDS root directory: {args.bids_root_dir}")
     print(f"Force processing: {args.force}")
-    print(f"Invalid runs: {args.invalid}")
  
     # Call the main function with the parsed arguments.
     try:
-        main(args.physio_root_dir, args.bids_root_dir, args.force, args.invalid)
+        main(args.physio_root_dir, args.bids_root_dir, args.force)
     except Exception as e:
         logging.error("An error occurred during script execution: %s", e, exc_info=True)
         logging.info("Script execution completed with errors.")
