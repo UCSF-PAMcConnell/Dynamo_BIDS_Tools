@@ -246,6 +246,11 @@ def main(dataset_root_dir, start_id, end_id, pydeface=False):
                 print(f'ZIP file not found for {subject_id}, session {session_id}')
         
             # Setup logging, directories, and other pre-processing steps for each subject.
+            
+            # Reset the logging handlers to avoid duplicate messages.
+            for handler in logging.root.handlers[:]:
+                logging.root.removeHandler(handler)
+
             log_dir = setup_logging(subject_id, session_id, dataset_root_dir)
             logging.info("Processing subject: %s, session: %s", subject_id, session_id)
 
