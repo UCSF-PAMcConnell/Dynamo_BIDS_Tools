@@ -95,11 +95,17 @@ def unzip_and_move(zip_file_path, sourcedata_root_dir):
             with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_zip_dir)
 
+            # Logging to list the contents of temp_zip_dir
+            print(f"Contents of temp_zip_dir ({temp_zip_dir}): {os.listdir(temp_zip_dir)}")
+
             # Find the first (or the only) folder inside the temp_zip_dir
             extracted_folders = [f for f in os.listdir(temp_zip_dir) if os.path.isdir(os.path.join(temp_zip_dir, f))]
             if not extracted_folders:
                 raise Exception("No directories found inside the ZIP file.")
             inner_folder = os.path.join(temp_zip_dir, extracted_folders[0])
+
+            # Logging to list the contents of the inner_folder
+            print(f"Contents of inner_folder ({inner_folder}): {os.listdir(inner_folder)}")
 
             # Check and move 'dicom' and 'convert' directories
             for folder_name in ['dicom', 'convert']:
@@ -120,7 +126,6 @@ def unzip_and_move(zip_file_path, sourcedata_root_dir):
         print(f'Successfully extracted and moved files from {zip_file_path} to {sourcedata_root_dir}')
     except Exception as e:
         print(f'Error unzipping the ZIP file: {str(e)}')
-
 
 # Sets up archival logging for the script, directing log output to both a file and the console.
 def setup_logging(subject_id, session_id, dataset_root_dir):
