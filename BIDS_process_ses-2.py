@@ -94,13 +94,21 @@ def unzip_and_move(zip_file_path, sourcedata_root_dir):
             with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                 zip_ref.extractall(temp_zip_dir)
 
+            # Logging to list the contents of temp_zip_dir
+            print(f"Contents of temp_zip_dir ({temp_zip_dir}): {os.listdir(temp_zip_dir)}")
+        
             # Find the first (or the only) folder inside the temp_zip_dir
             extracted_folders = [f for f in os.listdir(temp_zip_dir) if os.path.isdir(os.path.join(temp_zip_dir, f))]
             if not extracted_folders:
-                raise Exception("No directories found inside the ZIP file.")
+                print("No directories found inside the ZIP file.")
+                return
             inner_folder = os.path.join(temp_zip_dir, extracted_folders[0])
+            
+            # Now proceed to check the contents of the inner_folder again
+            print(f"Revised contents of inner_folder ({inner_folder}): {os.listdir(inner_folder)}")
 
             # Check and move 'dicom' and 'convert' directories
+            success = False
             for folder_name in ['dicom', 'convert']:
                 source_folder = os.path.join(inner_folder, folder_name)
                 destination_folder = os.path.join(sourcedata_root_dir, folder_name)
@@ -110,13 +118,21 @@ def unzip_and_move(zip_file_path, sourcedata_root_dir):
                         if os.path.exists(destination_folder):
                             shutil.rmtree(destination_folder)
                         shutil.move(source_folder, destination_folder)
+                        print(f'Moved "{folder_name}" directory to {destination_folder}')
+                        success = True
                     elif folder_name == 'convert':
                         # Assuming you want to delete the 'convert' directory
                         shutil.rmtree(source_folder)
+                        print(f'Deleted "{folder_name}" directory from {source_folder}')
+                        success = True
                 else:
                     print(f'No "{folder_name}" directory found inside the ZIP file.')
 
-        print(f'Successfully extracted and moved files from {zip_file_path} to {sourcedata_root_dir}')
+            if success:
+                print(f'Successfully processed ZIP file: {zip_file_path}')
+            else:
+                print(f'No expected directories ("dicom" or "convert") were found and moved from {zip_file_path}')
+    
     except Exception as e:
         print(f'Error unzipping the ZIP file: {str(e)}')
 
