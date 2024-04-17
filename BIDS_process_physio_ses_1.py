@@ -478,7 +478,7 @@ def find_trigger_start(trigger_starts, current_index):
         return None  # Indicate that there are no more triggers to process
 
 # Segments the data into runs based on the metadata for each fMRI run and the identified trigger starts..
-def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
+def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate, invalid_runs):
     """
     Segments the MRI data into runs based on the metadata for each fMRI run and the identified trigger starts.
 
@@ -505,8 +505,9 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
     
     runs_info = []
     start_from_index = 0  # Start from the first trigger
+    skipped_invalid_runs = set()
 
-    for run_id, metadata in all_runs_metadata.items():
+    for run_id, metadata in sorted(all_runs_metadata.items()):
         try:
             repetition_time = metadata.get('RepetitionTime')
             num_volumes = metadata.get('NumVolumes')
@@ -517,31 +518,46 @@ def find_runs(data, all_runs_metadata, trigger_starts, sampling_rate):
             logging.info(f"Searching for a valid {run_id} with {num_volumes} volumes and TR={repetition_time}s")
             samples_per_volume = int(sampling_rate * repetition_time)
 
-            # Start searching for a valid run from the last used trigger index
-            for i in range(start_from_index, len(trigger_starts) - num_volumes + 1):
-                expected_interval = samples_per_volume * (num_volumes - 1)
-                actual_interval = trigger_starts[i + num_volumes - 1] - trigger_starts[i]
-                
-                if actual_interval <= expected_interval:
-                    start_idx = trigger_starts[i]
-                    end_idx = start_idx + num_volumes * samples_per_volume
-                    if end_idx > data.shape[0]:
-                        logging.info(f"Proposed end index {end_idx} for {run_id} is out of bounds.")
+            # Continue searching for the next valid run, or skip if it's marked as invalid
+            while start_from_index < len(trigger_starts):
+                valid_run_start_index = None
+
+                # Find the start index of the next valid run
+                for i, start in enumerate(trigger_starts[start_from_index:], start_from_index):
+                    if i + num_volumes > len(trigger_starts):
+                        break  # Not enough triggers left for the full run
+
+                    expected_end = trigger_starts[i] + (num_volumes - 1) * samples_per_volume
+                    if trigger_starts[i + num_volumes - 1] <= expected_end:
+                        valid_run_start_index = i
+                        break
+
+                if valid_run_start_index is not None:
+                    # Check if the run is marked as invalid and should be skipped
+                    if run_id in invalid_runs and run_id not in skipped_invalid_runs:
+                        logging.info(f"Skipping invalid run {run_id} starting at index {valid_run_start_index}.")
+                        skipped_invalid_runs.add(run_id)
+                        start_from_index = valid_run_start_index + num_volumes
                         continue
-                    
-                    run_info = {
+
+                    # If it's not invalid, or has already been skipped once, process it
+                    start_idx = trigger_starts[valid_run_start_index]
+                    end_idx = start_idx + num_volumes * samples_per_volume
+
+                    runs_info.append({
                         'run_id': run_id,
                         'start_index': start_idx,
                         'end_index': end_idx,
                         'metadata': metadata
-                    }
-                    runs_info.append(run_info)
-                    logging.info(f"Valid run found for {run_id}: start at {start_idx}, end at {end_idx}")
-                    start_from_index = i + num_volumes  # Update the starting index for the next run
-                    break  # Exit loop after finding a valid start index for this run
+                    })
+                    logging.info(f"Found valid run {run_id} from index {start_idx} to {end_idx}.")
+                    start_from_index = valid_run_start_index + num_volumes
+                    break
+
                 else:
-                    logging.info(f"{run_id} at index {i} does not match expected interval.")
-            
+                    logging.warning(f"No more valid trigger sequences found for {run_id} after index {start_from_index}.")
+                    break
+                
             if start_from_index >= len(trigger_starts) - num_volumes + 1:
                 logging.info(f"No valid segments found for {run_id} after index {start_from_index}.")
 
