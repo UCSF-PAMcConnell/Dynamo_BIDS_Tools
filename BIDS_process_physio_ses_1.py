@@ -376,7 +376,7 @@ def extract_metadata_from_json(json_file_path, processed_jsons):
         run_id = run_id_match.group()
 
         # Verify essential metadata fields are present.
-        required_fields = ['TaskName', 'RepetitionTime', 'NumVolumes']
+        required_fields = ['TaskName', 'RepetitionTime', 'NumVolumes', 'SeriesDescription']
         run_metadata = {field: metadata.get(field) for field in required_fields}
         if not all(run_metadata.values()):
             missing_fields = [key for key, value in run_metadata.items() if value is None]
