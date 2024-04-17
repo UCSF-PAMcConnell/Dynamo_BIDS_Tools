@@ -1067,7 +1067,7 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=
         logging.info("Trigger starts: %s", len(trigger_starts)) 
 
         # Find runs using the extracted trigger points.
-        runs_info = find_runs(data, all_runs_metadata, trigger_starts, sampling_rate)
+        runs_info = find_runs(data, all_runs_metadata, trigger_starts, sampling_rate, invalid_runs)
         if len(runs_info) == 0:
             raise ValueError("No runs were found, please check the triggers and metadata.")
 
