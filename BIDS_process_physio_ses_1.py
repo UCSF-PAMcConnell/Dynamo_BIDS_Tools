@@ -897,8 +897,19 @@ def plot_runs(original_data, segmented_data_list, runs_info, bids_labels_list, s
         logging.error("Failed to plot runs: %s", e, exc_info=True)
         raise
 
+# SeriesDecription to run ID mapping for invalid run use cases. 
+def determine_expected_series_description(run_id):
+    series_descriptions = {
+    "run-01": "Resting_1",
+    "run-02": "Resting_2",
+    "run-03": "Resting_3",
+    "run-04": "Resting_4",
+    }
+
+    return series_descriptions.get(run_id, '')
+
 # Main function to orchestrate the conversion of physiological data to BIDS format.
-def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=False):
+def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=False, invalid_runs_str=''):
     """
     Main function to orchestrate the conversion of physiological data to BIDS format.
 
@@ -926,6 +937,9 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=
 
     # Define the known sampling rate
     sampling_rate = 5000  # Replace with the actual sampling rate if different
+    
+    # Parse the invalid runs string into a list
+    invalid_runs = invalid_runs_str.split(',') if invalid_runs_str else []
     
     try:
         # Extract subject and session IDs from the path.
@@ -995,6 +1009,22 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=
         for json_file_path in sorted_json_file_paths:
             run_id, run_metadata = extract_metadata_from_json(json_file_path, processed_jsons)
             if run_id and run_metadata:  # Checks that neither are None
+                
+                # Retrieve the actual SeriesDescription from the run_metadata.
+                actual_series_description = run_metadata['SeriesDescription']
+
+                # Logic to determine expected series description based on run_id and run mapping.
+                expected_series_description = determine_expected_series_description(run_id)
+                
+                # Check for mismatch between actual and expected SeriesDescription.
+                if actual_series_description != expected_series_description:
+                    if run_id not in invalid_runs and invalid_runs:
+                        logging.warning(f"Warning: SeriesDescription mismatch for {run_id} but it's marked as invalid. Expected: {expected_series_description}, Found: {actual_series_description}.")
+                    elif run_id not in invalid_runs and not invalid_runs:
+                        logging.error(f"Error: SeriesDescription mismatch for {run_id}. Expected: {expected_series_description}, Found: {actual_series_description}.")
+                        sys.exit(1)  # Terminate the script with an error if a mismatch is found and it's not marked as invalid.
+                
+                # Get metadata for the current run
                 all_runs_metadata[run_id] = run_metadata
 
         # Sort the run IDs based on their numeric part
@@ -1053,9 +1083,16 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=
         # if not set(sorted_run_ids) == set(run_info_dict.keys()):
         #     raise ValueError("Mismatch between found runs and expected runs based on JSON metadata.")
 
+        # Create a set of valid run IDs from runs_info for quick lookup
+        valid_run_ids = {info['run_id'] for info in runs_info}
+
         # Segment runs and write output files for each run, using sorted_run_ids to maintain order
         output_files = []
         for run_id in sorted_run_ids:
+            if run_id not in valid_run_ids:
+                logging.info(f"Skipping event segmentation for invalid or missing run {run_id}.")
+                continue  # Skip this run
+            
             try:
                 run_info = run_info_dict[run_id]
                 #logging.info("Processing run info: %s", run_info)
@@ -1117,7 +1154,8 @@ def main(physio_root_dir, bids_root_dir, cut_off_duration=0, force_process_flag=
             shutil.copy2(plot_file_path, output_derivatives_dir_plot)
         else:
             logging.error("No data available to plot.")
-
+    # Note: Logic here for handing forced run skipping? Haven't encountered this yet but see ses-2 code for reference if needed. 
+     
     except Exception as e:
         logging.error("An error occurred in the main function: %s", e, exc_info=True)
         raise
@@ -1153,6 +1191,8 @@ if __name__ == '__main__':
     # The fourth argument is an optional flag to force processing even if run mismatch occurs.
     parser.add_argument('--force', action='store_true', help='Force processing even if run mismatch occurs')
 
+    # Another optional argument is a comma-separated list of invalid runs (e.g., run-04,run-05).
+    parser.add_argument('--invalid', type=str, help='Comma-separated list of invalid runs.', default='')
 
     # Parse the arguments provided by the user.
     args = parser.parse_args()
@@ -1162,13 +1202,14 @@ if __name__ == '__main__':
     print(f"Physiological data directory: {args.physio_root_dir}")
     print(f"BIDS root directory: {args.bids_root_dir}")
     print(f"Force processing: {args.force}")
+    print(f"Invalid runs: {args.invalid}")
 
     if args.cut_off_duration > 0:
         print(f"Cut-off duration: {args.cut_off_duration} minutes")
 
     # Call the main function with the parsed arguments.
     try:
-        main(args.physio_root_dir, args.bids_root_dir, args.cut_off_duration, args.force)
+        main(args.physio_root_dir, args.bids_root_dir, args.cut_off_duration, args.force, args.invalid)
     except Exception as e:
         logging.error("An error occurred during script execution: %s", e, exc_info=True)
         logging.info("Script execution completed with errors.")
