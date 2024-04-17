@@ -1,5 +1,8 @@
 """
-! Modifying to handle --invalid runs similiarly as to the session 2 code, in progress
+! Modifying to handle --invalid runs similiarly as to the session 2 code, successfully implemented.
+
+# Note: to facilitate the code functionality, in cases with abnormal runs, the dicom files are manually deleted for the invalid runs. The code then takes into account labeled invalid runs and parses the physio data accordingly. This has been tested for 1 first run but not yet tested for multiple invalid runs or for invalid “not first” runs… 
+
 BIDS_process_physio_ses_1.py
 
 Description:
