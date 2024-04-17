@@ -1,5 +1,5 @@
 """
-! Modifying to handle --invalid runs similiarly as to the session 2 code, in progress
+! This is a functional script; backing up on 20240417 to add modification to handle --invalid runs similiarly as to the session 2 code. 
 BIDS_process_physio_ses_1.py
 
 Description:
